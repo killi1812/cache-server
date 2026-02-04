@@ -13,12 +13,10 @@ tasks:
 
   dev:
     description: build project binary for development
-    vars:
-      BUILD: "dev"
     cmds:
       - task: build
         vars:
-          BUILD: "{{.BUILD}}"
+          BUILD: "dev"
     silent: true
 
   build:
@@ -34,14 +32,15 @@ tasks:
     cmds:
       - cmd: "echo 'Build info\n\tBuild:\t\t{{.BUILD}}\n\tVersion:\t{{.VERSION}}\n\tCommit:\t\t{{.COMMIT_HASH}}\n\tTime Stamp:\t{{.BUILD_TIMESTAMP}}'"
       - cmd: mkdir -p {{.BINARY_DIR}}
-      - cmd: go build -C {{.CODE_DIR}} -ldflags="{{.LDFLAGS}}" {{.BINARY_DIR}}
+      - cmd: go build -C {{.CODE_DIR}} -ldflags="{{.LDFLAGS}}" -v -o ../{{.BINARY_DIR}}
     silent: true
+    internal: true
 
   install:
     description: install project as your local binary
     vars:
       BUILD: "prod"
-    # TODO: Implement
+    # TODO: Implement installation
     cmds:
       - task: build
         vars:

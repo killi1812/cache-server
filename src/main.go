@@ -2,24 +2,42 @@ package main
 
 import (
 	"context"
-	"flag"
 	"os"
 
-	"github.com/google/subcommands"
 	"github.com/killi1812/go-cache-server/app"
-	"github.com/killi1812/go-cache-server/cmd/version"
+	// "github.com/killi1812/go-cache-server/cmd/version"
+	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
+
+var root *cobra.Command
 
 func init() {
 	app.Setup()
 
-	subcommands.Register(subcommands.HelpCommand(), "")
-	subcommands.Register(&version.VersionCmd{}, "")
+	root = &cobra.Command{
+		Use:     "cache-server",
+		Short:   "MyTool is a lightning fast CLI",
+		Long:    `An example application to demonstrate Cobra's subcommand power.`,
+		Version: app.Version,
+		Run: func(cmd *cobra.Command, args []string) {
+			cmd.Help()
+		},
+	}
 
-	flag.Parse()
+	root.SetVersionTemplate(`{{with .Name}}{{printf "%s " .}}{{end}}
+Version:     ` + app.Version + `
+Build Type:  ` + app.Build + `
+Commit Hash: ` + app.CommitHash + `
+Build Time:  ` + app.BuildTimestamp + `
+`)
 }
 
 func main() {
 	ctx := context.Background()
-	os.Exit(int(subcommands.Execute(ctx)))
+	root.SetContext(ctx)
+	if err := root.Execute(); err != nil {
+		zap.S().Errorln(os.Stderr, err)
+		os.Exit(1)
+	}
 }
