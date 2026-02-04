@@ -2,6 +2,7 @@ version: "3"
 
 vars:
   BINARY_DIR: ./bin
+  APP_NAME: cache-server
   CODE_DIR: ./src
   PACKAGE: "github.com/killi1812/go-cache-server"
 
@@ -14,12 +15,12 @@ tasks:
   dev:
     description: build project binary for development
     cmds:
-      - task: build
+      - task: build-int
         vars:
           BUILD: "dev"
     silent: true
 
-  build:
+  build-int:
     description: build project binary
     vars:
       VERSION:
@@ -32,19 +33,26 @@ tasks:
     cmds:
       - cmd: "echo 'Build info\n\tBuild:\t\t{{.BUILD}}\n\tVersion:\t{{.VERSION}}\n\tCommit:\t\t{{.COMMIT_HASH}}\n\tTime Stamp:\t{{.BUILD_TIMESTAMP}}'"
       - cmd: mkdir -p {{.BINARY_DIR}}
-      - cmd: go build -C {{.CODE_DIR}} -ldflags="{{.LDFLAGS}}" -v -o ../{{.BINARY_DIR}}
+      - cmd: go build -C {{.CODE_DIR}} -ldflags="{{.LDFLAGS}}" -v -o ../{{.BINARY_DIR}}/{{.APP_NAME}}
     silent: true
     internal: true
 
-  install:
-    description: install project as your local binary
+  build:
+    description: build a project
     vars:
       BUILD: "prod"
-    # TODO: Implement installation
     cmds:
-      - task: build
+      - task: build-int
         vars:
           BUILD: "{{.BUILD}}"
+    silent: true
+
+  install:
+    description: install project as your local binary
+    cmds:
+      # TODO: Implement installation
+      - task: build
+    # TODO: Implement installation
     silent: true
 
   test:
