@@ -1,3 +1,4 @@
+// package config contains the apps runtime config
 package config
 
 import (
