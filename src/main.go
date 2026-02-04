@@ -26,7 +26,7 @@ func init() {
 			app.VerboseLoggerSetup()
 		}
 		zap.S().Debugf("Config file %s", config.ConfigPath)
-		config.ReadConfig()
+		config.LoadConfig()
 	}
 }
 

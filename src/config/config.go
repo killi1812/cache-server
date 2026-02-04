@@ -2,6 +2,8 @@
 package config
 
 import (
+	"errors"
+
 	"go.uber.org/zap"
 	"gopkg.in/ini.v1"
 )
@@ -18,7 +20,9 @@ key = secret
 
 var ConfigPath string
 
-var Config *ServerConf
+var Config *AppConfig
+
+var ErrBadConfig = errors.New("bad config")
 
 type AppConfig struct {
 	CacheServer *ServerConf `ini:"cache-server"`
@@ -40,33 +44,44 @@ func NewConfig() *AppConfig {
 	c.CacheServer.CacheDir = "binary-caches"
 	c.CacheServer.ServerPort = 12345
 	c.CacheServer.Database = "dbfile.db"
-	c.CacheServer.DeployPort = 12345
+	c.CacheServer.DeployPort = 54321
 	c.CacheServer.Key = "secret"
 	return c
 }
 
-func ReadConfig() error {
+func LoadConfig() error {
 	zap.S().Debugf("Reading config")
 
+	config, err := readConfig(ConfigPath)
+	if err != nil {
+		zap.S().Errorf("Failed to load config using defaults")
+		zap.S().Error(err.Error())
+		zap.S().Debugf("Default config: %+v", *config)
+
+		Config = config
+		return err
+	}
+	zap.S().Debugf("Config read successfully")
+	zap.S().Debugf("Config: %+v", *config)
+
+	// set global config
+	Config = config
+	return nil
+}
+
+func readConfig(filename string) (*AppConfig, error) {
 	// Create a new config object
 	config := NewConfig()
 
-	cfg, err := ini.Load(ConfigPath)
+	cfg, err := ini.Load(filename)
 	if err != nil {
-
-		zap.S().Errorf("Failed to read config using defaults")
-		zap.S().Error(err.Error())
-		zap.S().Debugf("Default config: %+v", *config.CacheServer)
-
-		Config = config.CacheServer
-		return err
+		return config, errors.Join(ErrBadConfig, err)
 	}
 
-	// Map config file values
-	cfg.MapTo(config)
-	Config = config.CacheServer
+	err = cfg.MapTo(config)
+	if err != nil {
+		return config, nil
+	}
 
-	zap.S().Debugf("Config read successfully")
-	zap.S().Debugf("Config: %+v", *config.CacheServer)
-	return nil
+	return config, nil
 }

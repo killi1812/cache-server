@@ -56,13 +56,18 @@ tasks:
     silent: true
 
   test:
+    dir: "{{.CODE_DIR}}"
     description: run project tests
+    cmd: go test -v -parallel 10 ./...
     # TODO: Implement
     silent: true
 
   coverage:
+    dir: "{{.CODE_DIR}}"
     description: creates project coverage file
-    # TODO: Implement
+    cmds:
+      - cmd: go test -coverprofile=../coverage.out ./...
+      - cmd: go tool cover -html=../coverage.out
     silent: true
 
   list-tools:
