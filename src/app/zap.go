@@ -79,3 +79,36 @@ func devLoggerSetup() error {
 
 	return nil
 }
+
+func VerboseLoggerSetup() error {
+	zap.S().Debugln("Creating new verbose logger")
+	consoleLogLevel := zap.LevelEnablerFunc(func(level zapcore.Level) bool {
+		return level >= zapcore.DebugLevel
+	})
+
+	// log output
+	consoleLogFile := zapcore.Lock(os.Stdout)
+
+	// log configuration no date time and location, just level
+	consoleLogConfig := zap.NewProductionEncoderConfig()
+	consoleLogConfig.EncodeTime = nil
+	consoleLogConfig.EncodeCaller = nil
+	// consoleLogConfig.EncodeLevel = nil
+	consoleLogConfig.LevelKey = ""
+
+	consoleLogEncoder := zapcore.NewConsoleEncoder(consoleLogConfig)
+	core := zapcore.NewTee(
+		zapcore.NewCore(consoleLogEncoder, consoleLogFile, consoleLogLevel),
+	)
+
+	// create logger from core
+	logger := zap.New(core, zap.AddCaller())
+	defer logger.Sync()
+
+	zap.S().Debugln("New verbose logger created successfully")
+	// replace global logger
+	_ = zap.ReplaceGlobals(logger)
+
+	zap.S().Debugln("New verbose logger replace successfully")
+	return nil
+}
