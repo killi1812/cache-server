@@ -58,7 +58,7 @@ tasks:
   test:
     dir: "{{.CODE_DIR}}"
     description: run project tests
-    cmd: go test -v -parallel 10 ./...
+    cmd: go test -v -count=1 -parallel 10 ./...
     # TODO: Implement
     silent: true
 
