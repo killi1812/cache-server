@@ -43,9 +43,7 @@ func listen(cmd *cobra.Command, args []string) {
 
 	if foreground {
 		// start the app foreground
-		// TODO: check if .pid file should be created
 		app.Start()
-		// defer pid.RemovePid()
 	} else {
 		// start the app background
 		zap.S().Debugf("Running command %s", startcmd.String())

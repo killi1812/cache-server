@@ -30,8 +30,8 @@ func ReadPid() (int, error) { return readPid(_PID_FILE_NAME) }
 func writePid(pid int, filepath string) error {
 	content := []byte(strconv.Itoa(pid))
 
-	// 0644 sets permissions: owner can read/write, others can only read
-	f, err := os.OpenFile(filepath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	// 0444 sets permissions: file is readonly
+	f, err := os.OpenFile(filepath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o444)
 	if err != nil {
 		if errors.Is(err, os.ErrExist) {
 			zap.S().Error(ErrPidFileAlreadyExists)
