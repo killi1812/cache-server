@@ -1,4 +1,4 @@
-// Package stop
+// Package storepath
 package storepath
 
 import "github.com/spf13/cobra"

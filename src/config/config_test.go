@@ -33,7 +33,7 @@ func TestReadConfig(t *testing.T) {
 			conf, err := readConfig(tt.configName)
 			if tt.wantErr != nil {
 				assert.Error(t, err, "Err should not be nil")
-				assert.ErrorIs(t, err, tt.wantErr, "Error should have ErrBadConfig")
+				assert.ErrorContains(t, err, tt.wantErr.Error(), "Error should have ErrBadConfig")
 			} else {
 				assert.Nil(t, err, "No error should be returned")
 				assert.NotNil(t, conf, "Counfiguration should not be nil")

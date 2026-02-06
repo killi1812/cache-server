@@ -1,4 +1,4 @@
-// Package stop
+// Package workspace
 package workspace
 
 import "github.com/spf13/cobra"

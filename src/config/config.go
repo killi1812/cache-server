@@ -1,8 +1,9 @@
-// package config contains the apps runtime config
+// Package config contains the apps runtime config
 package config
 
 import (
 	"errors"
+	"fmt"
 
 	"go.uber.org/zap"
 	"gopkg.in/ini.v1"
@@ -75,7 +76,7 @@ func readConfig(filename string) (*AppConfig, error) {
 
 	cfg, err := ini.Load(filename)
 	if err != nil {
-		return config, errors.Join(ErrBadConfig, err)
+		return config, fmt.Errorf("%s: %w", ErrBadConfig, err)
 	}
 
 	err = cfg.MapTo(config)
