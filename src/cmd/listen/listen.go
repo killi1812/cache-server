@@ -17,6 +17,7 @@ var (
 	attach     = false
 )
 
+// restart the app in foreground
 var startcmd = exec.Command(os.Args[0], append(os.Args[1:], "--foreground")...)
 
 func NewCmd() *cobra.Command {
@@ -28,26 +29,23 @@ func NewCmd() *cobra.Command {
 	}
 
 	ptr.PersistentFlags().BoolVarP(&foreground, "foreground", "f", false, "Run the app in foreground")
-	ptr.PersistentFlags().BoolVarP(&attach, "attach", "a", false, "Attach to the running app in background")
 	return ptr
 }
 
 // TODO: check if it needed to be tread safe
 
 func listen(cmd *cobra.Command, args []string) {
-	// TODO: check if file .pid exits
+	if pid.CheckPid() {
+		// return error app already running
+		zap.S().Errorf("Error starting the server: %v", pid.ErrPidFileAlreadyExists)
+		return
+	}
 
-	if pid.StatPid() {
-		if attach {
-			// Attach to running app
-
-			// TODO: attach
-		} else {
-			// return error app already running
-		}
-	} else if foreground {
+	if foreground {
 		// start the app foreground
+		// TODO: check if .pid file should be created
 		app.Start()
+		// defer pid.RemovePid()
 	} else {
 		// start the app background
 		zap.S().Debugf("Running command %s", startcmd.String())

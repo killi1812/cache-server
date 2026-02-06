@@ -3,13 +3,17 @@ package pid
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"go.uber.org/zap"
 )
 
 const _PID_FILE_NAME = "/tmp/cache-server.pid"
+
+var ErrPidFileAlreadyExists = fmt.Errorf("error the file '%s' already exists", _PID_FILE_NAME)
 
 // TODO: write test
 
@@ -21,7 +25,7 @@ func WritePid(pid int) error {
 	f, err := os.OpenFile(_PID_FILE_NAME, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 	if err != nil {
 		if errors.Is(err, os.ErrExist) {
-			zap.S().Errorf("Error The file '%s' already exists", _PID_FILE_NAME)
+			zap.S().Error(ErrPidFileAlreadyExists)
 		} else {
 			zap.S().Errorf("Error opening file:", err)
 		}
@@ -41,17 +45,32 @@ func WritePid(pid int) error {
 	return nil
 }
 
-// StatPid check if .pid file exists
-func StatPid() bool {
-	return false
+// CheckPid check if .pid file exists
+func CheckPid() bool {
+	_, err := os.ReadFile(_PID_FILE_NAME)
+	return err == nil
 }
 
 // RemovePid will remove .pid file
 func RemovePid() error {
-	return nil
+	zap.S().Debugf("Removeing the pid file %s", _PID_FILE_NAME)
+	return os.Remove(_PID_FILE_NAME)
 }
 
 // ReadPid will read the .pid file and return -1,error if it fails
 func ReadPid() (int, error) {
-	return -1, nil
+	// 1. Read the PID file
+	data, err := os.ReadFile(_PID_FILE_NAME)
+	if err != nil {
+		return -1, err
+	}
+
+	// 2. Parse the PID
+	pidStr := strings.TrimSpace(string(data))
+	pid, err := strconv.Atoi(pidStr)
+	if err != nil {
+		return -1, err
+	}
+
+	return pid, nil
 }
