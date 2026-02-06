@@ -1,5 +1,5 @@
 // Package start contains logic for starting a http server
-package start
+package listen
 
 import (
 	"github.com/killi1812/go-cache-server/app"
@@ -14,9 +14,8 @@ func NewCmd() *cobra.Command {
 		// TODO: change
 		Short: "Start cache server",
 		// TODO: add foreground option?
-		Long:    `Start cache server in the background`,
-		Version: app.Version,
-		Run:     listen,
+		Long: `Start cache server in the background`,
+		Run:  listen,
 	}
 
 	ptr.PersistentFlags().BoolVarP(&foreground, "foreground", "f", false, "run the app in foreground")

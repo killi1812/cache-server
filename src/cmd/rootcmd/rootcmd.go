@@ -29,6 +29,12 @@ func NewCmd() *cobra.Command {
 
 	ptr.PersistentPreRun = setup
 
+	// remove cache-server help, only leave cache-server -h and cache-server --help
+	ptr.SetHelpCommand(&cobra.Command{
+		Use:    "no-help",
+		Hidden: true,
+	})
+
 	return ptr
 }
 
