@@ -6,28 +6,18 @@ import (
 
 	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/cmd/rootcmd"
-	"github.com/killi1812/go-cache-server/config"
+	"github.com/killi1812/go-cache-server/cmd/start"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
 
-var (
-	rcmd    *cobra.Command
-	verbose bool
-)
+var rcmd *cobra.Command
 
 func init() {
 	app.Setup()
 
-	rcmd = rootcmd.NewRootCommand()
-	rcmd.PersistentFlags().BoolVarP(&verbose, "verbose", "V", false, "verbose output")
-	rcmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
-		if verbose && app.Build == app.BuildProd {
-			app.VerboseLoggerSetup()
-		}
-		zap.S().Debugf("Config file %s", config.ConfigPath)
-		config.LoadConfig()
-	}
+	rcmd = rootcmd.NewCmd()
+	rcmd.AddCommand(start.NewCmd())
 }
 
 func main() {
