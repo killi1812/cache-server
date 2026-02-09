@@ -63,7 +63,12 @@ func checkPid(filepath string) bool {
 
 func removePid(filepath string) error {
 	zap.S().Debugf("Removeing the pid file %s", filepath)
-	return os.Remove(filepath)
+	err := os.Remove(filepath)
+	if err != nil {
+		zap.S().Debugf("Failed to remove pid file: %+v ", err)
+	}
+
+	return err
 }
 
 func readPid(filepath string) (int, error) {
