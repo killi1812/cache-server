@@ -29,6 +29,8 @@ func NewCmd() *cobra.Command {
 	return ptr
 }
 
+// BUG: server won't start in background
+
 // TODO: check if it needed to be tread safe
 
 func listen(cmd *cobra.Command, args []string) {

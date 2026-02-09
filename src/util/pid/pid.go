@@ -99,12 +99,19 @@ func findPIDsByName(targetName string) (int, error) {
 		}
 		pid := f.Name()
 
-		commPath := filepath.Join("/proc", pid, "cmdline")
-		data, err := os.ReadFile(commPath)
+		commPath := filepath.Join("/proc", pid, "comm")
+		comName, err := os.ReadFile(commPath)
 		if err != nil {
 			continue
 		}
-		fullCmd := strings.ReplaceAll(string(data), "\x00", " ")
+
+		argsPath := filepath.Join("/proc", pid, "cmdline")
+		comArgs, err := os.ReadFile(argsPath)
+		if err != nil {
+			continue
+		}
+
+		fullCmd := strings.TrimSpace(string(comName)) + " " + strings.ReplaceAll(string(comArgs), "\x00", " ")
 
 		if fullCmd := strings.TrimSpace(string(fullCmd)); strings.Contains(fullCmd, targetName) {
 			zap.S().Debugf("Found match: %s at PID %s", targetName, pid)
