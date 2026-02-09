@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -26,6 +27,8 @@ func RemovePid() error { return removePid(_PID_FILE_NAME) }
 
 // ReadPid will read the .pid file and return -1,error if it fails
 func ReadPid() (int, error) { return readPid(_PID_FILE_NAME) }
+
+func FindPidByName() (int, error) { return findPIDsByName("cache-server listen") }
 
 func writePid(pid int, filepath string) error {
 	content := []byte(strconv.Itoa(pid))
@@ -82,4 +85,38 @@ func readPid(filepath string) (int, error) {
 
 	zap.S().Debugf("Success parsing data")
 	return pid, nil
+}
+
+func findPIDsByName(targetName string) (int, error) {
+	files, err := os.ReadDir("/proc")
+	if err != nil {
+		return -1, err
+	}
+
+	for _, f := range files {
+		if !f.IsDir() {
+			continue
+		}
+		pid := f.Name()
+
+		commPath := filepath.Join("/proc", pid, "cmdline")
+		data, err := os.ReadFile(commPath)
+		if err != nil {
+			continue
+		}
+		fullCmd := strings.ReplaceAll(string(data), "\x00", " ")
+
+		if fullCmd := strings.TrimSpace(string(fullCmd)); strings.Contains(fullCmd, targetName) {
+			zap.S().Debugf("Found match: %s at PID %s", targetName, pid)
+			pid, err := strconv.Atoi(pid)
+			if err != nil {
+				zap.S().Error("Failed to parse data")
+				return -1, err
+			}
+
+			return pid, nil
+		}
+	}
+
+	return -1, os.ErrNotExist
 }

@@ -12,10 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	foreground = false
-	attach     = false
-)
+var foreground = false
 
 // restart the app in foreground
 var startcmd = exec.Command(os.Args[0], append(os.Args[1:], "--foreground")...)
