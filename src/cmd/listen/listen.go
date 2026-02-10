@@ -3,6 +3,7 @@ package listen
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -27,43 +28,35 @@ func NewCmd() *cobra.Command {
 	return ptr
 }
 
-// BUG: server won't start in background
-
 // TODO: check if it needed to be tread safe
 
 func listen(cmd *cobra.Command, args []string) {
-	if pid.CheckPid() {
-		// return error app already running
-		zap.S().Errorf("Error starting the server: %v", pid.ErrPidFileAlreadyExists)
-		return
-	}
-
 	if foreground {
 		// start the app foreground
 		app.Start()
 	} else {
-		// BUG: app won't sway alive
+		if pid.CheckPid() {
+			// return error app already running
+			zap.S().Errorf("Error starting the server: %v", pid.ErrPidFileAlreadyExists)
+			return
+		}
 
 		// start the app in background
 		absPath, _ := filepath.Abs(os.Args[0])
-		args := append(os.Args[1:], "--foreground")
+		args := strings.Join(append(os.Args[1:], "--foreground"), " ")
 
 		log, _ := os.OpenFile("cache-server.log", os.O_RDWR, 0)
 		defer log.Close()
 
-		procAttr := &os.ProcAttr{
-			Dir:   "/home/fran/",
-			Env:   os.Environ(),
-			Files: []*os.File{log, log, nil},
-			Sys: &syscall.SysProcAttr{
-				Setsid: true,
-				// Noctty: true,
-			},
+		zap.S().Debugf("Starting Process: %s %s", absPath, args)
+
+		cmd := exec.Command(absPath, strings.Split(args, " ")...)
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			Setsid: true,
 		}
 
-		zap.S().Debugf("Starting Process: %s %s", absPath, strings.Join(args, " "))
-
-		process, err := os.StartProcess(absPath, append([]string{absPath}, args...), procAttr)
+		err := cmd.Start()
+		process := cmd.Process
 		if err != nil {
 			zap.S().Fatalf("Failed to start: %v", err)
 		}
@@ -77,15 +70,17 @@ func listen(cmd *cobra.Command, args []string) {
 			process.Signal(syscall.SIGTERM)
 			process.Wait()
 			zap.S().Errorf("Server stopped")
+			return
 		}
 
 		// This tells Go "I am not going to Wait() for this, let it run"
-		err = process.Release()
+		err = cmd.Process.Release()
 		if err != nil {
 			zap.S().Errorf("Failed to release process: %v", err)
 			process.Signal(syscall.SIGTERM)
 			process.Wait()
 			zap.S().Errorf("Server stopped")
+			return
 		}
 	}
 }
