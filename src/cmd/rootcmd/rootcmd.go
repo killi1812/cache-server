@@ -25,7 +25,7 @@ func NewCmd() *cobra.Command {
 	ptr.SetVersionTemplate(versionTempleta)
 
 	ptr.PersistentFlags().StringVarP(&config.ConfigPath, "config", "c", "cache-server.conf", "path to config file")
-	ptr.PersistentFlags().BoolVarP(&verbose, "verbose", "V", false, "verbose output")
+	ptr.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 
 	ptr.PersistentPreRun = setup
 

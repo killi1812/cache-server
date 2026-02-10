@@ -45,9 +45,6 @@ func listen(cmd *cobra.Command, args []string) {
 		absPath, _ := filepath.Abs(os.Args[0])
 		args := strings.Join(append(os.Args[1:], "--foreground"), " ")
 
-		log, _ := os.OpenFile("cache-server.log", os.O_RDWR, 0)
-		defer log.Close()
-
 		zap.S().Debugf("Starting Process: %s %s", absPath, args)
 
 		cmd := exec.Command(absPath, strings.Split(args, " ")...)

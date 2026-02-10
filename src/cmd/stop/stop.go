@@ -34,10 +34,11 @@ func stop(cmd *cobra.Command, args []string) error {
 	if !pid.CheckPid() {
 		zap.S().Errorf("No pid file")
 
+		zap.S().Info("Trying to find the process by name")
 		// check for cache-server process and ask to stop it
 		p, err := pid.FindPidByName()
 		if err != nil {
-			zap.S().Debug("No process with name cache-server is running")
+			zap.S().Error("No process with name cache-server is running")
 			zap.S().Error("Failed stopping the cache-server")
 			return err
 		}

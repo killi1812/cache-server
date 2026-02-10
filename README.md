@@ -6,7 +6,7 @@ It is a replacement for [cachix server]() compatible with cachix client
 ## Implementation track
 
 - [x] listen
-- [ ] stop
+- [x] stop
 - [ ] agent
   - [ ] add
   - [ ] remove
