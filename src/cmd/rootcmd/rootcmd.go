@@ -14,9 +14,10 @@ func NewCmd() *cobra.Command {
 	ptr := &cobra.Command{
 		Use: "cache-server",
 		// TODO: change descriptions
-		Short:   "MyTool is a lightning fast CLI",
-		Long:    `An example application to demonstrate Cobra's subcommand power.`,
-		Version: app.Version,
+		Short:            "MyTool is a lightning fast CLI",
+		Long:             `An example application to demonstrate Cobra's subcommand power.`,
+		Version:          app.Version,
+		PersistentPreRun: setup,
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Help()
 		},
@@ -26,8 +27,6 @@ func NewCmd() *cobra.Command {
 
 	ptr.PersistentFlags().StringVarP(&config.ConfigPath, "config", "c", "cache-server.conf", "path to config file")
 	ptr.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
-
-	ptr.PersistentPreRun = setup
 
 	// remove cache-server help, only leave cache-server -h and cache-server --help
 	ptr.SetHelpCommand(&cobra.Command{

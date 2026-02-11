@@ -68,21 +68,22 @@ func LoadConfig() error {
 	zap.S().Debugf("Reading config")
 
 	config, err := readConfig(ConfigPath)
+	tmpb := strings.Builder{}
+	tmpe := json.NewEncoder(&tmpb)
+	tmpe.SetIndent("", "   ")
+	tmpe.Encode(config)
+
 	if err != nil {
 		zap.S().Warn("Failed to load config using defaults")
 		zap.S().Debug(err.Error())
 
-		tmp := strings.Builder{}
-		json.NewEncoder(&tmp).Encode(config)
-		zap.S().Debugf("Default config: %s", tmp.String())
+		zap.S().Debugf("Default config: %s", tmpb.String())
 
 		Config = config
 		return err
 	}
 	zap.S().Debugf("Config read successfully")
-	tmp := strings.Builder{}
-	json.NewEncoder(&tmp).Encode(config)
-	zap.S().Debugf("Default config: %s", tmp.String())
+	zap.S().Debugf("Default config: %s", tmpb.String())
 
 	// set global config
 	Config = config
