@@ -105,3 +105,13 @@ func TestBadPerms(t *testing.T) {
 	err = writePid(_EXAMPLE_PID, filename)
 	assert.ErrorIs(t, err, os.ErrPermission, "WritePid err should be nil")
 }
+
+func TestFindByName(t *testing.T) {
+	pid, err := findPIDsByName("bad-name-123")
+	assert.Error(t, err, "should return error")
+	assert.Equal(t, -1, pid, "Pid should be -1")
+
+	pid, err = findPIDsByName("task")
+	assert.Nil(t, err, "should return nil")
+	assert.NotEqual(t, -1, pid, "Pid should NOT be -1")
+}
