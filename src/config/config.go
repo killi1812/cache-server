@@ -2,51 +2,65 @@
 package config
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"go.uber.org/zap"
 	"gopkg.in/ini.v1"
 )
 
-/*
-[cache-server]
-hostname = cache-server
-cache-dir = binary-caches
-server-port = 12345
-database = dbfile.db
-deploy-port = 54321
-key = secret
-*/
+var (
+	ConfigPath   string
+	Config       *AppConfig
+	ErrBadConfig = errors.New("bad config")
+)
 
-var ConfigPath string
+type (
+	AppConfig struct {
+		CacheServer *ServerConf `ini:"cache-server"`
+		Minio       *MinioConf  `ini:"minio"`
+	}
 
-var Config *AppConfig
+	MinioConf struct {
+		Endpoint   string `ini:"endpoint"`
+		CredID     string `ini:"id"`
+		CredSecret string `ini:"secret"`
+		CredToken  string `ini:"token,omitempty"`
+		UseSSL     bool   `ini:"use-ssl"`
+	}
 
-var ErrBadConfig = errors.New("bad config")
-
-type AppConfig struct {
-	CacheServer *ServerConf `ini:"cache-server"`
-}
-
-type ServerConf struct {
-	Hostname   string `ini:"hostname"`
-	CacheDir   string `ini:"cache-dir"`
-	ServerPort int    `ini:"server-port"`
-	// connections string or sqlite file name
-	Database   string `ini:"database"`
-	DeployPort int    `ini:"deploy-port"`
-	Key        string `ini:"key"`
-}
+	ServerConf struct {
+		Hostname   string `ini:"hostname"`
+		CacheDir   string `ini:"cache-dir"`
+		ServerPort int    `ini:"server-port"`
+		// connections string or sqlite file name
+		Database   string `ini:"database"`
+		DeployPort int    `ini:"deploy-port"`
+		Key        string `ini:"key"`
+	}
+)
 
 func NewConfig() *AppConfig {
-	c := &AppConfig{CacheServer: &ServerConf{}}
-	c.CacheServer.Hostname = "cache-server"
-	c.CacheServer.CacheDir = "binary-caches"
-	c.CacheServer.ServerPort = 12345
-	c.CacheServer.Database = "dbfile.db"
-	c.CacheServer.DeployPort = 54321
-	c.CacheServer.Key = "secret"
+	c := &AppConfig{
+		CacheServer: &ServerConf{
+			Hostname:   "cache-server",
+			CacheDir:   "binary-caches",
+			ServerPort: 12345,
+			Database:   "dbfile.db",
+			DeployPort: 54321,
+			Key:        "secret",
+		},
+		Minio: &MinioConf{
+			Endpoint:   "play.min.io",
+			CredID:     "Q3AM3UQ867SPQQA43P2F",
+			CredSecret: "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG",
+			CredToken:  "",
+			UseSSL:     true,
+		},
+	}
+
 	return c
 }
 
@@ -57,13 +71,18 @@ func LoadConfig() error {
 	if err != nil {
 		zap.S().Warn("Failed to load config using defaults")
 		zap.S().Debug(err.Error())
-		zap.S().Debugf("Default config: %+v", config.CacheServer)
+
+		tmp := strings.Builder{}
+		json.NewEncoder(&tmp).Encode(config)
+		zap.S().Debugf("Default config: %s", tmp.String())
 
 		Config = config
 		return err
 	}
 	zap.S().Debugf("Config read successfully")
-	zap.S().Debugf("Config: %+v", *config)
+	tmp := strings.Builder{}
+	json.NewEncoder(&tmp).Encode(config)
+	zap.S().Debugf("Default config: %s", tmp.String())
 
 	// set global config
 	Config = config

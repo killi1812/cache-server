@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// BUG: tests seem not to work propperly
 func TestReadConfig(t *testing.T) {
 	tests := []struct {
 		name       string // description of this test case
@@ -23,10 +24,9 @@ func TestReadConfig(t *testing.T) {
 		{
 			name:       "Read bad confg",
 			configName: "testdata/bad.conf",
-			want:       NewConfig(),
+			want:       nil,
 			wantErr:    ErrBadConfig,
 		},
-		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -38,12 +38,20 @@ func TestReadConfig(t *testing.T) {
 				assert.Nil(t, err, "No error should be returned")
 				assert.NotNil(t, conf, "Counfiguration should not be nil")
 
+				// CacheServer asserts
 				assert.Equal(t, tt.want.CacheServer.Hostname, conf.CacheServer.Hostname, "Hostname should match")
 				assert.Equal(t, tt.want.CacheServer.CacheDir, conf.CacheServer.CacheDir, "CacheDir should match")
 				assert.Equal(t, tt.want.CacheServer.Database, conf.CacheServer.Database, "Database should match")
 				assert.Equal(t, tt.want.CacheServer.DeployPort, conf.CacheServer.DeployPort, "DeployPort should match")
 				assert.Equal(t, tt.want.CacheServer.ServerPort, conf.CacheServer.ServerPort, "ServerPort should match")
 				assert.Equal(t, tt.want.CacheServer.Key, conf.CacheServer.Key, "Key should match")
+
+				// Minio asserts
+				assert.Equal(t, tt.want.Minio.Endpoint, conf.Minio.Endpoint, "Endpoint should match")
+				assert.Equal(t, tt.want.Minio.CredID, conf.Minio.CredID, "Id should match")
+				assert.Equal(t, tt.want.Minio.CredSecret, conf.Minio.CredSecret, "Secret should match")
+				assert.Equal(t, tt.want.Minio.CredToken, conf.Minio.CredToken, "Token should match")
+				assert.Equal(t, tt.want.Minio.UseSSL, conf.Minio.UseSSL, "Use-ssl should match")
 
 				// TODO: add asserts
 			}
