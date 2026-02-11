@@ -55,7 +55,7 @@ func LoadConfig() error {
 
 	config, err := readConfig(ConfigPath)
 	if err != nil {
-		zap.S().Errorf("Failed to load config using defaults")
+		zap.S().Warn("Failed to load config using defaults")
 		zap.S().Debug(err.Error())
 		zap.S().Debugf("Default config: %+v", config.CacheServer)
 

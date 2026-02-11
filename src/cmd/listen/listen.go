@@ -2,6 +2,7 @@
 package listen
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,12 +17,14 @@ import (
 
 var foreground = false
 
+var ErrFailedToStart = errors.New("failed to start the server")
+
 func NewCmd() *cobra.Command {
 	ptr := &cobra.Command{
 		Use:   "listen",
 		Short: "Start cache server",
 		Long:  `Start cache server in the background`,
-		Run:   listen,
+		RunE:  listen,
 	}
 
 	ptr.PersistentFlags().BoolVarP(&foreground, "foreground", "f", false, "Run the app in foreground")
@@ -30,54 +33,64 @@ func NewCmd() *cobra.Command {
 
 // TODO: check if it needed to be tread safe
 
-func listen(cmd *cobra.Command, args []string) {
+func listen(cmd *cobra.Command, args []string) error {
 	if foreground {
 		// start the app foreground
 		app.Start()
 	} else {
-		if pid.CheckPid() {
-			// return error app already running
-			zap.S().Errorf("Error starting the server: %v", pid.ErrPidFileAlreadyExists)
-			return
-		}
-
-		// start the app in background
-		absPath, _ := filepath.Abs(os.Args[0])
-		args := strings.Join(append(os.Args[1:], "--foreground"), " ")
-
-		zap.S().Debugf("Starting Process: %s %s", absPath, args)
-
-		cmd := exec.Command(absPath, strings.Split(args, " ")...)
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			Setsid: true,
-		}
-
-		err := cmd.Start()
-		process := cmd.Process
+		err := startBackground()
 		if err != nil {
-			zap.S().Fatalf("Failed to start: %v", err)
+			return ErrFailedToStart
 		}
 
-		zap.S().Debugf("Running in background with PID: %d", process.Pid)
-
-		err = pid.WritePid(process.Pid)
-		if err != nil {
-			zap.S().Errorf("Failed to write a pid to a file")
-			zap.S().Errorf("Stopping the server")
-			process.Signal(syscall.SIGTERM)
-			process.Wait()
-			zap.S().Errorf("Server stopped")
-			return
-		}
-
-		// This tells Go "I am not going to Wait() for this, let it run"
-		err = cmd.Process.Release()
-		if err != nil {
-			zap.S().Errorf("Failed to release process: %v", err)
-			process.Signal(syscall.SIGTERM)
-			process.Wait()
-			zap.S().Errorf("Server stopped")
-			return
-		}
 	}
+	return nil
+}
+
+func startBackground() error {
+	if pid.CheckPid() {
+		// return error app already running
+		zap.S().Debugf("Error starting the server: %v", pid.ErrPidFileAlreadyExists)
+		return pid.ErrPidFileAlreadyExists
+	}
+
+	// start the app in background
+	absPath, _ := filepath.Abs(os.Args[0])
+	args := strings.Join(append(os.Args[1:], "--foreground"), " ")
+
+	zap.S().Debugf("Starting Process: %s %s", absPath, args)
+
+	cmd := exec.Command(absPath, strings.Split(args, " ")...)
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setsid: true,
+	}
+
+	err := cmd.Start()
+	process := cmd.Process
+	if err != nil {
+		zap.S().Debugf("Failed to start: %v", err)
+	}
+
+	zap.S().Debugf("Running in background with PID: %d", process.Pid)
+
+	err = pid.WritePid(process.Pid)
+	if err != nil {
+		zap.S().Debugf("Failed to write a pid to a file")
+		zap.S().Debugf("Stopping the server")
+		process.Signal(syscall.SIGTERM)
+		process.Wait()
+		zap.S().Debugf("Server stopped")
+		return err
+	}
+
+	// This tells Go "I am not going to Wait() for this, let it run"
+	err = cmd.Process.Release()
+	if err != nil {
+		zap.S().Debugf("Failed to release process: %v", err)
+		process.Signal(syscall.SIGTERM)
+		process.Wait()
+		zap.S().Debugf("Server stopped")
+		return err
+	}
+	return nil
 }

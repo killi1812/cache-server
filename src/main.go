@@ -34,7 +34,7 @@ func main() {
 	ctx := context.Background()
 
 	if err := rcmd.ExecuteContext(ctx); err != nil {
-		zap.S().Error(os.Stderr, err)
+		zap.S().Debug(os.Stderr, err)
 		os.Exit(1)
 	}
 }
