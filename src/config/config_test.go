@@ -111,6 +111,16 @@ func TestServerConf_GetDatabseType(t *testing.T) {
 			want: Sqlite,
 		},
 		{
+			name: "Good Sqlite conn string in memory",
+			conf: ServerConf{Database: "file::memory:?cache=shared"},
+			want: Sqlite,
+		},
+		{
+			name: "Good Sqlite conn string in memory",
+			conf: ServerConf{Database: "test.db?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=busy_timeout(5000)"},
+			want: Sqlite,
+		},
+		{
 			name: "Good Postgress conn string",
 			conf: ServerConf{Database: "host=localhost user=admin password=123 dbname=test port=5332 sslmode=disable"},
 			want: Postgres,
