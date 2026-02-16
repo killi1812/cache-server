@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"go.uber.org/zap"
@@ -108,4 +109,38 @@ func readConfig(filename string) (*AppConfig, error) {
 	}
 
 	return config, nil
+}
+
+var (
+
+	// The DSN Key-Value format: Requires at least TWO recognized postgres keys
+	// (host, dbname, user, sslmode, port, password) followed by an equals sign.
+	pgStrictRegex = regexp.MustCompile(`(?i)^(?:(?:^|\s+)(?:host|dbname|user|sslmode|port|password)=\S+){6,}`)
+
+	// sqliteRegex matches .db files, file: URIs, or in-memory strings
+	sqliteRegex = regexp.MustCompile(`\.db(\?.*)?$|:memory:|^file:`)
+)
+
+type DatabseType int
+
+const (
+	Sqlite   DatabseType = iota
+	Postgres DatabseType = iota
+
+	BadDbType DatabseType = iota
+)
+
+// GetDatabseType check by regex types for matching db conn strings
+func (c ServerConf) GetDatabseType() DatabseType {
+	dsn := c.Database
+
+	if pgStrictRegex.MatchString(dsn) {
+		return Postgres
+	}
+
+	if sqliteRegex.MatchString(dsn) {
+		return Sqlite
+	}
+
+	return BadDbType
 }
