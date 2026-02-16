@@ -3,6 +3,8 @@ package app
 
 import (
 	"fmt"
+
+	"go.uber.org/dig"
 )
 
 // Setup will preform app setup or panic of it fails
@@ -25,5 +27,10 @@ func Setup() {
 				panic("faled to setup logger")
 			}
 		}
+	}
+
+	// initialize dig
+	{
+		digContainer = dig.New()
 	}
 }

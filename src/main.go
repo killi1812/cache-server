@@ -12,6 +12,7 @@ import (
 	"github.com/killi1812/go-cache-server/cmd/stop"
 	"github.com/killi1812/go-cache-server/cmd/storepath"
 	"github.com/killi1812/go-cache-server/cmd/workspace"
+	"github.com/killi1812/go-cache-server/util/db"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -21,6 +22,7 @@ var rcmd *cobra.Command
 func init() {
 	app.Setup()
 
+	// registering commands
 	rcmd = rootcmd.NewCmd()
 	rcmd.AddCommand(listen.NewCmd())
 	rcmd.AddCommand(stop.NewCmd())
@@ -28,6 +30,8 @@ func init() {
 	rcmd.AddCommand(agent.NewCmd())
 	rcmd.AddCommand(workspace.NewCmd())
 	rcmd.AddCommand(storepath.NewCmd())
+
+	app.Provide(db.New())
 }
 
 func main() {
