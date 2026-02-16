@@ -64,6 +64,9 @@ func NewConfig() *AppConfig {
 	return c
 }
 
+// LoadConfig will try read config
+//
+// if it fails: return defaults and error
 func LoadConfig() error {
 	zap.S().Debugf("Reading config")
 

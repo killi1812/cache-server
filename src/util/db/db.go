@@ -1,3 +1,4 @@
+// Package db contains connections for database
 package db
 
 import (
@@ -36,6 +37,7 @@ func newSqliteConn() *gorm.DB {
 	return db
 }
 
+// New creates a new connection to the dabase based on the config
 func New() *gorm.DB {
 	var db *gorm.DB
 
@@ -50,7 +52,7 @@ func New() *gorm.DB {
 		zap.S().Panicf("failed to get database connection: %+v", err)
 	}
 
-	// TODO: seet as options
+	// TODO: set as options
 	sqlDB.SetMaxIdleConns(10)
 	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetConnMaxLifetime(time.Hour)

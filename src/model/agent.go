@@ -2,10 +2,12 @@ package model
 
 import "gorm.io/gorm"
 
+// Agent represents a deployment agent belonging to a workspace.
 type Agent struct {
 	gorm.Model
-	Name        string `gorm:"type:varchar(100);unique;not null"`
-	token       string `gorm:"type:varchar(255);not null"`
-	WorkspaceId uint
+	Name  string `gorm:"type:varchar(100);unique;not null" json:"name"`
+	Token string `gorm:"type:varchar(255);not null" json:"-"` // not serialized
+
+	WorkspaceId uint       `json:"workspace_id"`
 	Workspace   *Workspace `gorm:"foreignKey:WorkspaceId;constraint:OnUpdate:CASCADE;" json:"-"`
 }
