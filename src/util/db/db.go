@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/killi1812/go-cache-server/model"
-	"github.com/killi1812/go-cache-server/util/gormzap"
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
@@ -17,7 +16,7 @@ func newPostgresConn() *gorm.DB {
 	// TODO: implement connection string
 
 	db, err := gorm.Open(postgres.Open(""), &gorm.Config{
-		Logger: gormzap.NewGormZapLogger().LogMode(logger.Warn),
+		Logger: newGormZapLogger().LogMode(logger.Warn),
 	})
 	if err != nil {
 		zap.S().Panicf("failed to connect database err = %+v", err)
@@ -29,7 +28,7 @@ func newSqliteConn() *gorm.DB {
 	// TODO: implement connection string
 
 	db, err := gorm.Open(sqlite.Open("file:db?mode=memory&cache=shared"), &gorm.Config{
-		Logger: gormzap.NewGormZapLogger().LogMode(logger.Warn),
+		Logger: newGormZapLogger().LogMode(logger.Warn),
 	})
 	if err != nil {
 		zap.S().Panicf("failed to connect database err = %+v", err)

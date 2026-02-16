@@ -31,7 +31,7 @@ func init() {
 	rcmd.AddCommand(workspace.NewCmd())
 	rcmd.AddCommand(storepath.NewCmd())
 
-	app.Provide(db.New())
+	app.Provide(db.New)
 }
 
 func main() {

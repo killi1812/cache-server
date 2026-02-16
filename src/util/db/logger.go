@@ -1,5 +1,5 @@
 // Package gormzap contains a adapeter for grom logger to zap
-package gormzap
+package db
 
 import (
 	"context"
@@ -18,7 +18,7 @@ type gormZapLogger struct {
 	traceStr, traceErrStr, traceWarnStr string
 }
 
-func NewGormZapLogger() logger.Interface {
+func newGormZapLogger() logger.Interface {
 	var (
 		infoStr      = "%s\t%s"
 		warnStr      = "%s\t%s"
