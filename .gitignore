@@ -38,3 +38,5 @@ go.work.sum
 # build files
 bin/
 go-terminal-template
+
+dbfile.db
