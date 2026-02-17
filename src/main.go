@@ -12,6 +12,7 @@ import (
 	"github.com/killi1812/go-cache-server/cmd/stop"
 	"github.com/killi1812/go-cache-server/cmd/storepath"
 	"github.com/killi1812/go-cache-server/cmd/workspace"
+	"github.com/killi1812/go-cache-server/service"
 	"github.com/killi1812/go-cache-server/util/db"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -32,6 +33,11 @@ func init() {
 	rcmd.AddCommand(storepath.NewCmd())
 
 	app.Provide(db.New)
+
+	app.Provide(service.NewAgentSrv)
+	app.Provide(service.NewCacheSrv)
+	app.Provide(service.NewStorePathSrv)
+	app.Provide(service.NewWorkspaceSrv)
 }
 
 func main() {

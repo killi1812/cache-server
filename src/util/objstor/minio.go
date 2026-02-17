@@ -1,4 +1,4 @@
-package minio
+package objstor
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 )
 
 // New creates a new minio.Client
-func New() *minio.Client {
+func NewMinio() *minio.Client {
 	minioClient, err := minio.New(config.Config.Minio.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(config.Config.Minio.CredID, config.Config.Minio.CredSecret, config.Config.Minio.CredToken),
 		Secure: config.Config.Minio.UseSSL,

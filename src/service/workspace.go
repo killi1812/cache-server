@@ -12,7 +12,7 @@ type WorkspaceSrv struct {
 func NewWorkspaceSrv() *WorkspaceSrv {
 	var srv *WorkspaceSrv
 
-	app.Provide(func(db *gorm.DB) {
+	app.Invoke(func(db *gorm.DB) {
 		srv = &WorkspaceSrv{db}
 	})
 

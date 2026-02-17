@@ -145,7 +145,7 @@ func TestGenerateTokens(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotAccessToken, gotRefreshToken, err := auth.GenerateTokens()
+			gotAccessToken, gotRefreshToken, err := auth.GenerateJwt()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GenerateTokens() error = %v, wantErr %v", err, tt.wantErr)
 				return
