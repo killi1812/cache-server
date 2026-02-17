@@ -20,7 +20,7 @@ func Protect() gin.HandlerFunc {
 		// TODO: check if claims needed for something
 		token, _, err := ParseToken(authHeader)
 		if err != nil {
-			zap.S().Infof("Auth failed with err = %+v", err)
+			zap.S().Errorf("Auth failed with err = %+v", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, "Invalid token format")
 			return
 		}

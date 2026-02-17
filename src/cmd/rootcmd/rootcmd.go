@@ -15,7 +15,7 @@ func NewCmd() *cobra.Command {
 		Use: "cache-server",
 		// TODO: change descriptions
 		Short:            "MyTool is a lightning fast CLI",
-		Long:             `An example application to demonstrate Cobra's subcommand power.`,
+		Long:             "An example application to demonstrate Cobra's subcommand power.",
 		Version:          app.Version,
 		PersistentPreRun: setup,
 		Run: func(cmd *cobra.Command, args []string) {

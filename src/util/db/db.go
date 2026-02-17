@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/config"
 	"github.com/killi1812/go-cache-server/model"
 	"go.uber.org/zap"
@@ -15,6 +16,7 @@ import (
 )
 
 func newPostgresConn(dsn string) *gorm.DB {
+	zap.S().Infof("Opening new postgress connection")
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: newGormZapLogger().LogMode(logger.Warn),
 	})
@@ -25,6 +27,7 @@ func newPostgresConn(dsn string) *gorm.DB {
 }
 
 func newSqliteConn(dsn string) *gorm.DB {
+	zap.S().Infof("Opening new sqlite connection")
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
 		Logger: newGormZapLogger().LogMode(logger.Warn),
 	})
@@ -45,8 +48,12 @@ func New() *gorm.DB {
 	case Sqlite:
 		db = newSqliteConn(dsn)
 	default:
+		if app.Build == app.BuildProd {
+			zap.S().Panicf("failed to identify database connection string")
+			return nil // just to be sure
+		}
+		zap.S().Warnf("Using in memory database")
 		db = newSqliteConn("file:db?mode=memory&cache=shared")
-		// TODO: add log and paninc in prod
 	}
 
 	sqlDB, err := db.DB()
@@ -58,9 +65,13 @@ func New() *gorm.DB {
 	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
+	// TODO: move to only development and or flag
+	zap.S().Infof("Trying to run AutoMigrate")
 	if err = db.AutoMigrate(model.GetAllModels()...); err != nil {
-		zap.S().Panicf("Can't run AutoMigrate err = %+v", err)
+		zap.S().DPanicf("Can't run AutoMigrate err = %+v", err)
+		return db
 	}
+	zap.S().Infof("Successfull auto migrate")
 	return db
 }
 

@@ -93,7 +93,8 @@ func run(ctx context.Context, wg *sync.WaitGroup) {
 			zap.S().Panicf("Failes to start server err = %+v", err)
 		}
 	}()
-	zap.S().Infof("Started HTTP listen, address = http://localhost%v", srv.Addr)
+	zap.S().Debugf("Started HTTP listen, address = http://localhost%v", srv.Addr)
+	fmt.Printf("listening on http://%s:%d\n", config.Config.CacheServer.Hostname, config.Config.CacheServer.ServerPort)
 
 	// wait for context cancellation
 	<-ctx.Done()

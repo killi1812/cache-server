@@ -64,26 +64,24 @@ func create(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		zap.S().Errorf("Failed to generate token ")
 		zap.S().Debug(err)
-		return nil
+		return err
 	}
 
 	tmp := service.CreateCacheArgs{Name: name, Port: port, Retention: retention, Token: t}
 	cache, err := serv.Create(tmp)
 	if err != nil {
-		zap.S().Errorf("Failed to create cache token %+v", err)
-		return nil
+		zap.S().Errorf("Failed to create cache token, err: %+v", err)
+		return err
 	}
 
-	zap.S().Debugf("Binary cache '%s' created successfully (ID: %d)", cache.Name, cache.ID)
-
 	// Output for the user
-	zap.S().Infof("Binary Cache Created Successfully!")
-	zap.S().Infof("Name:      %s", cache.Name)
-	zap.S().Infof("Port:      %d", cache.Port)
-	zap.S().Infof("Token:     %s", cache.Token)
-	// zap.S().Infof("Directory: %s", cachePath)
+	fmt.Printf("Binary Cache Created Successfully!\n")
+	fmt.Printf("Name:      %s\n", cache.Name)
+	fmt.Printf("Port:      %d\n", cache.Port)
+	fmt.Printf("Token:     %s\n", cache.Token)
+	// fmt.Printf("Directory: %s", cachePath)
 	if retention > 0 {
-		zap.S().Infof("Retention: %d days", cache.Retention)
+		fmt.Printf("Retention: %d days\n", cache.Retention)
 	}
 
 	return nil
@@ -91,14 +89,13 @@ func create(cmd *cobra.Command, args []string) error {
 
 func setup(cmd *cobra.Command, args []string) error {
 	// Attempt to run parent's setup (e.g., root command)
-
 	parent := cmd.Parent().Parent()
 	if parent != nil && parent.PersistentPreRun != nil {
-		zap.S().Debugf("Running parent setup %d ...", parent.Use)
+		zap.S().Debugf("Running parent setup %v ...", parent.Use)
 		parent.PersistentPreRun(parent, args)
 	}
 
-	zap.S().Debug("Running workspace setup...")
+	zap.S().Debug("Running workspace setup ...")
 	return nil
 }
 

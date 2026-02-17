@@ -65,17 +65,17 @@ func removePid(filepath string) error {
 	zap.S().Debugf("Removeing the pid file %s", filepath)
 	err := os.Remove(filepath)
 	if err != nil {
-		zap.S().Debugf("Failed to remove pid file: %+v ", err)
+		zap.S().Errorf("Failed to remove pid file: %+v ", err)
 	}
 
 	return err
 }
 
 func readPid(filepath string) (int, error) {
-	zap.S().Debugf("Trying to read the pid file %s", filepath)
+	zap.S().Infof("Trying to read the pid file %s", filepath)
 	data, err := os.ReadFile(filepath)
 	if err != nil {
-		zap.S().Error("Failed reading the pid file")
+		zap.S().Warn("Failed reading the pid file")
 		return -1, err
 	}
 	zap.S().Debugf("Success reading the pid file")
@@ -93,6 +93,8 @@ func readPid(filepath string) (int, error) {
 }
 
 func findPIDsByName(targetName string) (int, error) {
+	zap.S().Debugf("Reading /proc")
+
 	files, err := os.ReadDir("/proc")
 	if err != nil {
 		return -1, err
@@ -119,10 +121,10 @@ func findPIDsByName(targetName string) (int, error) {
 		fullCmd := strings.TrimSpace(string(comName)) + " " + strings.ReplaceAll(string(comArgs), "\x00", " ")
 
 		if fullCmd := strings.TrimSpace(string(fullCmd)); strings.Contains(fullCmd, targetName) {
-			zap.S().Debugf("Found match: %s at PID %s", targetName, pid)
+			zap.S().Infof("Found match: %s at PID %s", targetName, pid)
 			pid, err := strconv.Atoi(pid)
 			if err != nil {
-				zap.S().Error("Failed to parse data")
+				zap.S().Errorf("Failed to parse data: %v", pid)
 				return -1, err
 			}
 

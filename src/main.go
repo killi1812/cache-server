@@ -15,7 +15,6 @@ import (
 	"github.com/killi1812/go-cache-server/service"
 	"github.com/killi1812/go-cache-server/util/db"
 	"github.com/spf13/cobra"
-	"go.uber.org/zap"
 )
 
 var rcmd *cobra.Command
@@ -44,7 +43,6 @@ func main() {
 	ctx := context.Background()
 
 	if err := rcmd.ExecuteContext(ctx); err != nil {
-		zap.S().Debug(os.Stderr, err)
 		os.Exit(1)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/killi1812/go-cache-server/app"
+	"github.com/killi1812/go-cache-server/config"
 	"github.com/killi1812/go-cache-server/model"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -41,9 +42,11 @@ func (m *CacheSrv) Create(args CreateCacheArgs) (*model.BinaryCache, error) {
 	var existing model.BinaryCache
 	err := m.db.Where("name = ?", args.Name).First(&existing).Error
 	if err == nil {
+		zap.S().Errorf("Error Creating new cache, err: %v", ErrExists)
 		return nil, errors.Join(ErrExists, err)
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		zap.S().Errorf("Error Creating new cache, err: %v", err)
 		return nil, err
 	}
 
@@ -54,12 +57,13 @@ func (m *CacheSrv) Create(args CreateCacheArgs) (*model.BinaryCache, error) {
 		Retention: args.Retention,
 
 		// TODO: hostname
-		URL: fmt.Sprintf("http://localhost:%d", args.Port), // Default URL logic
+		URL: fmt.Sprintf("http://%s:%d", config.Config.CacheServer.Hostname, args.Port), // Default URL logic
 	}
 
 	if err := m.db.Create(&cache).Error; err != nil {
 		return nil, fmt.Errorf("failed to save cache to database: %w", err)
 	}
 
+	zap.S().Infof("Binary cache '%s' created successfully (ID: %d)", cache.Name, cache.ID)
 	return &cache, nil
 }

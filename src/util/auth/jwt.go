@@ -34,7 +34,9 @@ func ParseToken(authHeader string) (*jwt.Token, *Claims, error) {
 		zap.S().Debugf("token: %s", authHeader)
 		return nil, nil, ErrInvalidTokenFormat
 	}
+
 	tokenString := authHeader[len("Bearer "):]
+
 	var claims Claims
 	token, err := jwt.ParseWithClaims(tokenString, &claims, func(token *jwt.Token) (any, error) {
 		return []byte(config.Config.CacheServer.Key), nil

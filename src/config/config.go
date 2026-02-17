@@ -45,7 +45,7 @@ type (
 func NewConfig() *AppConfig {
 	c := &AppConfig{
 		CacheServer: &ServerConf{
-			Hostname:   "cache-server",
+			Hostname:   "localhost",
 			CacheDir:   "binary-caches",
 			ServerPort: 12345,
 			Database:   "dbfile.db",
