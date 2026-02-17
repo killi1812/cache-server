@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// BUG: tests seem not to work propperly
 func TestReadConfig(t *testing.T) {
 	tests := []struct {
 		name       string // description of this test case
@@ -53,7 +52,7 @@ func TestReadConfig(t *testing.T) {
 				assert.Equal(t, tt.want.Minio.CredToken, conf.Minio.CredToken, "Token should match")
 				assert.Equal(t, tt.want.Minio.UseSSL, conf.Minio.UseSSL, "Use-ssl should match")
 
-				// TODO: add asserts
+				// NOTE: add asserts for new configs
 			}
 		})
 	}

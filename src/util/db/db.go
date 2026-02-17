@@ -15,8 +15,6 @@ import (
 )
 
 func newPostgresConn(dsn string) *gorm.DB {
-	// TODO: implement connection string
-
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: newGormZapLogger().LogMode(logger.Warn),
 	})
@@ -56,7 +54,6 @@ func New() *gorm.DB {
 		zap.S().Panicf("failed to get database connection: %+v", err)
 	}
 
-	// TODO: set as options
 	sqlDB.SetMaxIdleConns(10)
 	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetConnMaxLifetime(time.Hour)

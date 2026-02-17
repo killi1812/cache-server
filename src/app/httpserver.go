@@ -17,8 +17,6 @@ import (
 
 var signalNotificationCh = make(chan os.Signal, 1)
 
-// TODO: reimplement start to be a Background task mby
-
 // Start will start the web server of the app
 func Start() {
 	// relay selected signals to channel

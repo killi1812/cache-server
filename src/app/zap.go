@@ -7,6 +7,8 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// TODO: change setups so taht zap logs and fmt prints to Stdout
+
 func prodLoggerSetup() error {
 	consoleLogLevel := zap.LevelEnablerFunc(func(level zapcore.Level) bool {
 		return level >= zapcore.InfoLevel

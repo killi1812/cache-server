@@ -50,16 +50,14 @@ tasks:
   install:
     description: install project as your local binary
     cmds:
-      # TODO: Implement installation
       - task: build
-    # TODO: Implement installation
+      # TODO: Implement installation
     silent: true
 
   test:
     dir: "{{.CODE_DIR}}"
     description: run project tests
     cmd: go test -v -count=1 -parallel 10 ./...
-    # TODO: Implement
     silent: true
 
   coverage:
