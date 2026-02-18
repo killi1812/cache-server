@@ -2,8 +2,10 @@
 package cache
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/service"
@@ -33,6 +35,7 @@ func NewCmd() *cobra.Command {
 		PersistentPreRunE: setup,
 		Run:               cache,
 	}
+
 	cr := &cobra.Command{
 		Use:   "create [cache name] [port number]",
 		Short: "Create a new binary cache",
@@ -48,6 +51,12 @@ func NewCmd() *cobra.Command {
 			Args:  cobra.ExactArgs(1),
 			RunE:  remove,
 		},
+		&cobra.Command{
+			Use:   "info [cache name] ",
+			Short: "get info about binary cache",
+			Args:  cobra.ExactArgs(1),
+			RunE:  info,
+		},
 	)
 
 	return ptr
@@ -58,6 +67,8 @@ func cache(cmd *cobra.Command, args []string) {}
 func create(cmd *cobra.Command, args []string) error {
 	name := args[0]
 	portstr := args[1]
+
+	// TODO: add agruments for public/private
 
 	zap.S().Debugf("Parsed args: %v %v %v", name, portstr, retention)
 
@@ -128,9 +139,9 @@ func getServices() (*service.CacheSrv, objstor.ObjectStorage) {
 	return s, storage
 }
 
+// remove implements delete logic
 func remove(cmd *cobra.Command, args []string) error {
 	name := args[0]
-
 	zap.S().Debugf("Parsed args: %v %v %v", name)
 
 	serv, _ := getServices()
@@ -142,5 +153,38 @@ func remove(cmd *cobra.Command, args []string) error {
 
 	// Output for the user
 	fmt.Printf("Binary Cache Removed Successfully!\n")
+	return nil
+}
+
+func info(cmd *cobra.Command, args []string) error {
+	// TODO: add json output
+	name := args[0]
+	zap.S().Debugf("Parsed args: %v %v %v", name)
+
+	serv, _ := getServices()
+	cache, err := serv.Read(name)
+	if err != nil {
+		zap.S().Errorf("Failed to create cache token, err: %+v", err)
+		return err
+	}
+
+	zap.S().Debugf("Retrived binary cache")
+	tmpb := strings.Builder{}
+	tmpe := json.NewEncoder(&tmpb)
+	tmpe.SetIndent("", "   ")
+	tmpe.Encode(cache)
+	zap.S().Debug(tmpb.String())
+
+	fmt.Printf("Name:      %s\n", cache.Name)
+	fmt.Printf("Port:      %d\n", cache.Port)
+	fmt.Printf("Access:    %s\n", cache.Access)
+	fmt.Printf("Token:     %s\n", cache.Token)
+	fmt.Printf("URL:       %s\n", cache.URL)
+	if cache.Retention > 0 {
+		fmt.Printf("Retention: %d days\n", cache.Retention)
+	} else {
+		fmt.Printf("Retention: indefinite\n")
+	}
+
 	return nil
 }

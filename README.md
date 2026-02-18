@@ -13,13 +13,13 @@ It is a replacement for [cachix server]() compatible with cachix client
   - [ ] list
   - [ ] info
 - [ ] cache
-  - [ ] create
+  - [x] create
   - [ ] start
   - [ ] stop
-  - [ ] delete
+  - [x] delete
   - [ ] update
   - [ ] list
-  - [ ] info
+  - [x] info
 - [ ] store-path
   - [ ] list
   - [ ] delete

@@ -79,3 +79,15 @@ func (m *CacheSrv) Delete(name string) error {
 	zap.S().Infof("Binary cache %s removed successfully", name)
 	return nil
 }
+
+func (m *CacheSrv) Read(name string) (*model.BinaryCache, error) {
+	var cache model.BinaryCache
+
+	err := m.db.Where("name = ?", name).First(&cache).Error
+	if err != nil {
+		zap.S().Errorf("Failed to retrive binary cache %s, err: %v", name, err)
+		return nil, err
+	}
+
+	return &cache, nil
+}
