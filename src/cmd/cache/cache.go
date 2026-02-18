@@ -8,6 +8,7 @@ import (
 	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/service"
 	"github.com/killi1812/go-cache-server/util/auth"
+	"github.com/killi1812/go-cache-server/util/objstor"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -58,7 +59,7 @@ func create(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("port is not a number %s", portstr)
 	}
 
-	serv := getService()
+	serv, stor := getServices()
 
 	t, err := auth.GenerateToken()
 	if err != nil {
@@ -73,6 +74,12 @@ func create(cmd *cobra.Command, args []string) error {
 	cache, err := serv.Create(tmp)
 	if err != nil {
 		zap.S().Errorf("Failed to create cache token, err: %+v", err)
+		return err
+	}
+
+	if err := stor.CreateDir(name); err != nil {
+		zap.S().Errorf("Failed to create cache storage, err: %v", err)
+		// TODO: clean dead entry to database
 		return err
 	}
 
@@ -101,11 +108,14 @@ func setup(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// getService gets the cache service
-func getService() (s *service.CacheSrv) {
-	app.Invoke(func(serv *service.CacheSrv) {
+// getServices gets the cache service
+func getServices() (*service.CacheSrv, objstor.ObjectStorage) {
+	var s *service.CacheSrv
+	var storage objstor.ObjectStorage
+	app.Invoke(func(serv *service.CacheSrv, objst objstor.ObjectStorage) {
 		s = serv
+		storage = objst
 	})
 
-	return
+	return s, storage
 }

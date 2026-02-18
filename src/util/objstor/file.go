@@ -1,21 +1,17 @@
 package objstor
 
-import "os"
+import (
+	"os"
+	"path/filepath"
 
-// 3. Create the physical directory for store paths
-// Path example: ./data/caches/<cache_name>
-
-// cachePath := filepath.Join(m.RootDir, name)
-// if err := os.MkdirAll(cachePath, 0o755); err != nil {
-// 	return fmt.Errorf("failed to create cache directory at %s: %w", cachePath, err)
-// }
-// zap.S().Debugf("Created storage directory: %s", cachePath)
-//
-//
+	"go.uber.org/zap"
+)
 
 type fileStorage struct {
-	workingDir string
+	rootDir string
 }
+
+const filePerms = 0o755
 
 // DeleteFile implements ObjectStorage.
 func (f fileStorage) DeleteFile(name string) error {
@@ -29,7 +25,14 @@ func (f fileStorage) ReadFile(name string) (os.File, error) {
 
 // CreateDir implements ObjectStorage.
 func (f fileStorage) CreateDir(name string) error {
-	panic("unimplemented")
+	cachePath := filepath.Join(f.rootDir, name)
+	if err := os.MkdirAll(cachePath, filePerms); err != nil {
+		zap.S().Errorf("Failed to create cache directory at %s: %w", cachePath, err)
+		return ErrFailedToCreateDir
+	}
+	zap.S().Debugf("Created storage directory: %s", cachePath)
+
+	return nil
 }
 
 // CreateFile implements ObjectStorage.
@@ -37,6 +40,6 @@ func (f fileStorage) CreateFile(path string) error {
 	panic("unimplemented")
 }
 
-func newFileStorage() ObjectStorage {
-	return fileStorage{}
+func newFileStorage(rootDir string) ObjectStorage {
+	return fileStorage{rootDir}
 }

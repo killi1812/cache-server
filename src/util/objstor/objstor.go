@@ -1,6 +1,9 @@
 package objstor
 
-import "os"
+import (
+	"errors"
+	"os"
+)
 
 // common interface between OS file system and minio storage
 type ObjectStorage interface {
@@ -13,5 +16,10 @@ type ObjectStorage interface {
 }
 
 func New() ObjectStorage {
-	return newFileStorage()
+	// TODO: change to not tmp
+	return newFileStorage("tmp/cache")
 }
+
+// errors
+
+var ErrFailedToCreateDir = errors.New("error failed to create dir")
