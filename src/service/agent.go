@@ -1,3 +1,4 @@
+// package service contains logic for modules
 package service
 
 import (
