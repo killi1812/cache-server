@@ -24,15 +24,15 @@ func (f fileStorage) ReadFile(name string) (os.File, error) {
 }
 
 // CreateDir implements ObjectStorage.
-func (f fileStorage) CreateDir(name string) error {
+func (f fileStorage) CreateDir(name string) (string, error) {
 	cachePath := filepath.Join(f.rootDir, name)
 	if err := os.MkdirAll(cachePath, filePerms); err != nil {
 		zap.S().Errorf("Failed to create cache directory at %s: %w", cachePath, err)
-		return ErrFailedToCreateDir
+		return "", ErrFailedToCreateDir
 	}
 	zap.S().Debugf("Created storage directory: %s", cachePath)
 
-	return nil
+	return cachePath, nil
 }
 
 // CreateFile implements ObjectStorage.

@@ -67,3 +67,15 @@ func (m *CacheSrv) Create(args CreateCacheArgs) (*model.BinaryCache, error) {
 	zap.S().Infof("Binary cache '%s' created successfully (ID: %d)", cache.Name, cache.ID)
 	return &cache, nil
 }
+
+func (m *CacheSrv) Delete(name string) error {
+	zap.S().Debugf("Removing binary cache %s", name)
+
+	tx := m.db.Where("name = ?", name).Delete(&model.BinaryCache{})
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	zap.S().Infof("Binary cache %s removed successfully", name)
+	return nil
+}

@@ -41,7 +41,14 @@ func NewCmd() *cobra.Command {
 	}
 	cr.Flags().IntVarP(&retention, "retention", "r", 0, "Time to retain cache in days, 0 means forever")
 
-	ptr.AddCommand(cr)
+	ptr.AddCommand(cr,
+		&cobra.Command{
+			Use:   "delete [cache name] ",
+			Short: "delete a binary cache",
+			Args:  cobra.ExactArgs(1),
+			RunE:  remove,
+		},
+	)
 
 	return ptr
 }
@@ -77,7 +84,8 @@ func create(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := stor.CreateDir(name); err != nil {
+	cachePath, err := stor.CreateDir(name)
+	if err != nil {
 		zap.S().Errorf("Failed to create cache storage, err: %v", err)
 		// TODO: clean dead entry to database
 		return err
@@ -88,7 +96,7 @@ func create(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Name:      %s\n", cache.Name)
 	fmt.Printf("Port:      %d\n", cache.Port)
 	fmt.Printf("Token:     %s\n", cache.Token)
-	// fmt.Printf("Directory: %s", cachePath)
+	fmt.Printf("Directory: %s", cachePath)
 	if retention > 0 {
 		fmt.Printf("Retention: %d days\n", cache.Retention)
 	}
@@ -118,4 +126,21 @@ func getServices() (*service.CacheSrv, objstor.ObjectStorage) {
 	})
 
 	return s, storage
+}
+
+func remove(cmd *cobra.Command, args []string) error {
+	name := args[0]
+
+	zap.S().Debugf("Parsed args: %v %v %v", name)
+
+	serv, _ := getServices()
+
+	if err := serv.Delete(name); err != nil {
+		zap.S().Errorf("Failed to create cache token, err: %+v", err)
+		return err
+	}
+
+	// Output for the user
+	fmt.Printf("Binary Cache Removed Successfully!\n")
+	return nil
 }

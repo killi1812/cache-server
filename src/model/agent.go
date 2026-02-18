@@ -1,10 +1,8 @@
 package model
 
-import "gorm.io/gorm"
-
 // Agent represents a deployment agent belonging to a workspace.
 type Agent struct {
-	gorm.Model
+	ID    uint   `gorm:"primarykey"`
 	Name  string `gorm:"type:varchar(100);unique;not null" json:"name"`
 	Token string `gorm:"type:varchar(255);not null" json:"-"` // not serialized
 
