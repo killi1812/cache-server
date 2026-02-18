@@ -2,6 +2,7 @@ package objstor
 
 import (
 	"context"
+	"os"
 
 	"github.com/killi1812/go-cache-server/config"
 	"github.com/minio/minio-go/v7"
@@ -9,8 +10,32 @@ import (
 	"go.uber.org/zap"
 )
 
+type mStorage struct {
+	c *minio.Client
+}
+
+// DeleteFile implements ObjectStorage.
+func (m *mStorage) DeleteFile(name string) error {
+	panic("unimplemented")
+}
+
+// ReadFile implements ObjectStorage.
+func (m *mStorage) ReadFile(name string) (os.File, error) {
+	panic("unimplemented")
+}
+
+// createDir implements ObjectStorage.
+func (m *mStorage) createDir(name string) error {
+	panic("unimplemented")
+}
+
+// createFile implements ObjectStorage.
+func (m *mStorage) createFile(path string) error {
+	panic("unimplemented")
+}
+
 // New creates a new minio.Client
-func NewMinio() *minio.Client {
+func newMinioStorage() *mStorage {
 	minioClient, err := minio.New(config.Config.Minio.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(config.Config.Minio.CredID, config.Config.Minio.CredSecret, config.Config.Minio.CredToken),
 		Secure: config.Config.Minio.UseSSL,
@@ -27,5 +52,5 @@ func NewMinio() *minio.Client {
 	}
 	zap.S().Debugf("MinIO contains %d buckets", len(buckets))
 
-	return minioClient
+	return &mStorage{c: minioClient}
 }

@@ -30,3 +30,13 @@ It is a replacement for [cachix server]() compatible with cachix client
   - [ ] list
   - [ ] info
   - [ ] cache
+
+- [ ] endpoints
+  - [ ] cache
+  - [ ] narinfo
+  - [ ] multipar-nar
+  - [ ] deployment
+  - [ ] active
+  - [ ] nix-cache-nfo
+  - [ ] nar
+- [ ] websockets

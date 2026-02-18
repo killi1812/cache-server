@@ -14,6 +14,17 @@ import (
 
 var retention int
 
+/*
+NewCmd creates a new cache command
+
+			create              Create binary cache
+	    start               Start binary cache
+	    stop                Stop binary cache
+	    delete              Delete binary cache
+	    update              Update binary cache
+	    list                List binary caches
+	    info                Display info about binary cache
+*/
 func NewCmd() *cobra.Command {
 	ptr := &cobra.Command{
 		Use:               "cache",
@@ -34,18 +45,7 @@ func NewCmd() *cobra.Command {
 	return ptr
 }
 
-func cache(cmd *cobra.Command, args []string) {
-}
-
-/*
-		create              Create binary cache
-    start               Start binary cache
-    stop                Stop binary cache
-    delete              Delete binary cache
-    update              Update binary cache
-    list                List binary caches
-    info                Display info about binary cache
-*/
+func cache(cmd *cobra.Command, args []string) {}
 
 func create(cmd *cobra.Command, args []string) error {
 	name := args[0]
@@ -66,6 +66,8 @@ func create(cmd *cobra.Command, args []string) error {
 		zap.S().Debug(err)
 		return err
 	}
+
+	// TODO: create a space for binarys
 
 	tmp := service.CreateCacheArgs{Name: name, Port: port, Retention: retention, Token: t}
 	cache, err := serv.Create(tmp)

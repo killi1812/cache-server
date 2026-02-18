@@ -14,6 +14,7 @@ import (
 	"github.com/killi1812/go-cache-server/cmd/workspace"
 	"github.com/killi1812/go-cache-server/service"
 	"github.com/killi1812/go-cache-server/util/db"
+	"github.com/killi1812/go-cache-server/util/objstor"
 	"github.com/spf13/cobra"
 )
 
@@ -32,6 +33,7 @@ func init() {
 	rcmd.AddCommand(storepath.NewCmd())
 
 	app.Provide(db.New)
+	app.Provide(objstor.New)
 
 	app.Provide(service.NewAgentSrv)
 	app.Provide(service.NewCacheSrv)
