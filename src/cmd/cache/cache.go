@@ -173,7 +173,7 @@ func info(cmd *cobra.Command, args []string) error {
 
 	cache, err := serv.Read(name)
 	if err != nil {
-		zap.S().Errorf("Failed to create cache token, err: %+v", err)
+		zap.S().Errorf("Failed to read cache , err: %+v", err)
 		return err
 	}
 

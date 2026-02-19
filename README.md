@@ -30,7 +30,7 @@ compatible with cachix client
   - [x] create
   - [ ] delete
   - [x] list
-  - [ ] info
+  - [x] info
   - [ ] cache
 
 - [ ] endpoints

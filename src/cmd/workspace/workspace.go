@@ -2,7 +2,9 @@
 package workspace
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/service"
@@ -142,9 +144,30 @@ func list(cmd *cobra.Command, args []string) error {
 
 // cache-server workspace info <workspace name>
 func info(cmd *cobra.Command, args []string) error {
-	wsName := args[0]
-	zap.S().Debugf("Fetching info for workspace: %s", wsName)
-	// TODO: Return ID, Token, Name, and Cache Name
+	zap.S().Debugf("trying to read info of workspace ...")
+	name := args[0]
+	zap.S().Debugf("Parsed args: %v", name)
+
+	serv := getServices()
+
+	wp, err := serv.Read(name)
+	if err != nil {
+		zap.S().Errorf("Failed to read workspace, err: %+v", err)
+		return err
+	}
+
+	zap.S().Debugf("Retrived workspace %s", name)
+	tmpb := strings.Builder{}
+	tmpe := json.NewEncoder(&tmpb)
+	tmpe.SetIndent("", "   ")
+	tmpe.Encode(wp)
+	zap.S().Debug(tmpb.String())
+
+	fmt.Printf("Name:       %s\n", wp.Name)
+	fmt.Printf("Cache Name: %s\n", wp.BinaryCache.Name)
+	fmt.Printf("Token:      %s\n", wp.Token)
+	fmt.Printf("Agents Cnt: %d\n", len(wp.Agents))
+
 	return nil
 }
 

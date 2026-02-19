@@ -83,3 +83,20 @@ func (w *WorkspaceSrv) ReadAll() ([]model.Workspace, error) {
 
 	return workspaces, nil
 }
+
+func (w *WorkspaceSrv) Read(name string) (*model.Workspace, error) {
+	var workspace model.Workspace
+	zap.S().Debugf("Reading workspace %s", name)
+
+	err := w.db.
+		Preload("BinaryCache").
+		Preload("Agents").
+		Where("name = ?", name).
+		First(&workspace).Error
+	if err != nil {
+		zap.S().Errorf("Failed to retrive workspace %s, err: %v", name, err)
+		return nil, err
+	}
+
+	return &workspace, nil
+}
