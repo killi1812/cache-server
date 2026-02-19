@@ -2,6 +2,11 @@
 package agent
 
 import (
+	"fmt"
+
+	"github.com/killi1812/go-cache-server/app"
+	"github.com/killi1812/go-cache-server/service"
+	"github.com/killi1812/go-cache-server/util/auth"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -42,8 +47,15 @@ func NewCmd() *cobra.Command {
 			Args:  cobra.ExactArgs(1),
 			RunE:  info,
 		},
+		// NOTE: for backwords compatibility
 		&cobra.Command{
 			Use:   "remove [agent name]",
+			Short: "Remove an agent",
+			Args:  cobra.ExactArgs(1),
+			RunE:  remove,
+		},
+		&cobra.Command{
+			Use:   "delete [agent name]",
 			Short: "Remove an agent",
 			Args:  cobra.ExactArgs(1),
 			RunE:  remove,
@@ -53,15 +65,45 @@ func NewCmd() *cobra.Command {
 	return ptr
 }
 
+func getServices() *service.AgentSrv {
+	var serv *service.AgentSrv
+	app.Invoke(func(s *service.AgentSrv) {
+		serv = s
+	})
+	return serv
+}
+
 // cache-server agent add <agent name> <workspace name>
 func add(cmd *cobra.Command, args []string) error {
+	zap.S().Debugf("Trying to add agent to workspace ...")
 	agentName := args[0]
-	workspace := args[1]
+	wsName := args[1]
+	zap.S().Debugf("Parsed args %v %v", agentName, wsName)
 
-	zap.S().Debugf("Adding agent '%s' to workspace '%s'", agentName, workspace)
-	// TODO: Generate auth token and save to DB
-	token := "generated-auth-token-xyz"
-	zap.S().Debugf("Agent created. Auth Token: %s", token)
+	serv := getServices()
+
+	token, err := auth.GenerateToken()
+	if err != nil {
+		zap.S().Errorf("Failed to generate token, err: %v ", err)
+		return err
+	}
+
+	tmp := service.AgentCreateArgs{
+		AgentName:     agentName,
+		WorkspaceName: wsName,
+		Token:         token,
+	}
+
+	agent, err := serv.Create(tmp)
+	if err != nil {
+		zap.S().Errorf("Failed to create workspace, err: %v", err)
+		return err
+	}
+
+	fmt.Printf("Agent Created Successfully!\n")
+	fmt.Printf("Name:       %s\n", agent.Name)
+	fmt.Printf("Workspace:  %s\n", agent.Workspace.Name)
+	fmt.Printf("Token:      %s\n", agent.Token)
 	return nil
 }
 

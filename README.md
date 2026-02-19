@@ -10,7 +10,7 @@ compatible with cachix client
 - [x] listen
 - [x] stop
 - [ ] agent
-  - [ ] add
+  - [x] add
   - [ ] remove
   - [ ] list
   - [ ] info

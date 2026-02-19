@@ -88,8 +88,7 @@ func create(cmd *cobra.Command, args []string) error {
 
 	token, err := auth.GenerateToken()
 	if err != nil {
-		zap.S().Errorf("Failed to generate token ")
-		zap.S().Debug(err)
+		zap.S().Errorf("Failed to generate token, err: %v ", err)
 		return err
 	}
 
@@ -104,7 +103,7 @@ func create(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("Workspace Created Successfully\n")
+	fmt.Printf("Workspace Created Successfully!\n")
 	fmt.Printf("Name:       %s\n", worskpace.Name)
 	fmt.Printf("Cache Name: %s\n", worskpace.BinaryCache.Name)
 	fmt.Printf("Token:      %s\n", worskpace.Token)
