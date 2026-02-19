@@ -75,10 +75,10 @@ func getServices() *service.AgentSrv {
 
 // cache-server agent add <agent name> <workspace name>
 func add(cmd *cobra.Command, args []string) error {
-	zap.S().Debugf("Trying to add agent to workspace ...")
+	zap.S().Infof("Trying to add agent to workspace ...")
 	agentName := args[0]
 	wsName := args[1]
-	zap.S().Debugf("Parsed args %v %v", agentName, wsName)
+	zap.S().Debugf("Args: %+v", args)
 
 	serv := getServices()
 
@@ -96,7 +96,7 @@ func add(cmd *cobra.Command, args []string) error {
 
 	agent, err := serv.Create(tmp)
 	if err != nil {
-		zap.S().Errorf("Failed to create workspace, err: %v", err)
+		zap.S().Errorf("Failed to create agent, err: %v", err)
 		return err
 	}
 
@@ -109,9 +109,22 @@ func add(cmd *cobra.Command, args []string) error {
 
 // cache-server agent list <workspace name>
 func list(cmd *cobra.Command, args []string) error {
+	zap.S().Infof("Trying to list agents ...")
 	workspace := args[0]
-	zap.S().Debugf("Listing agents for workspace: %s", workspace)
-	// TODO: DB Query
+	zap.S().Debugf("Parsed args %+v", args)
+
+	serv := getServices()
+	agents, err := serv.ReadAll(workspace)
+	if err != nil {
+		zap.S().Errorf("Failed to read agents for workspace '%s', err: %v", workspace, err)
+		return err
+	}
+
+	fmt.Printf("Agents for workspace '%s':\n", workspace)
+	for _, agent := range agents {
+		fmt.Printf("\t%s\n", agent.Name)
+	}
+
 	return nil
 }
 

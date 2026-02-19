@@ -78,7 +78,7 @@ func getServices() *service.WorkspaceSrv {
 
 // cache-server workspace create <workspace name> <cache name>
 func create(cmd *cobra.Command, args []string) error {
-	zap.S().Debugf("Trying to create workspace ...")
+	zap.S().Infof("Trying to create workspace ...")
 	wsName := args[0]
 	cacheName := args[1]
 
@@ -105,7 +105,7 @@ func create(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("Workspace Created Successfully!\n")
 	fmt.Printf("Name:       %s\n", worskpace.Name)
-	fmt.Printf("Cache Name: %s\n", worskpace.BinaryCache.Name)
+	fmt.Printf("Cache:      %s\n", worskpace.BinaryCache.Name)
 	fmt.Printf("Token:      %s\n", worskpace.Token)
 
 	return nil
@@ -113,7 +113,7 @@ func create(cmd *cobra.Command, args []string) error {
 
 // cache-server workspace remove <workspace name>
 func remove(cmd *cobra.Command, args []string) error {
-	zap.S().Debugf("trying to delete binary cache ...")
+	zap.S().Infof("Trying to delete workspace ...")
 	name := args[0]
 	zap.S().Debugf("Parsed args: %v", name)
 
@@ -131,9 +131,8 @@ func remove(cmd *cobra.Command, args []string) error {
 
 // cache-server workspace list
 func list(cmd *cobra.Command, args []string) error {
-	zap.S().Debugf("Trying to list binary caches ...")
+	zap.S().Infof("Trying to list workspaces ...")
 
-	// TODO: add json output
 	serv := getServices()
 	workspaces, err := serv.ReadAll()
 	if err != nil {
@@ -153,7 +152,7 @@ func list(cmd *cobra.Command, args []string) error {
 
 // cache-server workspace info <workspace name>
 func info(cmd *cobra.Command, args []string) error {
-	zap.S().Debugf("Trying to read info of workspace ...")
+	zap.S().Infof("Trying to read info of workspace ...")
 	name := args[0]
 	zap.S().Debugf("Parsed args: %v", name)
 
@@ -186,7 +185,7 @@ func info(cmd *cobra.Command, args []string) error {
 
 // cache-server workspace cache <workspace name> <cache name>
 func changeCache(cmd *cobra.Command, args []string) error {
-	zap.S().Debugf("Trying to update workspace cache ...")
+	zap.S().Infof("Trying to update workspace cache ...")
 	wsName := args[0]
 	cacheName := args[1]
 	zap.S().Debugf("Parsed args %v %v", wsName, cacheName)
@@ -220,6 +219,6 @@ func setup(cmd *cobra.Command, args []string) error {
 		parent.PersistentPreRun(parent, args)
 	}
 
-	zap.S().Debug("Running workspace setup...")
+	zap.S().Debug("Running workspace setup ...")
 	return nil
 }

@@ -100,7 +100,7 @@ func (c *CacheSrv) ReadAll() ([]model.BinaryCache, error) {
 
 	err := c.db.Find(&caches).Error
 	if err != nil {
-		zap.S().Errorf("Failed to retrive binary multiple caches , err: %v", err)
+		zap.S().Errorf("Failed to retrive multiple binary caches , err: %v", err)
 		return nil, err
 	}
 

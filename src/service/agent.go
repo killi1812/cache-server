@@ -31,7 +31,7 @@ type AgentCreateArgs struct {
 }
 
 func (a *AgentSrv) Create(args AgentCreateArgs) (*model.Agent, error) {
-	zap.S().Debugf("Adding agent '%s' to workspace '%s'", args.AgentName, args.WorkspaceName)
+	zap.S().Infof("Adding agent '%s' to workspace '%s'", args.AgentName, args.WorkspaceName)
 
 	zap.S().Debugf("Checking for duplicate agents ")
 	var existing model.Agent
@@ -39,7 +39,7 @@ func (a *AgentSrv) Create(args AgentCreateArgs) (*model.Agent, error) {
 		Where("name = ?", args.AgentName).
 		First(&existing).Error
 	if err == nil {
-		zap.S().Error("Error Creating new Agent, err: %v", ErrExists)
+		zap.S().Errorf("Error Creating new Agent, err: %v", ErrExists)
 		return nil, ErrExists
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -47,14 +47,14 @@ func (a *AgentSrv) Create(args AgentCreateArgs) (*model.Agent, error) {
 		return nil, err
 	}
 
-	zap.S().Debugf("Trying to retrive workspace %s", args.WorkspaceName)
+	zap.S().Debugf("Trying to retrive workspace '%s'", args.WorkspaceName)
 	// retrive binary workspace
 	var workspace model.Workspace
 	err = a.db.
 		Where("name = ?", args.WorkspaceName).
 		First(&workspace).Error
 	if err != nil {
-		zap.S().Errorf("Failed to retrive workspace %s", args.WorkspaceName)
+		zap.S().Errorf("Failed to retrive workspace '%s'", args.WorkspaceName)
 		return nil, err
 	}
 
@@ -72,4 +72,19 @@ func (a *AgentSrv) Create(args AgentCreateArgs) (*model.Agent, error) {
 
 	zap.S().Infof("Agent '%s' created successfully (ID: %d)", agent.Name, agent.ID)
 	return &agent, nil
+}
+
+func (a *AgentSrv) ReadAll(workspace string) ([]model.Agent, error) {
+	var agents []model.Agent
+	zap.S().Infof("Reading Agents for workspace '%s'", workspace)
+
+	err := a.db.
+		Preload("Workspace").
+		Find(&agents).Error
+	if err != nil {
+		zap.S().Errorf("Failed to retrive agents, err: %v", err)
+		return nil, err
+	}
+
+	return agents, nil
 }

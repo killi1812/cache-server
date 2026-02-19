@@ -12,7 +12,7 @@ compatible with cachix client
 - [ ] agent
   - [x] add
   - [ ] remove
-  - [ ] list
+  - [x] list
   - [ ] info
 - [ ] cache
   - [x] create

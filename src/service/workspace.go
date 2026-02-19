@@ -80,11 +80,11 @@ func (w WorkspaceSrv) Create(args WorkspaceCreateArgs) (*model.Workspace, error)
 
 func (w *WorkspaceSrv) ReadAll() ([]model.Workspace, error) {
 	var workspaces []model.Workspace
-	zap.S().Debugf("Reading binary cache ")
+	zap.S().Infof("Reading Workspaces")
 
 	err := w.ws.Find(&workspaces).Error
 	if err != nil {
-		zap.S().Errorf("Failed to retrive binary multiple caches , err: %v", err)
+		zap.S().Errorf("Failed to retrive multiple workspaces, err: %v", err)
 		return nil, err
 	}
 
