@@ -2,6 +2,11 @@
 package workspace
 
 import (
+	"fmt"
+
+	"github.com/killi1812/go-cache-server/app"
+	"github.com/killi1812/go-cache-server/service"
+	"github.com/killi1812/go-cache-server/util/auth"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -60,15 +65,48 @@ func NewCmd() *cobra.Command {
 	return ptr
 }
 
+func getServices() *service.WorkspaceSrv {
+	var srv *service.WorkspaceSrv
+
+	app.Invoke(func(s *service.WorkspaceSrv) {
+		srv = s
+	})
+	return srv
+}
+
 // cache-server workspace create <workspace name> <cache name>
 func create(cmd *cobra.Command, args []string) error {
+	zap.S().Debugf("Trying to create workspace ...")
 	wsName := args[0]
 	cacheName := args[1]
 
-	zap.S().Debugf("Creating workspace '%s' with cache '%s'", wsName, cacheName)
-	// TODO: Save to DB and generate deployment token
-	token := "generated-deploy-token-abc"
-	zap.S().Debugf("Workspace created. Deployment Token: %s", token)
+	zap.S().Debugf("Parsed args: %v %v", wsName, cacheName)
+
+	srv := getServices()
+
+	token, err := auth.GenerateToken()
+	if err != nil {
+		zap.S().Errorf("Failed to generate token ")
+		zap.S().Debug(err)
+		return err
+	}
+
+	tmp := service.WorkspaceCreateArgs{
+		WorkspaceName:   wsName,
+		BinaryCacheName: cacheName,
+		Token:           token,
+	}
+	worskpace, err := srv.Create(tmp)
+	if err != nil {
+		zap.S().Errorf("Failed to create workspace, err: %v", err)
+		return err
+	}
+
+	fmt.Printf("Workspace Created Successfully\n")
+	fmt.Printf("Name:       %s\n", worskpace.Name)
+	fmt.Printf("Cache Name: %s\n", worskpace.BinaryCache.Name)
+	fmt.Printf("Token:      %s\n", worskpace.Token)
+
 	return nil
 }
 
@@ -82,8 +120,23 @@ func remove(cmd *cobra.Command, args []string) error {
 
 // cache-server workspace list
 func list(cmd *cobra.Command, args []string) error {
-	zap.S().Debug("Listing all workspaces")
-	// TODO: DB Query
+	zap.S().Debugf("trying to list binary caches ...")
+
+	// TODO: add json output
+	serv := getServices()
+	workspaces, err := serv.ReadAll()
+	if err != nil {
+		zap.S().Errorf("Failed to create workspace list, err: %+v", err)
+		return err
+	}
+
+	zap.S().Debugf("Retrived %d workspaces", len(workspaces))
+
+	fmt.Printf("Found %d workspaces:\n", len(workspaces))
+	for _, wp := range workspaces {
+		fmt.Printf("\t%s\n", wp.Name)
+	}
+
 	return nil
 }
 

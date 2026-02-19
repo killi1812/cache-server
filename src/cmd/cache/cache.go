@@ -57,6 +57,12 @@ func NewCmd() *cobra.Command {
 			Args:  cobra.ExactArgs(1),
 			RunE:  info,
 		},
+		&cobra.Command{
+			Use:   "list",
+			Short: "list binary caches",
+			Args:  cobra.NoArgs,
+			RunE:  list,
+		},
 	)
 
 	return ptr
@@ -64,7 +70,32 @@ func NewCmd() *cobra.Command {
 
 func cache(cmd *cobra.Command, args []string) {}
 
+// getServices gets the cache service
+func getServices() (*service.CacheSrv, objstor.ObjectStorage) {
+	var s *service.CacheSrv
+	var storage objstor.ObjectStorage
+	app.Invoke(func(serv *service.CacheSrv, objst objstor.ObjectStorage) {
+		s = serv
+		storage = objst
+	})
+
+	return s, storage
+}
+
+func setup(cmd *cobra.Command, args []string) error {
+	// Attempt to run parent's setup (e.g., root command)
+	parent := cmd.Parent().Parent()
+	if parent != nil && parent.PersistentPreRun != nil {
+		zap.S().Debugf("Running parent setup %v ...", parent.Use)
+		parent.PersistentPreRun(parent, args)
+	}
+
+	zap.S().Debug("Running workspace setup ...")
+	return nil
+}
+
 func create(cmd *cobra.Command, args []string) error {
+	zap.S().Debugf("Trying to create binary cache ...")
 	name := args[0]
 	portstr := args[1]
 
@@ -104,10 +135,10 @@ func create(cmd *cobra.Command, args []string) error {
 
 	// Output for the user
 	fmt.Printf("Binary Cache Created Successfully!\n")
-	fmt.Printf("Name:      %s\n", cache.Name)
-	fmt.Printf("Port:      %d\n", cache.Port)
-	fmt.Printf("Token:     %s\n", cache.Token)
-	fmt.Printf("Directory: %s", cachePath)
+	fmt.Printf("Name:       %s\n", cache.Name)
+	fmt.Printf("Port:       %d\n", cache.Port)
+	fmt.Printf("Token:      %s\n", cache.Token)
+	fmt.Printf("Directory:  %s", cachePath)
 	if retention > 0 {
 		fmt.Printf("Retention: %d days\n", cache.Retention)
 	}
@@ -115,34 +146,11 @@ func create(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func setup(cmd *cobra.Command, args []string) error {
-	// Attempt to run parent's setup (e.g., root command)
-	parent := cmd.Parent().Parent()
-	if parent != nil && parent.PersistentPreRun != nil {
-		zap.S().Debugf("Running parent setup %v ...", parent.Use)
-		parent.PersistentPreRun(parent, args)
-	}
-
-	zap.S().Debug("Running workspace setup ...")
-	return nil
-}
-
-// getServices gets the cache service
-func getServices() (*service.CacheSrv, objstor.ObjectStorage) {
-	var s *service.CacheSrv
-	var storage objstor.ObjectStorage
-	app.Invoke(func(serv *service.CacheSrv, objst objstor.ObjectStorage) {
-		s = serv
-		storage = objst
-	})
-
-	return s, storage
-}
-
 // remove implements delete logic
 func remove(cmd *cobra.Command, args []string) error {
+	zap.S().Debugf("trying to delete binary cache ...")
 	name := args[0]
-	zap.S().Debugf("Parsed args: %v %v %v", name)
+	zap.S().Debugf("Parsed args: %v", name)
 
 	serv, _ := getServices()
 
@@ -157,18 +165,19 @@ func remove(cmd *cobra.Command, args []string) error {
 }
 
 func info(cmd *cobra.Command, args []string) error {
-	// TODO: add json output
+	zap.S().Debugf("trying to read info of binary cache ...")
 	name := args[0]
-	zap.S().Debugf("Parsed args: %v %v %v", name)
+	zap.S().Debugf("Parsed args: %v", name)
 
 	serv, _ := getServices()
+
 	cache, err := serv.Read(name)
 	if err != nil {
 		zap.S().Errorf("Failed to create cache token, err: %+v", err)
 		return err
 	}
 
-	zap.S().Debugf("Retrived binary cache")
+	zap.S().Debugf("Retrived binary cache %s", name)
 	tmpb := strings.Builder{}
 	tmpe := json.NewEncoder(&tmpb)
 	tmpe.SetIndent("", "   ")
@@ -184,6 +193,27 @@ func info(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Retention: %d days\n", cache.Retention)
 	} else {
 		fmt.Printf("Retention: indefinite\n")
+	}
+
+	return nil
+}
+
+func list(cmd *cobra.Command, args []string) error {
+	zap.S().Debugf("trying to list binary caches ...")
+
+	// TODO: add json output
+	serv, _ := getServices()
+	caches, err := serv.ReadAll()
+	if err != nil {
+		zap.S().Errorf("Failed to create cache list, err: %+v", err)
+		return err
+	}
+
+	zap.S().Debugf("Retrived %d binary caches", len(caches))
+
+	fmt.Printf("Found %d binary caches:\n", len(caches))
+	for _, cache := range caches {
+		fmt.Printf("\t%s\n", cache.Name)
 	}
 
 	return nil

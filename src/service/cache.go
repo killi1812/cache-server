@@ -36,14 +36,14 @@ type CreateCacheArgs struct {
 }
 
 // Create handles the GORM logic, token generation, and directory setup for a binary cache.
-func (m *CacheSrv) Create(args CreateCacheArgs) (*model.BinaryCache, error) {
-	zap.S().Debugf("Database: Creating binary cache '%s' on port %d", args.Name, args.Port)
+func (c *CacheSrv) Create(args CreateCacheArgs) (*model.BinaryCache, error) {
+	zap.S().Debugf("Creating binary cache '%s' on port %d", args.Name, args.Port)
 
 	var existing model.BinaryCache
-	err := m.db.Where("name = ?", args.Name).First(&existing).Error
+	err := c.db.Where("name = ?", args.Name).First(&existing).Error
 	if err == nil {
 		zap.S().Errorf("Error Creating new cache, err: %v", ErrExists)
-		return nil, errors.Join(ErrExists, err)
+		return nil, ErrExists
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		zap.S().Errorf("Error Creating new cache, err: %v", err)
@@ -60,18 +60,19 @@ func (m *CacheSrv) Create(args CreateCacheArgs) (*model.BinaryCache, error) {
 		URL: fmt.Sprintf("http://%s:%d", config.Config.CacheServer.Hostname, args.Port), // Default URL logic
 	}
 
-	if err := m.db.Create(&cache).Error; err != nil {
-		return nil, fmt.Errorf("failed to save cache to database: %w", err)
+	if err := c.db.Create(&cache).Error; err != nil {
+		zap.S().Errorf("Failed to save cache to database: %v", err)
+		return nil, err
 	}
 
 	zap.S().Infof("Binary cache '%s' created successfully (ID: %d)", cache.Name, cache.ID)
 	return &cache, nil
 }
 
-func (m *CacheSrv) Delete(name string) error {
+func (c *CacheSrv) Delete(name string) error {
 	zap.S().Debugf("Removing binary cache %s", name)
 
-	tx := m.db.Where("name = ?", name).Delete(&model.BinaryCache{})
+	tx := c.db.Where("name = ?", name).Delete(&model.BinaryCache{})
 	if tx.Error != nil {
 		return tx.Error
 	}
@@ -80,14 +81,28 @@ func (m *CacheSrv) Delete(name string) error {
 	return nil
 }
 
-func (m *CacheSrv) Read(name string) (*model.BinaryCache, error) {
+func (c *CacheSrv) Read(name string) (*model.BinaryCache, error) {
 	var cache model.BinaryCache
+	zap.S().Debugf("Reading binary cache %s", name)
 
-	err := m.db.Where("name = ?", name).First(&cache).Error
+	err := c.db.Where("name = ?", name).First(&cache).Error
 	if err != nil {
 		zap.S().Errorf("Failed to retrive binary cache %s, err: %v", name, err)
 		return nil, err
 	}
 
 	return &cache, nil
+}
+
+func (c *CacheSrv) ReadAll() ([]model.BinaryCache, error) {
+	var caches []model.BinaryCache
+	zap.S().Debugf("Reading binary cache ")
+
+	err := c.db.Find(&caches).Error
+	if err != nil {
+		zap.S().Errorf("Failed to retrive binary multiple caches , err: %v", err)
+		return nil, err
+	}
+
+	return caches, nil
 }
