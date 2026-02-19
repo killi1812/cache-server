@@ -2,7 +2,9 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/service"
@@ -129,9 +131,33 @@ func list(cmd *cobra.Command, args []string) error {
 }
 
 func info(cmd *cobra.Command, args []string) error {
-	agentName := args[0]
-	zap.S().Debugf("Fetching info for agent: %s", agentName)
-	// TODO: Show name, token, and workspace
+	zap.S().Debugf("Trying to read info for workspace ...")
+	name := args[0]
+	zap.S().Debugf("Args: %+v", args)
+
+	zap.S().Debugf("Fetching info for agent: %s", name)
+	serv := getServices()
+	agent, err := serv.Read(name)
+	if err != nil {
+		zap.S().Errorf("Failed to read workspace, err: %+v", err)
+		return err
+	}
+
+	zap.S().Debugf("Retrived workspace %s", name)
+	tmpb := strings.Builder{}
+	tmpe := json.NewEncoder(&tmpb)
+	tmpe.SetIndent("", "   ")
+	tmpe.Encode(agent)
+	zap.S().Debug(tmpb.String())
+
+	fmt.Printf("Name:       %s\n", agent.Name)
+	if agent.Workspace != nil {
+		fmt.Printf("Workspace:  %s\n", agent.Workspace.Name)
+	} else {
+		fmt.Printf("Workspace:null\n")
+	}
+	fmt.Printf("Token:      %s\n", agent.Token)
+
 	return nil
 }
 

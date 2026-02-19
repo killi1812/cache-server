@@ -88,3 +88,19 @@ func (a *AgentSrv) ReadAll(workspace string) ([]model.Agent, error) {
 
 	return agents, nil
 }
+
+func (a *AgentSrv) Read(name string) (*model.Agent, error) {
+	var agent model.Agent
+	zap.S().Infof("Reading Agent '%s'", name)
+
+	err := a.db.
+		Preload("Workspace").
+		Where("name = ?", name).
+		First(&agent).Error
+	if err != nil {
+		zap.S().Errorf("Failed to retrive workspace %s, err: %v", name, err)
+		return nil, err
+	}
+
+	return &agent, nil
+}

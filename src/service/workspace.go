@@ -93,7 +93,7 @@ func (w *WorkspaceSrv) ReadAll() ([]model.Workspace, error) {
 
 func (w *WorkspaceSrv) Read(name string) (*model.Workspace, error) {
 	var workspace model.Workspace
-	zap.S().Debugf("Reading workspace %s", name)
+	zap.S().Infof("Reading workspace %s", name)
 
 	err := w.ws.
 		Where("name = ?", name).
@@ -107,19 +107,19 @@ func (w *WorkspaceSrv) Read(name string) (*model.Workspace, error) {
 }
 
 func (w *WorkspaceSrv) Delete(name string) error {
-	zap.S().Debugf("Deleting workspace '%s' and all associated agents", name)
+	zap.S().Warnf("Deleting workspace '%s' and all associated agents", name)
 
 	tx := w.db.Where("name = ?", name).Delete(&model.Workspace{})
 	if tx.Error != nil {
 		return tx.Error
 	}
 
-	zap.S().Infof("Workspace %s removed successfully", name)
+	zap.S().Infof("Workspace '%s' removed successfully", name)
 	return nil
 }
 
 func (w *WorkspaceSrv) UpdateCache(wsName string, cacheName string) (*model.Workspace, error) {
-	zap.S().Debugf("Updating workspace '%s' to use cache '%s'", wsName, cacheName)
+	zap.S().Infof("Updating workspace '%s' to use cache '%s'", wsName, cacheName)
 
 	var cache model.BinaryCache
 	err := w.db.
@@ -148,5 +148,6 @@ func (w *WorkspaceSrv) UpdateCache(wsName string, cacheName string) (*model.Work
 		return nil, err
 	}
 
+	zap.S().Infof("Workspace '%s' updated successfully", workspace.Name)
 	return &workspace, nil
 }

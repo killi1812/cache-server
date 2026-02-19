@@ -13,7 +13,7 @@ compatible with cachix client
   - [x] add
   - [ ] remove
   - [x] list
-  - [ ] info
+  - [x] info
 - [ ] cache
   - [x] create
   - [ ] start
