@@ -26,12 +26,12 @@ compatible with cachix client
   - [ ] list
   - [ ] delete
   - [ ] info
-- [ ] workspace
+- [x] workspace
   - [x] create
   - [x] delete
   - [x] list
   - [x] info
-  - [ ] cache
+  - [x] cache
 
 - [ ] endpoints
   - [ ] cache

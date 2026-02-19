@@ -11,13 +11,20 @@ import (
 
 type WorkspaceSrv struct {
 	db *gorm.DB
+	ws *gorm.DB
 }
 
 func NewWorkspaceSrv() *WorkspaceSrv {
 	var srv *WorkspaceSrv
 
 	app.Invoke(func(db *gorm.DB) {
-		srv = &WorkspaceSrv{db}
+		srv = &WorkspaceSrv{
+			db: db,
+			ws: db.
+				Model(&model.Workspace{}).
+				Preload("BinaryCache").
+				Preload("Agents"),
+		}
 	})
 
 	return srv
@@ -75,7 +82,7 @@ func (w *WorkspaceSrv) ReadAll() ([]model.Workspace, error) {
 	var workspaces []model.Workspace
 	zap.S().Debugf("Reading binary cache ")
 
-	err := w.db.Find(&workspaces).Error
+	err := w.ws.Find(&workspaces).Error
 	if err != nil {
 		zap.S().Errorf("Failed to retrive binary multiple caches , err: %v", err)
 		return nil, err
@@ -88,9 +95,7 @@ func (w *WorkspaceSrv) Read(name string) (*model.Workspace, error) {
 	var workspace model.Workspace
 	zap.S().Debugf("Reading workspace %s", name)
 
-	err := w.db.
-		Preload("BinaryCache").
-		Preload("Agents").
+	err := w.ws.
 		Where("name = ?", name).
 		First(&workspace).Error
 	if err != nil {
@@ -111,4 +116,37 @@ func (w *WorkspaceSrv) Delete(name string) error {
 
 	zap.S().Infof("Workspace %s removed successfully", name)
 	return nil
+}
+
+func (w *WorkspaceSrv) UpdateCache(wsName string, cacheName string) (*model.Workspace, error) {
+	zap.S().Debugf("Updating workspace '%s' to use cache '%s'", wsName, cacheName)
+
+	var cache model.BinaryCache
+	err := w.db.
+		Where("name = ?", cacheName).
+		First(&cache).Error
+	if err != nil {
+		zap.S().Errorf("Failed to find binary cache %s, err: %v", cacheName, err)
+		return nil, err
+	}
+
+	err = w.ws.
+		Where("name = ?", wsName).
+		Update("BinaryCacheId", cache.ID).
+		Error
+	if err != nil {
+		zap.S().Errorf("Failed to update workspace %s, err: %v", wsName, err)
+		return nil, err
+	}
+
+	var workspace model.Workspace
+	err = w.ws.
+		Where("name = ?", wsName).
+		First(&workspace).Error
+	if err != nil {
+		zap.S().Errorf("Failed to find updated workspace %s, err: %v", wsName, err)
+		return nil, err
+	}
+
+	return &workspace, nil
 }

@@ -132,7 +132,7 @@ func remove(cmd *cobra.Command, args []string) error {
 
 // cache-server workspace list
 func list(cmd *cobra.Command, args []string) error {
-	zap.S().Debugf("trying to list binary caches ...")
+	zap.S().Debugf("Trying to list binary caches ...")
 
 	// TODO: add json output
 	serv := getServices()
@@ -154,13 +154,13 @@ func list(cmd *cobra.Command, args []string) error {
 
 // cache-server workspace info <workspace name>
 func info(cmd *cobra.Command, args []string) error {
-	zap.S().Debugf("trying to read info of workspace ...")
+	zap.S().Debugf("Trying to read info of workspace ...")
 	name := args[0]
 	zap.S().Debugf("Parsed args: %v", name)
 
 	serv := getServices()
 
-	wp, err := serv.Read(name)
+	workspace, err := serv.Read(name)
 	if err != nil {
 		zap.S().Errorf("Failed to read workspace, err: %+v", err)
 		return err
@@ -170,27 +170,41 @@ func info(cmd *cobra.Command, args []string) error {
 	tmpb := strings.Builder{}
 	tmpe := json.NewEncoder(&tmpb)
 	tmpe.SetIndent("", "   ")
-	tmpe.Encode(wp)
+	tmpe.Encode(workspace)
 	zap.S().Debug(tmpb.String())
 
-	fmt.Printf("Name:       %s\n", wp.Name)
-	if wp.BinaryCache != nil {
-		fmt.Printf("Cache Name: %s\n", wp.BinaryCache.Name)
+	fmt.Printf("Name:       %s\n", workspace.Name)
+	if workspace.BinaryCache != nil {
+		fmt.Printf("Cache Name: %s\n", workspace.BinaryCache.Name)
 	} else {
 		fmt.Printf("Cache:      null\n")
 	}
-	fmt.Printf("Token:      %s\n", wp.Token)
-	fmt.Printf("Agents Cnt: %d\n", len(wp.Agents))
+	fmt.Printf("Token:      %s\n", workspace.Token)
+	fmt.Printf("Agents Cnt: %d\n", len(workspace.Agents))
 
 	return nil
 }
 
 // cache-server workspace cache <workspace name> <cache name>
 func changeCache(cmd *cobra.Command, args []string) error {
+	zap.S().Debugf("Trying to update workspace cache ...")
 	wsName := args[0]
 	cacheName := args[1]
-	zap.S().Debugf("Updating workspace '%s' to use cache '%s'", wsName, cacheName)
-	// TODO: Update record in DB
+	zap.S().Debugf("Parsed args %v %v", wsName, cacheName)
+
+	serv := getServices()
+	workspace, err := serv.UpdateCache(wsName, cacheName)
+	if err != nil {
+		zap.S().Errorf("Failed to update workspace %s cache to %s, err: %v ", wsName, cacheName, err)
+		return err
+	}
+
+	fmt.Printf("Updated Workspace Cache Successfully!\n")
+	fmt.Printf("Name:       %s\n", workspace.Name)
+	fmt.Printf("Cache Name: %s\n", workspace.BinaryCache.Name)
+	fmt.Printf("Token:      %s\n", workspace.Token)
+	fmt.Printf("Agents Cnt: %d\n", len(workspace.Agents))
+
 	return nil
 }
 
