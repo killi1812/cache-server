@@ -100,3 +100,15 @@ func (w *WorkspaceSrv) Read(name string) (*model.Workspace, error) {
 
 	return &workspace, nil
 }
+
+func (w *WorkspaceSrv) Delete(name string) error {
+	zap.S().Debugf("Deleting workspace '%s' and all associated agents", name)
+
+	tx := w.db.Where("name = ?", name).Delete(&model.Workspace{})
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	zap.S().Infof("Workspace %s removed successfully", name)
+	return nil
+}

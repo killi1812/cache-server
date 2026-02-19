@@ -28,7 +28,7 @@ compatible with cachix client
   - [ ] info
 - [ ] workspace
   - [x] create
-  - [ ] delete
+  - [x] delete
   - [x] list
   - [x] info
   - [ ] cache

@@ -114,9 +114,19 @@ func create(cmd *cobra.Command, args []string) error {
 
 // cache-server workspace remove <workspace name>
 func remove(cmd *cobra.Command, args []string) error {
-	wsName := args[0]
-	zap.S().Debugf("Deleting workspace '%s' and all associated agents", wsName)
-	// TODO: Cascading delete in DB
+	zap.S().Debugf("trying to delete binary cache ...")
+	name := args[0]
+	zap.S().Debugf("Parsed args: %v", name)
+
+	serv := getServices()
+
+	if err := serv.Delete(name); err != nil {
+		zap.S().Errorf("Failed to create cache token, err: %+v", err)
+		return err
+	}
+
+	// Output for the user
+	fmt.Printf("Workspace Removed Successfully!\n")
 	return nil
 }
 
@@ -164,7 +174,11 @@ func info(cmd *cobra.Command, args []string) error {
 	zap.S().Debug(tmpb.String())
 
 	fmt.Printf("Name:       %s\n", wp.Name)
-	fmt.Printf("Cache Name: %s\n", wp.BinaryCache.Name)
+	if wp.BinaryCache != nil {
+		fmt.Printf("Cache Name: %s\n", wp.BinaryCache.Name)
+	} else {
+		fmt.Printf("Cache:      null\n")
+	}
 	fmt.Printf("Token:      %s\n", wp.Token)
 	fmt.Printf("Agents Cnt: %d\n", len(wp.Agents))
 
