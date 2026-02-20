@@ -52,7 +52,7 @@ func writePid(pid int, filepath string) error {
 		return err
 	}
 
-	zap.S().Debugf("Successfully wrote pid to %s\n", filepath)
+	zap.S().Debugf("Successfully wrote pid to %s", filepath)
 
 	return nil
 }

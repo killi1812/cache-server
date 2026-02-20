@@ -251,11 +251,10 @@ func start(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	addr := fmt.Sprintf("%s:%d", config.Config.CacheServer.Hostname, cache.Port)
 	if foreground {
 		zap.S().Infof("Starting server in foreground")
-		addr := fmt.Sprintf("%s:%d", config.Config.CacheServer.Hostname, cache.Port)
 		app.Start(nil, addr)
-
 	} else {
 		zap.S().Infof("Starting server in backgound")
 		err := proc.StartProcBackground(cache.Uuid.String() + ".pid")
@@ -263,7 +262,7 @@ func start(cmd *cobra.Command, args []string) error {
 			zap.S().Errorf("Failed to start cache '%s' server , err: %+v", name, err)
 			return err
 		}
-		fmt.Printf("Cache Server '%s' Started\n", name)
+		fmt.Printf("Cache Server '%s' Started:\t http://%s\n", name, addr)
 	}
 
 	return nil
