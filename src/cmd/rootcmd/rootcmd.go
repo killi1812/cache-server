@@ -29,9 +29,15 @@ func NewCmd() *cobra.Command {
 	ptr.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 
 	// remove cache-server help, only leave cache-server -h and cache-server --help
+	// BUG: still in the compleating
 	ptr.SetHelpCommand(&cobra.Command{
 		Use:    "no-help",
 		Hidden: true,
+		Annotations: map[string]string{
+			cobra.BashCompCustom: "__cache-server_no_suggestions",
+		},
+		Run: func(cmd *cobra.Command, args []string) {
+		},
 	})
 
 	return ptr
