@@ -9,6 +9,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/util/pid"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -35,7 +36,7 @@ func stop(cmd *cobra.Command, args []string) error {
 	procPid := -1
 
 	// find pid
-	if !pid.CheckPid() {
+	if !pid.CheckPid(app.PID_FILE_NAME) {
 		zap.S().Warn("No pid file")
 		p, err := findPid()
 		if err != nil {
@@ -67,10 +68,9 @@ func stop(cmd *cobra.Command, args []string) error {
 func findPid() (int, error) {
 	zap.S().Warn("Trying to find the process by name")
 	// check for cache-server process and ask to stop it
-	p, err := pid.FindPidByName()
+	p, err := pid.FindPidByName("cache-server listen")
 	if err != nil {
-		zap.S().Errorf("No process with name cache-server is running")
-		zap.S().Errorf("Error: %v", err)
+		zap.S().Errorf("No process with name cache-server is running, err: %v", err)
 		return -1, err
 	}
 	zap.S().Infof("Found a cache-server process with pid %d ", p)
@@ -94,12 +94,12 @@ func findPid() (int, error) {
 }
 
 func readPid() (int, error) {
-	p, err := pid.ReadPid()
+	p, err := pid.ReadPid(app.PID_FILE_NAME)
 	if err != nil {
 		zap.S().Errorf("Failed to read pid file, err: %+v", err)
 		return -1, err
 	}
-	defer pid.RemovePid()
+	defer pid.RemovePid(app.PID_FILE_NAME)
 
 	return p, nil
 }

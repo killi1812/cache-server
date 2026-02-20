@@ -16,8 +16,8 @@ compatible with cachix client
   - [x] info
 - [ ] cache
   - [x] create
-  - [ ] start
-  - [ ] stop
+  - [x] start
+  - [x] stop
   - [x] delete
   - [ ] update
   - [x] list

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/config"
 	"github.com/killi1812/go-cache-server/model"
@@ -52,6 +53,7 @@ func (c *CacheSrv) Create(args CreateCacheArgs) (*model.BinaryCache, error) {
 
 	cache := model.BinaryCache{
 		Name:      args.Name,
+		Uuid:      uuid.New(),
 		Port:      args.Port,
 		Token:     args.Token,
 		Retention: args.Retention,

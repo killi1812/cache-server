@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -12,23 +13,23 @@ import (
 	"go.uber.org/zap"
 )
 
-const _PID_FILE_NAME = "/tmp/cache-server.pid"
+const _PID_DIR = "/tmp"
 
-var ErrPidFileAlreadyExists = fmt.Errorf("error the file '%s' already exists", _PID_FILE_NAME)
+var ErrPidFileAlreadyExists = fmt.Errorf("error the file '%s' already exists", _PID_DIR)
 
 // WritePid will write a given pid to a /tmp/cache-server.pid file
-func WritePid(pid int) error { return writePid(pid, _PID_FILE_NAME) }
+func WritePid(filename string, pid int) error { return writePid(pid, path.Join(_PID_DIR, filename)) }
 
 // CheckPid check if .pid file exists
-func CheckPid() bool { return checkPid(_PID_FILE_NAME) }
+func CheckPid(filename string) bool { return checkPid(path.Join(_PID_DIR, filename)) }
 
 // RemovePid will remove .pid file
-func RemovePid() error { return removePid(_PID_FILE_NAME) }
+func RemovePid(filename string) error { return removePid(path.Join(_PID_DIR, filename)) }
 
 // ReadPid will read the .pid file and return -1,error if it fails
-func ReadPid() (int, error) { return readPid(_PID_FILE_NAME) }
+func ReadPid(filename string) (int, error) { return readPid(path.Join(_PID_DIR, filename)) }
 
-func FindPidByName() (int, error) { return findPIDsByName("cache-server listen") }
+func FindPidByName(name string) (int, error) { return findPIDsByName(name) }
 
 func writePid(pid int, filepath string) error {
 	content := []byte(strconv.Itoa(pid))

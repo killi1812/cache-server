@@ -11,14 +11,15 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/killi1812/go-cache-server/config"
 	"go.uber.org/zap"
 )
 
 var signalNotificationCh = make(chan os.Signal, 1)
 
 // Start will start the web server of the app
-func Start() {
+// addr: in the form "host:port". If empty, ":http" (port 80) is used.
+// api: register api to server
+func Start(api GinApi, addr string) {
 	// relay selected signals to channel
 	// - os.Interrupt, ctrl-c
 	// - syscall.SIGTERM, program termination
@@ -35,7 +36,7 @@ func Start() {
 	zap.S().Debugln("Started CheckInterrupt")
 
 	schedulerWg.Add(1)
-	go run(schedulerCtx, &schedulerWg)
+	go run(schedulerCtx, &schedulerWg, api, addr)
 	zap.S().Infoln("Started HTTP server")
 
 	schedulerWg.Wait()
@@ -60,26 +61,24 @@ func checkInterrupt(ctx context.Context, wg *sync.WaitGroup, schedulerCancel con
 	}
 }
 
-func run(ctx context.Context, wg *sync.WaitGroup) {
+func run(ctx context.Context, wg *sync.WaitGroup, api GinApi, addr string) {
 	defer wg.Done()
 
 	// setup gin
 	if Build == BuildProd {
-		zap.S().Debugln("setting gin in ReleaseMode")
+		zap.S().Debug("setting gin in ReleaseMode")
 		gin.SetMode(gin.ReleaseMode)
 	}
 	router := gin.Default()
 
 	// setup controllers
-	basePath := router.Group("/api")
-	for _, c := range controllers {
-		zap.S().Debugln("Registering Controllers")
-		c.RegisterEndpoints(basePath)
+	if api != nil {
+		zap.S().Debug("Registering Api")
+		api.RegisterEndpoints(router)
+	} else {
+		zap.S().Warn("No Api to regeister, api is nil")
 	}
-	// cleanup
-	controllers = nil
 
-	addr := fmt.Sprintf(":%d", config.Config.CacheServer.ServerPort)
 	srv := &http.Server{
 		Addr:         addr,
 		Handler:      router,
@@ -94,7 +93,7 @@ func run(ctx context.Context, wg *sync.WaitGroup) {
 		}
 	}()
 	zap.S().Debugf("Started HTTP listen, address = http://localhost%v", srv.Addr)
-	fmt.Printf("listening on http://%s:%d\n", config.Config.CacheServer.Hostname, config.Config.CacheServer.ServerPort)
+	fmt.Printf("listening on http://%s\n", srv.Addr)
 
 	// wait for context cancellation
 	<-ctx.Done()

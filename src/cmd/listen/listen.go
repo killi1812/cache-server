@@ -3,6 +3,7 @@ package listen
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,14 +11,16 @@ import (
 	"syscall"
 
 	"github.com/killi1812/go-cache-server/app"
+	"github.com/killi1812/go-cache-server/config"
 	"github.com/killi1812/go-cache-server/util/pid"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
 
-var foreground = false
-
-var ErrFailedToStart = errors.New("failed to start the server")
+var (
+	foreground       = false
+	ErrFailedToStart = errors.New("failed to start the server")
+)
 
 func NewCmd() *cobra.Command {
 	ptr := &cobra.Command{
@@ -36,7 +39,9 @@ func NewCmd() *cobra.Command {
 func listen(cmd *cobra.Command, args []string) error {
 	if foreground {
 		// start the app foreground
-		app.Start()
+		//
+		addr := fmt.Sprintf("%s:%d", config.Config.CacheServer.Hostname, config.Config.CacheServer.ServerPort)
+		app.Start(nil, addr)
 	} else {
 		err := startBackground()
 		if err != nil {
@@ -48,7 +53,7 @@ func listen(cmd *cobra.Command, args []string) error {
 }
 
 func startBackground() error {
-	if pid.CheckPid() {
+	if pid.CheckPid(app.PID_FILE_NAME) {
 		// return error app already running
 		zap.S().Debugf("Error starting the server: %v", pid.ErrPidFileAlreadyExists)
 		return pid.ErrPidFileAlreadyExists
@@ -73,7 +78,7 @@ func startBackground() error {
 
 	zap.S().Debugf("Running in background with PID: %d", process.Pid)
 
-	err = pid.WritePid(process.Pid)
+	err = pid.WritePid(app.PID_FILE_NAME, process.Pid)
 	if err != nil {
 		zap.S().Debugf("Failed to write a pid to a file")
 		zap.S().Debugf("Stopping the server")

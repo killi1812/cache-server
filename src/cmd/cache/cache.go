@@ -9,17 +9,20 @@ import (
 	"strings"
 
 	"github.com/killi1812/go-cache-server/app"
+	"github.com/killi1812/go-cache-server/config"
 	"github.com/killi1812/go-cache-server/service"
 	"github.com/killi1812/go-cache-server/util/auth"
 	"github.com/killi1812/go-cache-server/util/objstor"
+	"github.com/killi1812/go-cache-server/util/proc"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
 
 var (
-	retention int
-	serv      *service.CacheSrv
-	stor      objstor.ObjectStorage
+	retention  int
+	foreground bool
+	serv       *service.CacheSrv
+	stor       objstor.ObjectStorage
 )
 
 /*
@@ -49,7 +52,15 @@ func NewCmd() *cobra.Command {
 	}
 	cr.Flags().IntVarP(&retention, "retention", "r", 0, "Time to retain cache in days, 0 means forever")
 
-	ptr.AddCommand(cr,
+	st := &cobra.Command{
+		Use:   "start [cache name]",
+		Short: "start http server for specified cache",
+		Args:  cobra.ExactArgs(1),
+		RunE:  start,
+	}
+	st.PersistentFlags().BoolVarP(&foreground, "foreground", "f", false, "Run the app in foreground")
+
+	ptr.AddCommand(cr, st,
 		&cobra.Command{
 			Use:   "delete [cache name] ",
 			Short: "delete a binary cache",
@@ -68,12 +79,20 @@ func NewCmd() *cobra.Command {
 			Args:  cobra.NoArgs,
 			RunE:  list,
 		},
+		&cobra.Command{
+			Use:   "stop [cache name]",
+			Short: "stop http server for specified cache",
+			Args:  cobra.ExactArgs(1),
+			RunE:  stop,
+		},
 	)
 
 	return ptr
 }
 
-func cache(cmd *cobra.Command, args []string) {}
+func cache(cmd *cobra.Command, args []string) {
+	cmd.Help()
+}
 
 func setup(cmd *cobra.Command, args []string) error {
 	// Attempt to run parent's setup (e.g., root command)
@@ -200,7 +219,9 @@ func info(cmd *cobra.Command, args []string) error {
 }
 
 func list(cmd *cobra.Command, args []string) error {
-	zap.S().Debugf("trying to list binary caches ...")
+	zap.S().Infof("trying to list binary caches ...")
+	name := args[0]
+	zap.S().Debugf("Parsed args: %v", name)
 
 	// TODO: add json output
 	caches, err := serv.ReadAll()
@@ -216,5 +237,55 @@ func list(cmd *cobra.Command, args []string) error {
 		fmt.Printf("\t%s\n", cache.Name)
 	}
 
+	return nil
+}
+
+func start(cmd *cobra.Command, args []string) error {
+	zap.S().Infof("trying to start cache server ...")
+	name := args[0]
+	zap.S().Debugf("Parsed args: %v", name)
+
+	cache, err := serv.Read(name)
+	if err != nil {
+		zap.S().Errorf("Failed to read cache , err: %+v", err)
+		return err
+	}
+
+	if foreground {
+		zap.S().Infof("Starting server in foreground")
+		addr := fmt.Sprintf("%s:%d", config.Config.CacheServer.Hostname, cache.Port)
+		app.Start(nil, addr)
+
+	} else {
+		zap.S().Infof("Starting server in backgound")
+		err := proc.StartProcBackground(cache.Uuid.String() + ".pid")
+		if err != nil {
+			zap.S().Errorf("Failed to start cache '%s' server , err: %+v", name, err)
+			return err
+		}
+		fmt.Printf("Cache Server '%s' Started\n", name)
+	}
+
+	return nil
+}
+
+func stop(cmd *cobra.Command, args []string) error {
+	zap.S().Infof("trying to start cache server ...")
+	name := args[0]
+	zap.S().Debugf("Parsed args: %v", name)
+
+	cache, err := serv.Read(name)
+	if err != nil {
+		zap.S().Errorf("Failed to read cache , err: %+v", err)
+		return err
+	}
+
+	err = proc.StopProc(cache.Uuid.String() + ".pid")
+	if err != nil {
+		zap.S().Errorf("Failed to stop cache '%s' server , err: %+v", name, err)
+		return err
+	}
+
+	fmt.Printf("Cache Server '%s' Stopped Successfully!\n", name)
 	return nil
 }
