@@ -32,9 +32,11 @@ func init() {
 	rcmd.AddCommand(workspace.NewCmd())
 	rcmd.AddCommand(storepath.NewCmd())
 
+	// Provide storage options
 	app.Provide(db.New)
 	app.Provide(objstor.New)
 
+	// Provide services
 	app.Provide(service.NewAgentSrv)
 	app.Provide(service.NewCacheSrv)
 	app.Provide(service.NewStorePathSrv)

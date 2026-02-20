@@ -1,4 +1,4 @@
-// package service contains logic for modules
+// Package service contains logic for modules
 package service
 
 import (
@@ -79,7 +79,8 @@ func (a *AgentSrv) ReadAll(workspace string) ([]model.Agent, error) {
 	zap.S().Infof("Reading Agents for workspace '%s'", workspace)
 
 	err := a.db.
-		Preload("Workspace").
+		InnerJoins("Workspace").
+		Where("workspace.name = ?", workspace).
 		Find(&agents).Error
 	if err != nil {
 		zap.S().Errorf("Failed to retrive agents, err: %v", err)
@@ -103,4 +104,17 @@ func (a *AgentSrv) Read(name string) (*model.Agent, error) {
 	}
 
 	return &agent, nil
+}
+
+func (a *AgentSrv) Delete(name string) error {
+	zap.S().Warnf("Deleting Agent '%s'", name)
+
+	tx := a.db.Where("name = ?", name).Delete(&model.Agent{})
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	zap.S().Infof("Agent '%s' removed successfully", name)
+
+	return nil
 }

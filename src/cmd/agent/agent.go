@@ -13,6 +13,9 @@ import (
 	"go.uber.org/zap"
 )
 
+// Package level service
+var serv *service.AgentSrv
+
 /*
 NewCmd creates a new agent command
 
@@ -67,22 +70,12 @@ func NewCmd() *cobra.Command {
 	return ptr
 }
 
-func getServices() *service.AgentSrv {
-	var serv *service.AgentSrv
-	app.Invoke(func(s *service.AgentSrv) {
-		serv = s
-	})
-	return serv
-}
-
 // cache-server agent add <agent name> <workspace name>
 func add(cmd *cobra.Command, args []string) error {
 	zap.S().Infof("Trying to add agent to workspace ...")
 	agentName := args[0]
 	wsName := args[1]
 	zap.S().Debugf("Args: %+v", args)
-
-	serv := getServices()
 
 	token, err := auth.GenerateToken()
 	if err != nil {
@@ -115,7 +108,6 @@ func list(cmd *cobra.Command, args []string) error {
 	workspace := args[0]
 	zap.S().Debugf("Parsed args %+v", args)
 
-	serv := getServices()
 	agents, err := serv.ReadAll(workspace)
 	if err != nil {
 		zap.S().Errorf("Failed to read agents for workspace '%s', err: %v", workspace, err)
@@ -131,12 +123,10 @@ func list(cmd *cobra.Command, args []string) error {
 }
 
 func info(cmd *cobra.Command, args []string) error {
-	zap.S().Debugf("Trying to read info for workspace ...")
+	zap.S().Infof("Trying to read info for agent ...")
 	name := args[0]
 	zap.S().Debugf("Args: %+v", args)
 
-	zap.S().Debugf("Fetching info for agent: %s", name)
-	serv := getServices()
 	agent, err := serv.Read(name)
 	if err != nil {
 		zap.S().Errorf("Failed to read workspace, err: %+v", err)
@@ -163,9 +153,17 @@ func info(cmd *cobra.Command, args []string) error {
 
 // cache-server agent remove <agent name>
 func remove(cmd *cobra.Command, args []string) error {
-	agentName := args[0]
-	zap.S().Debugf("Removing agent: %s (Unique check implied)", agentName)
-	// TODO: Delete from DB
+	zap.S().Infof("Trying to delete agent ...")
+	name := args[0]
+	zap.S().Debugf("Args: %+v", args)
+
+	err := serv.Delete(name)
+	if err != nil {
+		zap.S().Errorf("Failed to remove agent '%s', err: %v", name, err)
+		return err
+	}
+
+	fmt.Printf("Agent Removed Successfully!\n")
 	return nil
 }
 
@@ -184,5 +182,9 @@ func setup(cmd *cobra.Command, args []string) error {
 	}
 
 	zap.S().Debugf("Running agent setup...")
+	app.Invoke(func(s *service.AgentSrv) {
+		serv = s
+	})
+
 	return nil
 }

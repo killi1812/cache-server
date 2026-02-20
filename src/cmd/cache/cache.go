@@ -15,7 +15,11 @@ import (
 	"go.uber.org/zap"
 )
 
-var retention int
+var (
+	retention int
+	serv      *service.CacheSrv
+	stor      objstor.ObjectStorage
+)
 
 /*
 NewCmd creates a new cache command
@@ -70,18 +74,6 @@ func NewCmd() *cobra.Command {
 
 func cache(cmd *cobra.Command, args []string) {}
 
-// getServices gets the cache service
-func getServices() (*service.CacheSrv, objstor.ObjectStorage) {
-	var s *service.CacheSrv
-	var storage objstor.ObjectStorage
-	app.Invoke(func(serv *service.CacheSrv, objst objstor.ObjectStorage) {
-		s = serv
-		storage = objst
-	})
-
-	return s, storage
-}
-
 func setup(cmd *cobra.Command, args []string) error {
 	// Attempt to run parent's setup (e.g., root command)
 	parent := cmd.Parent().Parent()
@@ -91,6 +83,12 @@ func setup(cmd *cobra.Command, args []string) error {
 	}
 
 	zap.S().Debug("Running workspace setup ...")
+
+	app.Invoke(func(s *service.CacheSrv, storage objstor.ObjectStorage) {
+		serv = s
+		stor = storage
+	})
+
 	return nil
 }
 
@@ -107,8 +105,6 @@ func create(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("port is not a number %s", portstr)
 	}
-
-	serv, stor := getServices()
 
 	t, err := auth.GenerateToken()
 	if err != nil {
@@ -152,8 +148,6 @@ func remove(cmd *cobra.Command, args []string) error {
 	name := args[0]
 	zap.S().Debugf("Parsed args: %v", name)
 
-	serv, _ := getServices()
-
 	if err := serv.Delete(name); err != nil {
 		zap.S().Errorf("Failed to create cache token, err: %+v", err)
 		return err
@@ -168,8 +162,6 @@ func info(cmd *cobra.Command, args []string) error {
 	zap.S().Debugf("trying to read info of binary cache ...")
 	name := args[0]
 	zap.S().Debugf("Parsed args: %v", name)
-
-	serv, _ := getServices()
 
 	cache, err := serv.Read(name)
 	if err != nil {
@@ -202,7 +194,6 @@ func list(cmd *cobra.Command, args []string) error {
 	zap.S().Debugf("trying to list binary caches ...")
 
 	// TODO: add json output
-	serv, _ := getServices()
 	caches, err := serv.ReadAll()
 	if err != nil {
 		zap.S().Errorf("Failed to create cache list, err: %+v", err)

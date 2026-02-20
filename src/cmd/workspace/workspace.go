@@ -13,6 +13,8 @@ import (
 	"go.uber.org/zap"
 )
 
+var serv *service.WorkspaceSrv
+
 /*
 NewCmd creates a new workspace Command
 
@@ -67,15 +69,6 @@ func NewCmd() *cobra.Command {
 	return ptr
 }
 
-func getServices() *service.WorkspaceSrv {
-	var srv *service.WorkspaceSrv
-
-	app.Invoke(func(s *service.WorkspaceSrv) {
-		srv = s
-	})
-	return srv
-}
-
 // cache-server workspace create <workspace name> <cache name>
 func create(cmd *cobra.Command, args []string) error {
 	zap.S().Infof("Trying to create workspace ...")
@@ -83,8 +76,6 @@ func create(cmd *cobra.Command, args []string) error {
 	cacheName := args[1]
 
 	zap.S().Debugf("Parsed args: %v %v", wsName, cacheName)
-
-	srv := getServices()
 
 	token, err := auth.GenerateToken()
 	if err != nil {
@@ -97,7 +88,7 @@ func create(cmd *cobra.Command, args []string) error {
 		BinaryCacheName: cacheName,
 		Token:           token,
 	}
-	worskpace, err := srv.Create(tmp)
+	worskpace, err := serv.Create(tmp)
 	if err != nil {
 		zap.S().Errorf("Failed to create workspace, err: %v", err)
 		return err
@@ -117,8 +108,6 @@ func remove(cmd *cobra.Command, args []string) error {
 	name := args[0]
 	zap.S().Debugf("Parsed args: %v", name)
 
-	serv := getServices()
-
 	if err := serv.Delete(name); err != nil {
 		zap.S().Errorf("Failed to create cache token, err: %+v", err)
 		return err
@@ -133,7 +122,6 @@ func remove(cmd *cobra.Command, args []string) error {
 func list(cmd *cobra.Command, args []string) error {
 	zap.S().Infof("Trying to list workspaces ...")
 
-	serv := getServices()
 	workspaces, err := serv.ReadAll()
 	if err != nil {
 		zap.S().Errorf("Failed to create workspace list, err: %+v", err)
@@ -155,8 +143,6 @@ func info(cmd *cobra.Command, args []string) error {
 	zap.S().Infof("Trying to read info of workspace ...")
 	name := args[0]
 	zap.S().Debugf("Parsed args: %v", name)
-
-	serv := getServices()
 
 	workspace, err := serv.Read(name)
 	if err != nil {
@@ -190,7 +176,6 @@ func changeCache(cmd *cobra.Command, args []string) error {
 	cacheName := args[1]
 	zap.S().Debugf("Parsed args %v %v", wsName, cacheName)
 
-	serv := getServices()
 	workspace, err := serv.UpdateCache(wsName, cacheName)
 	if err != nil {
 		zap.S().Errorf("Failed to update workspace %s cache to %s, err: %v ", wsName, cacheName, err)
@@ -220,5 +205,9 @@ func setup(cmd *cobra.Command, args []string) error {
 	}
 
 	zap.S().Debug("Running workspace setup ...")
+	app.Invoke(func(s *service.WorkspaceSrv) {
+		serv = s
+	})
+
 	return nil
 }

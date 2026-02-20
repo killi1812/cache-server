@@ -3,6 +3,7 @@ package db
 
 import (
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/killi1812/go-cache-server/app"
@@ -28,6 +29,18 @@ func newPostgresConn(dsn string) *gorm.DB {
 
 func newSqliteConn(dsn string) *gorm.DB {
 	zap.S().Infof("Opening new sqlite connection")
+
+	// BUG : not cascading and not setting foreign_keys to true
+	if !strings.Contains(dsn, "_foreign_keys") || !strings.Contains(dsn, "_fk") {
+		zap.S().Warn("Sqlite connection missing foreign_keys option")
+		zap.S().Infof("Adding foreign_keys option, dsn: %s", dsn)
+		if strings.Contains(dsn, "?") {
+			dsn = "file:" + dsn + "&foreign_keys=true"
+		} else {
+			dsn = "file:" + dsn + "?foreign_keys=true"
+		}
+		zap.S().Infof("Added foreign_keys option, dsn: %s", dsn)
+	}
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
 		Logger: newGormZapLogger().LogMode(logger.Warn),
 	})
