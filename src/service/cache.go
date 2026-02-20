@@ -56,8 +56,7 @@ func (c *CacheSrv) Create(args CreateCacheArgs) (*model.BinaryCache, error) {
 		Token:     args.Token,
 		Retention: args.Retention,
 
-		// TODO: hostname
-		URL: fmt.Sprintf("http://%s:%d", config.Config.CacheServer.Hostname, args.Port), // Default URL logic
+		URL: fmt.Sprintf("http://%s:%d", config.Config.CacheServer.Hostname, args.Port),
 	}
 
 	if err := c.db.Create(&cache).Error; err != nil {

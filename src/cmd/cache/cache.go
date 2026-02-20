@@ -114,8 +114,6 @@ func create(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// TODO: create a space for binarys
-
 	tmp := service.CreateCacheArgs{Name: name, Port: port, Retention: retention, Token: t}
 	cache, err := serv.Create(tmp)
 	if err != nil {

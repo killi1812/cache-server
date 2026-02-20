@@ -7,7 +7,7 @@ type BinaryCache struct {
 	URL       string `gorm:"type:varchar(255);not null" json:"url"`
 	Token     string `gorm:"type:varchar(255);not null" json:"-"` // not serialized
 	Access    string `gorm:"type:varchar(50)" json:"access"`
-	Port      int    `gorm:"unique" json:"port"` // TODO: check if port needs to be unique
+	Port      int    `gorm:"unique" json:"port"`
 	Retention int    `json:"retention"`
 
 	StorePaths []StorePath `gorm:"foreignKey:BinaryCacheId;constraint:OnDelete:CASCADE;" json:"store_paths,omitempty"`
