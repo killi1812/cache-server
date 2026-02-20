@@ -3,6 +3,7 @@ package cache
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -148,9 +149,19 @@ func remove(cmd *cobra.Command, args []string) error {
 	name := args[0]
 	zap.S().Debugf("Parsed args: %v", name)
 
-	if err := serv.Delete(name); err != nil {
-		zap.S().Errorf("Failed to create cache token, err: %+v", err)
-		return err
+	err := serv.Delete(name)
+	err2 := stor.DeleteFile(name)
+
+	if err != nil {
+		zap.S().Errorf("Failed to delete cache, err: %+v", err)
+	}
+
+	if err2 != nil {
+		zap.S().Errorf("Failed to delete cache store, err: %+v", err2)
+	}
+
+	if err != nil && err2 != nil {
+		return errors.Join(err, err2)
 	}
 
 	// Output for the user

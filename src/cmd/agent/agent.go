@@ -52,16 +52,16 @@ func NewCmd() *cobra.Command {
 			Args:  cobra.ExactArgs(1),
 			RunE:  info,
 		},
-		// NOTE: for backwords compatibility
+		// NOTE: for backwards compatibility
 		&cobra.Command{
 			Use:   "remove [agent name]",
-			Short: "Remove an agent",
+			Short: "Remove an agent, left for backwards compatibility",
 			Args:  cobra.ExactArgs(1),
 			RunE:  remove,
 		},
 		&cobra.Command{
 			Use:   "delete [agent name]",
-			Short: "Remove an agent",
+			Short: "Remove an agent, same as remove",
 			Args:  cobra.ExactArgs(1),
 			RunE:  remove,
 		},
@@ -174,7 +174,6 @@ func agent(cmd *cobra.Command, args []string) {
 // setup for agent subcommands
 func setup(cmd *cobra.Command, args []string) error {
 	// run parent setup
-
 	parent := cmd.Parent().Parent()
 	if parent != nil && parent.PersistentPreRun != nil {
 		zap.S().Debugf("Running parent setup %d ...", parent.Use)

@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/killi1812/go-cache-server/app"
+	"github.com/killi1812/go-cache-server/model"
 	"gorm.io/gorm"
 )
 
@@ -17,4 +18,19 @@ func NewStorePathSrv() *StorePathSrv {
 	})
 
 	return srv
+}
+
+func (s *StorePathSrv) ReadAll(cache string) ([]model.StorePath, error) {
+	// TODO: implement
+	panic("unimplemented")
+}
+
+func (s *StorePathSrv) Read(storeHash string, cache string) (*model.StorePath, error) {
+	// TODO: implement
+	panic("unimplemented")
+}
+
+func (s *StorePathSrv) Delete(storeHash string, cache string) error {
+	// TODO: implement
+	panic("unimplemented")
 }
