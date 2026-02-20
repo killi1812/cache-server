@@ -133,7 +133,7 @@ func info(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	zap.S().Debugf("Retrived workspace %s", name)
+	zap.S().Debugf("Retrieved workspace %s", name)
 	tmpb := strings.Builder{}
 	tmpe := json.NewEncoder(&tmpb)
 	tmpe.SetIndent("", "   ")

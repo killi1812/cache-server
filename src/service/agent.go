@@ -47,14 +47,14 @@ func (a *AgentSrv) Create(args AgentCreateArgs) (*model.Agent, error) {
 		return nil, err
 	}
 
-	zap.S().Debugf("Trying to retrive workspace '%s'", args.WorkspaceName)
-	// retrive binary workspace
+	zap.S().Debugf("Trying to retrieve workspace '%s'", args.WorkspaceName)
+	// retrieve binary workspace
 	var workspace model.Workspace
 	err = a.db.
 		Where("name = ?", args.WorkspaceName).
 		First(&workspace).Error
 	if err != nil {
-		zap.S().Errorf("Failed to retrive workspace '%s'", args.WorkspaceName)
+		zap.S().Errorf("Failed to retrieve workspace '%s'", args.WorkspaceName)
 		return nil, err
 	}
 
@@ -83,7 +83,7 @@ func (a *AgentSrv) ReadAll(workspace string) ([]model.Agent, error) {
 		Where("workspace.name = ?", workspace).
 		Find(&agents).Error
 	if err != nil {
-		zap.S().Errorf("Failed to retrive agents, err: %v", err)
+		zap.S().Errorf("Failed to retrieve agents, err: %v", err)
 		return nil, err
 	}
 
@@ -99,7 +99,7 @@ func (a *AgentSrv) Read(name string) (*model.Agent, error) {
 		Where("name = ?", name).
 		First(&agent).Error
 	if err != nil {
-		zap.S().Errorf("Failed to retrive workspace %s, err: %v", name, err)
+		zap.S().Errorf("Failed to retrieve workspace %s, err: %v", name, err)
 		return nil, err
 	}
 

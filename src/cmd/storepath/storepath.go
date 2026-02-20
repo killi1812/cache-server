@@ -83,7 +83,7 @@ func info(cmd *cobra.Command, args []string) error {
 		zap.S().Errorf("Failed to read store path '%s' for cache '%s', err: %v", storeHash, cache, err)
 	}
 
-	zap.S().Debugf("Retrived workspace %s", cache)
+	zap.S().Debugf("Retrieved workspace %s", cache)
 	tmpb := strings.Builder{}
 	tmpe := json.NewEncoder(&tmpb)
 	tmpe.SetIndent("", "   ")

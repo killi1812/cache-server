@@ -88,7 +88,7 @@ func (c *CacheSrv) Read(name string) (*model.BinaryCache, error) {
 
 	err := c.db.Where("name = ?", name).First(&cache).Error
 	if err != nil {
-		zap.S().Errorf("Failed to retrive binary cache %s, err: %v", name, err)
+		zap.S().Errorf("Failed to retrieve binary cache %s, err: %v", name, err)
 		return nil, err
 	}
 
@@ -101,9 +101,49 @@ func (c *CacheSrv) ReadAll() ([]model.BinaryCache, error) {
 
 	err := c.db.Find(&caches).Error
 	if err != nil {
-		zap.S().Errorf("Failed to retrive multiple binary caches , err: %v", err)
+		zap.S().Errorf("Failed to retrieve multiple binary caches , err: %v", err)
 		return nil, err
 	}
 
 	return caches, nil
+}
+
+func (c *CacheSrv) Update(name string, newCache model.BinaryCache) (*model.BinaryCache, error) {
+	var cache *model.BinaryCache
+	zap.S().Debugf("Reading binary cache ")
+
+	err := c.db.
+		Where("name = ?", name).
+		First(&cache).Error
+	if err != nil {
+		zap.S().Errorf("Failed to retrieve binary cache %s, err: %v", name, err)
+		return nil, err
+	}
+
+	zap.S().Infof("Old cache %+v", cache)
+	if newCache.Name != "" {
+		cache.Name = newCache.Name
+		// TODO: generate a new jwt token
+		cache.Token = newCache.Token
+	}
+	if newCache.Port != 0 {
+		cache.Port = newCache.Port
+		cache.URL = fmt.Sprintf("http://%s:%d", config.Config.CacheServer.Hostname, newCache.Port)
+	}
+	if newCache.Access != "" {
+		cache.Access = newCache.Access
+	}
+	if newCache.Retention != -1 {
+		cache.Retention = newCache.Retention
+	}
+
+	zap.S().Infof("New cache %+v", cache)
+
+	err = c.db.Save(cache).Error
+	if err != nil {
+		zap.S().Errorf("Failed to update cache")
+		return nil, err
+	}
+
+	return cache, nil
 }

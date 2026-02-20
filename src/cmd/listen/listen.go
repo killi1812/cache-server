@@ -9,12 +9,12 @@ import (
 	"github.com/killi1812/go-cache-server/config"
 	"github.com/killi1812/go-cache-server/util/proc"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
 
-var (
-	foreground       = false
-	ErrFailedToStart = errors.New("failed to start the server")
-)
+var ErrFailedToStart = errors.New("failed to start the server")
+
+const _FOREGROUND_FLAG_NAME = "foreground"
 
 func NewCmd() *cobra.Command {
 	ptr := &cobra.Command{
@@ -24,11 +24,16 @@ func NewCmd() *cobra.Command {
 		RunE:  listen,
 	}
 
-	ptr.PersistentFlags().BoolVarP(&foreground, "foreground", "f", false, "Run the app in foreground")
+	ptr.PersistentFlags().BoolP(_FOREGROUND_FLAG_NAME, "f", false, "Run the app in foreground")
 	return ptr
 }
 
 func listen(cmd *cobra.Command, args []string) error {
+	foreground, err := cmd.Flags().GetBool(_FOREGROUND_FLAG_NAME)
+	if err != nil {
+		zap.S().DPanicf("Failed to retrieve foreground flag, err: %v", err)
+	}
+
 	addr := fmt.Sprintf("%s:%d", config.Config.CacheServer.Hostname, config.Config.CacheServer.ServerPort)
 	if foreground {
 		// start the app foreground

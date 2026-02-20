@@ -51,8 +51,17 @@ tasks:
     description: install project as your local binary
     cmds:
       - task: build
+      - cmd: echo "Generating completions"
+      - cmd: "{{.BINARY_DIR}}/{{.APP_NAME}} completion zsh > _{{.APP_NAME}}"
+      - cmd: sudo mkdir -p /usr/share/zsh/site-functions
+      - cmd: sudo cp _{{.APP_NAME}} /usr/share/zsh/site-functions/
+
+      # BUG: eval: 34:22: parameter expansion requires a literal
+      # - cmd: source ~/.zshrc
+      - cmd: rm -f _{{.APP_NAME}}
+
       # TODO: Implement installation
-    silent: true
+    silent: false
 
   test:
     dir: "{{.CODE_DIR}}"

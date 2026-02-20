@@ -52,12 +52,12 @@ func (w WorkspaceSrv) Create(args WorkspaceCreateArgs) (*model.Workspace, error)
 		return nil, err
 	}
 
-	zap.S().Debugf("Trying to retrive binary cache %s", args.BinaryCacheName)
-	// retrive binary cache
+	zap.S().Debugf("Trying to retrieve binary cache %s", args.BinaryCacheName)
+	// retrieve binary cache
 	var cache model.BinaryCache
 	err = w.db.Where("name = ?", args.BinaryCacheName).First(&cache).Error
 	if err != nil {
-		zap.S().Errorf("Failed to retrive Cache %s", args.BinaryCacheName)
+		zap.S().Errorf("Failed to retrieve Cache %s", args.BinaryCacheName)
 		return nil, err
 	}
 
@@ -84,7 +84,7 @@ func (w *WorkspaceSrv) ReadAll() ([]model.Workspace, error) {
 
 	err := w.ws.Find(&workspaces).Error
 	if err != nil {
-		zap.S().Errorf("Failed to retrive multiple workspaces, err: %v", err)
+		zap.S().Errorf("Failed to retrieve multiple workspaces, err: %v", err)
 		return nil, err
 	}
 
@@ -99,7 +99,7 @@ func (w *WorkspaceSrv) Read(name string) (*model.Workspace, error) {
 		Where("name = ?", name).
 		First(&workspace).Error
 	if err != nil {
-		zap.S().Errorf("Failed to retrive workspace %s, err: %v", name, err)
+		zap.S().Errorf("Failed to retrieve workspace %s, err: %v", name, err)
 		return nil, err
 	}
 

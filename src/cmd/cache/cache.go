@@ -10,6 +10,7 @@ import (
 
 	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/config"
+	"github.com/killi1812/go-cache-server/model"
 	"github.com/killi1812/go-cache-server/service"
 	"github.com/killi1812/go-cache-server/util/auth"
 	"github.com/killi1812/go-cache-server/util/objstor"
@@ -19,10 +20,21 @@ import (
 )
 
 var (
-	retention  int
-	foreground bool
-	serv       *service.CacheSrv
-	stor       objstor.ObjectStorage
+	serv         *service.CacheSrv
+	stor         objstor.ObjectStorage
+	ErrIsRunning = errors.New("err cache server is running")
+)
+
+const (
+	_FOREGROUND_FLAG_NAME = "foreground"
+
+	_RETENTION_FLAG_NAME = "retention"
+	_NAME_FLAG_NAME      = "name"
+	_ACCESS_FLAG_NAME    = "access"
+	_PORT_FLAG_NAME      = "port"
+
+	_PRIVATE_FLAG_NAME = "private"
+	_PUBLIC_FLAG_NAME  = "public"
 )
 
 /*
@@ -50,7 +62,9 @@ func NewCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(2),
 		RunE:  create,
 	}
-	cr.Flags().IntVarP(&retention, "retention", "r", 0, "Time to retain cache in days, 0 means forever")
+	cr.Flags().IntP(_RETENTION_FLAG_NAME, "r", -1, "Time to retain cache in weeks, 0 means forever")
+	cr.Flags().StringP(_ACCESS_FLAG_NAME, "a", "private", "Set access to private/public")
+	cr.RegisterFlagCompletionFunc(_ACCESS_FLAG_NAME, compleateAccess)
 
 	st := &cobra.Command{
 		Use:   "start [cache name]",
@@ -58,9 +72,31 @@ func NewCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE:  start,
 	}
-	st.PersistentFlags().BoolVarP(&foreground, "foreground", "f", false, "Run the app in foreground")
+	st.Flags().BoolP(_FOREGROUND_FLAG_NAME, "f", false, "Run the app in foreground")
 
-	ptr.AddCommand(cr, st,
+	up := &cobra.Command{
+		Use:   "update [cache name]",
+		Short: "update binary cache",
+		Args:  cobra.ExactArgs(1),
+		RunE:  update,
+	}
+	up.Flags().StringP(_NAME_FLAG_NAME, "n", "", "Change cache name to NAME")
+	up.Flags().StringP(_ACCESS_FLAG_NAME, "a", "", "Change access to public/private")
+	up.RegisterFlagCompletionFunc(_ACCESS_FLAG_NAME, compleateAccess)
+	up.Flags().IntP(_PORT_FLAG_NAME, "p", 0, "Change cache port to PORT")
+	up.Flags().IntP(_RETENTION_FLAG_NAME, "r", -1, "Change cache retention to RETENTION")
+
+	ls := &cobra.Command{
+		Use:   "list",
+		Short: "list binary caches",
+		Args:  cobra.NoArgs,
+		RunE:  list,
+	}
+	ls.Flags().BoolP(_PUBLIC_FLAG_NAME, "P", false, "List public caches")
+	ls.Flags().BoolP(_PRIVATE_FLAG_NAME, "p", false, "List private caches")
+	ls.MarkFlagsMutuallyExclusive(_PUBLIC_FLAG_NAME, _PRIVATE_FLAG_NAME)
+
+	ptr.AddCommand(cr, st, up, ls,
 		&cobra.Command{
 			Use:   "delete [cache name] ",
 			Short: "delete a binary cache",
@@ -73,12 +109,7 @@ func NewCmd() *cobra.Command {
 			Args:  cobra.ExactArgs(1),
 			RunE:  info,
 		},
-		&cobra.Command{
-			Use:   "list",
-			Short: "list binary caches",
-			Args:  cobra.NoArgs,
-			RunE:  list,
-		},
+
 		&cobra.Command{
 			Use:   "stop [cache name]",
 			Short: "stop http server for specified cache",
@@ -119,13 +150,19 @@ func create(cmd *cobra.Command, args []string) error {
 
 	// TODO: add agruments for public/private
 
-	zap.S().Debugf("Parsed args: %v %v %v", name, portstr, retention)
+	zap.S().Debugf("Parsed args: %+v", args)
 
 	port, err := strconv.Atoi(portstr)
 	if err != nil {
 		return fmt.Errorf("port is not a number %s", portstr)
 	}
 
+	retention, err := cmd.Flags().GetInt(_RETENTION_FLAG_NAME)
+	if err != nil {
+		zap.S().DPanicf("Failed to retrieve retention flag, err: %v", err)
+	}
+
+	// cache.token = jwt.encode({'name': new_name}, config.key, algorithm="HS256")
 	t, err := auth.GenerateToken()
 	if err != nil {
 		zap.S().Errorf("Failed to generate token ")
@@ -152,9 +189,9 @@ func create(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Name:       %s\n", cache.Name)
 	fmt.Printf("Port:       %d\n", cache.Port)
 	fmt.Printf("Token:      %s\n", cache.Token)
-	fmt.Printf("Directory:  %s", cachePath)
+	fmt.Printf("Directory:  %s\n", cachePath)
 	if retention > 0 {
-		fmt.Printf("Retention: %d days\n", cache.Retention)
+		fmt.Printf("Retention: %d weeks\n", cache.Retention)
 	}
 
 	return nil
@@ -197,7 +234,7 @@ func info(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	zap.S().Debugf("Retrived binary cache %s", name)
+	zap.S().Debugf("Retrieved binary cache %s", name)
 	tmpb := strings.Builder{}
 	tmpe := json.NewEncoder(&tmpb)
 	tmpe.SetIndent("", "   ")
@@ -210,7 +247,7 @@ func info(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Token:     %s\n", cache.Token)
 	fmt.Printf("URL:       %s\n", cache.URL)
 	if cache.Retention > 0 {
-		fmt.Printf("Retention: %d days\n", cache.Retention)
+		fmt.Printf("Retention: %d weeks\n", cache.Retention)
 	} else {
 		fmt.Printf("Retention: indefinite\n")
 	}
@@ -230,7 +267,7 @@ func list(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	zap.S().Debugf("Retrived %d binary caches", len(caches))
+	zap.S().Debugf("Retrieved %d binary caches", len(caches))
 
 	fmt.Printf("Found %d binary caches:\n", len(caches))
 	for _, cache := range caches {
@@ -244,6 +281,11 @@ func start(cmd *cobra.Command, args []string) error {
 	zap.S().Infof("trying to start cache server ...")
 	name := args[0]
 	zap.S().Debugf("Parsed args: %v", name)
+
+	foreground, err := cmd.Flags().GetBool(_FOREGROUND_FLAG_NAME)
+	if err != nil {
+		zap.S().DPanicf("Failed to retrieve foreground flag, err: %v", err)
+	}
 
 	cache, err := serv.Read(name)
 	if err != nil {
@@ -287,4 +329,68 @@ func stop(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("Cache Server '%s' Stopped Successfully!\n", name)
 	return nil
+}
+
+func update(cmd *cobra.Command, args []string) error {
+	zap.S().Infof("trying to start cache server ...")
+	name := args[0]
+	zap.S().Debugf("Parsed args: %v", name)
+
+	cache, err := serv.Read(name)
+	if err != nil {
+		zap.S().Errorf("Failed to read cache , err: %+v", err)
+		return err
+	}
+
+	if proc.IsRunning(cache.Uuid.String() + ".pid") {
+		zap.S().Errorf(" Cache '%s' server is running", cache.Name)
+		return ErrIsRunning
+	}
+
+	retention, err := cmd.Flags().GetInt(_RETENTION_FLAG_NAME)
+	if err != nil {
+		zap.S().DPanicf("Failed to retrieve %s flag, err: %v", _RETENTION_FLAG_NAME, err)
+	}
+	newName, err := cmd.Flags().GetString(_NAME_FLAG_NAME)
+	if err != nil {
+		zap.S().DPanicf("Failed to retrieve %s flag, err: %v", _NAME_FLAG_NAME, err)
+	}
+	access, err := cmd.Flags().GetString(_ACCESS_FLAG_NAME)
+	if err != nil {
+		zap.S().DPanicf("Failed to retrieve %s flag, err: %v", _ACCESS_FLAG_NAME, err)
+	}
+	port, err := cmd.Flags().GetInt(_PORT_FLAG_NAME)
+	if err != nil {
+		zap.S().DPanicf("Failed to retrieve %s flag, err: %v", _PORT_FLAG_NAME, err)
+	}
+
+	newCache := model.BinaryCache{
+		Name:      newName,
+		Retention: retention,
+		Access:    access,
+		Port:      port,
+		// TODO: add rest
+	}
+	cache, err = serv.Update(name, newCache)
+	if err != nil {
+		zap.S().Errorf("Failed to update cache '%s', err: %v", name, err)
+		return err
+	}
+
+	fmt.Printf("Name:      %s\n", cache.Name)
+	fmt.Printf("Port:      %d\n", cache.Port)
+	fmt.Printf("Access:    %s\n", cache.Access)
+	fmt.Printf("Token:     %s\n", cache.Token)
+	fmt.Printf("URL:       %s\n", cache.URL)
+	if cache.Retention > 0 {
+		fmt.Printf("Retention: %d weeks\n", cache.Retention)
+	} else {
+		fmt.Printf("Retention: indefinite\n")
+	}
+
+	return nil
+}
+
+func compleateAccess(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return []string{"public", "private"}, cobra.ShellCompDirectiveNoFileComp
 }

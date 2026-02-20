@@ -128,7 +128,7 @@ func list(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	zap.S().Debugf("Retrived %d workspaces", len(workspaces))
+	zap.S().Debugf("Retrieved %d workspaces", len(workspaces))
 
 	fmt.Printf("Found %d workspaces:\n", len(workspaces))
 	for _, wp := range workspaces {
@@ -150,7 +150,7 @@ func info(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	zap.S().Debugf("Retrived workspace %s", name)
+	zap.S().Debugf("Retrieved workspace %s", name)
 	tmpb := strings.Builder{}
 	tmpe := json.NewEncoder(&tmpb)
 	tmpe.SetIndent("", "   ")

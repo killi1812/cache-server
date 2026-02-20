@@ -112,13 +112,23 @@ func StopProc(filename string, opts ...StopOpts) error {
 	return nil
 }
 
+func IsRunning(name string) bool {
+	return pid.CheckPid(name)
+
+	// if pid.CheckPid(name) {
+	// 	return true
+	// }
+	// _, err := pid.FindPidByName(name)
+	// return err == nil
+}
+
 // findPid trys to find program pid, ask for confirmation if it is found
 func findPid(name string, noAsk bool) (int, error) {
 	zap.S().Warn("Trying to find the process by name")
 	// check for cache-server process and ask to stop it
 	p, err := pid.FindPidByName(name)
 	if err != nil {
-		zap.S().Errorf("No process with name cache-server is running, err: %v", err)
+		zap.S().Errorf("No process with name '%s' is running, err: %v", name, err)
 		return -1, err
 	}
 	zap.S().Infof("Found a cache-server process with pid %d ", p)
