@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 	"github.com/killi1812/go-cache-server/config"
 	"github.com/killi1812/go-cache-server/util/auth"
 	"github.com/stretchr/testify/assert"
@@ -18,7 +19,9 @@ import (
 // --- Test Suite Definition ---
 type MiddlewareTestSuite struct {
 	suite.Suite
-	router *gin.Engine
+	router    *gin.Engine
+	goodToken string
+	tokenId   string
 }
 
 // SetupSuite runs once before all tests in the suite
@@ -29,7 +32,10 @@ func (suite *MiddlewareTestSuite) SetupSuite() {
 	gin.SetMode(gin.TestMode)
 	suite.router = gin.New()
 
-	suite.router.GET("/protected/general", auth.Protect(), func(c *gin.Context) {
+	suite.tokenId = "abb51a69-365d-4aa3-873f-c2e83ef5da6f"
+	suite.goodToken = suite.generateToken(time.Now().Add(5 * time.Minute))
+
+	suite.router.GET("/protected/general", auth.Protect(suite.goodToken), func(c *gin.Context) {
 		c.String(http.StatusOK, "general_access_granted")
 	})
 }
@@ -59,6 +65,7 @@ func (suite *MiddlewareTestSuite) performRequest(method, path, token string, bod
 // Helper to generate a token
 func (suite *MiddlewareTestSuite) generateToken(expiresAt time.Time) string {
 	claims := &auth.Claims{
+		Id:        uuid.MustParse(suite.tokenId),
 		ExpiresAt: jwt.NewNumericDate(expiresAt),
 		CreatedOn: jwt.NewNumericDate(time.Now()),
 	}
@@ -73,7 +80,7 @@ func (suite *MiddlewareTestSuite) generateToken(expiresAt time.Time) string {
 // --- Test Cases for Protect Middleware ---
 
 func (suite *MiddlewareTestSuite) TestProtect_ValidToken_GeneralAccess() {
-	token := suite.generateToken(time.Now().Add(5 * time.Minute))
+	token := suite.goodToken
 
 	w := suite.performRequest(http.MethodGet, "/protected/general", token)
 

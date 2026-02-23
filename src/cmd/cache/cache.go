@@ -89,7 +89,7 @@ func NewCmd() *cobra.Command {
 	ls := &cobra.Command{
 		Use:   "list",
 		Short: "list binary caches",
-		Args:  cobra.NoArgs,
+		Args:  cobra.ExactArgs(1),
 		RunE:  list,
 	}
 	ls.Flags().BoolP(_PUBLIC_FLAG_NAME, "P", false, "List public caches")
@@ -163,7 +163,7 @@ func create(cmd *cobra.Command, args []string) error {
 	}
 
 	// cache.token = jwt.encode({'name': new_name}, config.key, algorithm="HS256")
-	t, err := auth.GenerateToken()
+	t, err := auth.GenerateJwt()
 	if err != nil {
 		zap.S().Errorf("Failed to generate token ")
 		zap.S().Debug(err)

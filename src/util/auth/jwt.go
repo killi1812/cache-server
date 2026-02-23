@@ -44,30 +44,46 @@ func (c *Claims) Valid() error {
 }
 
 const (
-	_API_TOKEN_DURATION = 5 * time.Minute
+	_API_TOKEN_DURATION = 365 * 24 * time.Hour
 )
 
 // ParseToken will parse  the auth header string and verify the token, returns a claims or error
 func ParseToken(authHeader string) (*Claims, error) {
-	// Parse token
-	if len(authHeader) <= len("Bearer ") || authHeader[:len("Bearer ")] != "Bearer " {
-		zap.S().Debugf("token: %s", authHeader)
-		return nil, ErrInvalidTokenFormat
+	tokenString, err := cutHeader(authHeader)
+	if err != nil {
+		return nil, err
 	}
 
-	tokenString := authHeader[len("Bearer "):]
-
 	claims := new(Claims)
+	err = parseToken(claims, tokenString)
+	if err != nil {
+		return nil, err
+	}
+
+	return claims, nil
+}
+
+func parseToken(claims *Claims, tokenString string) error {
 	_, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (any, error) {
 		return []byte(config.Config.CacheServer.Key), nil
 	})
 	if err != nil {
 		zap.S().Errorf("Parse and validation Failed, err: %v, %w", err, err)
 
-		return nil, err
+		return err
+	}
+	return nil
+}
+
+func cutHeader(authHeader string) (string, error) {
+	// Parse token
+	if len(authHeader) <= len("Bearer ") || authHeader[:len("Bearer ")] != "Bearer " {
+		zap.S().Debugf("token: %s", authHeader)
+		return "", ErrInvalidTokenFormat
 	}
 
-	return claims, nil
+	tokenString := authHeader[len("Bearer "):]
+	return tokenString, nil
 }
 
 // GenerateJwt return a jwt api token or an error
