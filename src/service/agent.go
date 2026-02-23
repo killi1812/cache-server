@@ -27,7 +27,6 @@ func NewAgentSrv() *AgentSrv {
 type AgentCreateArgs struct {
 	AgentName     string // Required
 	WorkspaceName string // Required
-	Token         string // Required
 }
 
 func (a *AgentSrv) Create(args AgentCreateArgs) (*model.Agent, error) {
@@ -60,7 +59,6 @@ func (a *AgentSrv) Create(args AgentCreateArgs) (*model.Agent, error) {
 
 	agent := model.Agent{
 		Name:        args.AgentName,
-		Token:       args.Token,
 		WorkspaceId: workspace.ID,
 		Workspace:   &workspace,
 	}

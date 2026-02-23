@@ -42,3 +42,5 @@ compatible with cachix client
   - [ ] nix-cache-nfo
   - [ ] nar
 - [ ] websockets
+
+- [ ] Garbage collector that removes old caches

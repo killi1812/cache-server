@@ -59,11 +59,8 @@ func (suite *MiddlewareTestSuite) performRequest(method, path, token string, bod
 // Helper to generate a token
 func (suite *MiddlewareTestSuite) generateToken(expiresAt time.Time) string {
 	claims := &auth.Claims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(expiresAt),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			NotBefore: jwt.NewNumericDate(time.Now().Add(-1 * time.Minute)), // Allow for slight clock skew
-		},
+		ExpiresAt: jwt.NewNumericDate(expiresAt),
+		CreatedOn: jwt.NewNumericDate(time.Now()),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString([]byte(config.Config.CacheServer.Key))
@@ -88,7 +85,7 @@ func (suite *MiddlewareTestSuite) TestProtect_NoToken() {
 	w := suite.performRequest(http.MethodGet, "/protected/general", "")
 
 	assert.Equal(suite.T(), http.StatusUnauthorized, w.Code)
-	assert.Contains(suite.T(), w.Body.String(), "Missing token")
+	assert.Contains(suite.T(), w.Body.String(), auth.ErrHeaderMissing.Error())
 }
 
 func (suite *MiddlewareTestSuite) TestProtect_InvalidTokenFormat_NoBearer() {
@@ -98,14 +95,14 @@ func (suite *MiddlewareTestSuite) TestProtect_InvalidTokenFormat_NoBearer() {
 	suite.router.ServeHTTP(w, req)
 
 	assert.Equal(suite.T(), http.StatusUnauthorized, w.Code)
-	assert.Contains(suite.T(), w.Body.String(), "Invalid token format")
+	assert.Contains(suite.T(), w.Body.String(), auth.ErrInvalidTokenFormat.Error())
 }
 
 func (suite *MiddlewareTestSuite) TestProtect_InvalidTokenFormat_TooShort() {
 	w := suite.performRequest(http.MethodGet, "/protected/general", "short")
 
 	assert.Equal(suite.T(), http.StatusUnauthorized, w.Code)
-	assert.Contains(suite.T(), w.Body.String(), "Invalid token format")
+	assert.Contains(suite.T(), w.Body.String(), auth.ErrTokenNotValid.Error())
 }
 
 func (suite *MiddlewareTestSuite) TestProtect_MalformedToken() {
@@ -121,7 +118,7 @@ func (suite *MiddlewareTestSuite) TestProtect_MalformedToken() {
 	// For this test, we check for "Invalid token" as per the middleware's generic error for parsing issues.
 	// A more specific check might involve parsing the JSON response if your middleware returns one.
 	// The current middleware returns "Invalid token" for jwt.ParseWithClaims errors.
-	assert.Contains(suite.T(), w.Body.String(), "Invalid token")
+	assert.Contains(suite.T(), w.Body.String(), auth.ErrTokenNotValid.Error())
 }
 
 func (suite *MiddlewareTestSuite) TestProtect_ExpiredToken() {
@@ -133,15 +130,12 @@ func (suite *MiddlewareTestSuite) TestProtect_ExpiredToken() {
 	// The middleware uses `token.Valid` which would be false for an expired token.
 	// The specific error from `jwt.ParseWithClaims` would be `jwt.ErrTokenExpired`.
 	// The middleware then returns "Invalid token".
-	assert.Contains(suite.T(), w.Body.String(), "Invalid token")
+	assert.Contains(suite.T(), w.Body.String(), auth.ErrTokenNotValid.Error())
 }
 
 func (suite *MiddlewareTestSuite) TestProtect_WrongSigningKey() {
 	claims := &auth.Claims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ID:        "12345",
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(5 * time.Minute)),
-		},
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(5 * time.Minute)),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	// Sign with a different key
@@ -152,7 +146,7 @@ func (suite *MiddlewareTestSuite) TestProtect_WrongSigningKey() {
 	assert.Equal(suite.T(), http.StatusUnauthorized, w.Code)
 	// Error from `jwt.ParseWithClaims` would be `jwt.ErrSignatureInvalid`.
 	// Middleware returns "Invalid token".
-	assert.Contains(suite.T(), w.Body.String(), "Invalid token")
+	assert.Contains(suite.T(), w.Body.String(), auth.ErrTokenNotValid.Error())
 }
 
 // --- Run Test Suite ---

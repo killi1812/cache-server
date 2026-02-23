@@ -37,7 +37,7 @@ func listen(cmd *cobra.Command, args []string) error {
 	addr := fmt.Sprintf("%s:%d", config.Config.CacheServer.Hostname, config.Config.CacheServer.ServerPort)
 	if foreground {
 		// start the app foreground
-		app.Start(nil, addr)
+		app.Start(newApi(), addr)
 	} else {
 		err := proc.StartProcBackground(app.PID_FILE_NAME)
 		if err != nil {

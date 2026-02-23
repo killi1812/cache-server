@@ -296,7 +296,7 @@ func start(cmd *cobra.Command, args []string) error {
 	addr := fmt.Sprintf("%s:%d", config.Config.CacheServer.Hostname, cache.Port)
 	if foreground {
 		zap.S().Infof("Starting server in foreground")
-		app.Start(nil, addr)
+		app.Start(newApi(cache), addr)
 	} else {
 		zap.S().Infof("Starting server in backgound")
 		err := proc.StartProcBackground(cache.Uuid.String() + ".pid")

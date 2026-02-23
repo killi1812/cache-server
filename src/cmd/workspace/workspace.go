@@ -8,7 +8,6 @@ import (
 
 	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/service"
-	"github.com/killi1812/go-cache-server/util/auth"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -77,17 +76,11 @@ func create(cmd *cobra.Command, args []string) error {
 
 	zap.S().Debugf("Parsed args: %v %v", wsName, cacheName)
 
-	token, err := auth.GenerateToken()
-	if err != nil {
-		zap.S().Errorf("Failed to generate token, err: %v ", err)
-		return err
-	}
-
 	tmp := service.WorkspaceCreateArgs{
 		WorkspaceName:   wsName,
 		BinaryCacheName: cacheName,
-		Token:           token,
 	}
+
 	worskpace, err := serv.Create(tmp)
 	if err != nil {
 		zap.S().Errorf("Failed to create workspace, err: %v", err)
@@ -97,7 +90,6 @@ func create(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Workspace Created Successfully!\n")
 	fmt.Printf("Name:       %s\n", worskpace.Name)
 	fmt.Printf("Cache:      %s\n", worskpace.BinaryCache.Name)
-	fmt.Printf("Token:      %s\n", worskpace.Token)
 
 	return nil
 }
@@ -163,7 +155,6 @@ func info(cmd *cobra.Command, args []string) error {
 	} else {
 		fmt.Printf("Cache:      null\n")
 	}
-	fmt.Printf("Token:      %s\n", workspace.Token)
 	fmt.Printf("Agents Cnt: %d\n", len(workspace.Agents))
 
 	return nil
@@ -185,7 +176,6 @@ func changeCache(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Updated Workspace Cache Successfully!\n")
 	fmt.Printf("Name:       %s\n", workspace.Name)
 	fmt.Printf("Cache Name: %s\n", workspace.BinaryCache.Name)
-	fmt.Printf("Token:      %s\n", workspace.Token)
 	fmt.Printf("Agents Cnt: %d\n", len(workspace.Agents))
 
 	return nil

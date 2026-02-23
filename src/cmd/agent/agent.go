@@ -8,7 +8,6 @@ import (
 
 	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/service"
-	"github.com/killi1812/go-cache-server/util/auth"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -77,16 +76,9 @@ func add(cmd *cobra.Command, args []string) error {
 	wsName := args[1]
 	zap.S().Debugf("Args: %+v", args)
 
-	token, err := auth.GenerateToken()
-	if err != nil {
-		zap.S().Errorf("Failed to generate token, err: %v ", err)
-		return err
-	}
-
 	tmp := service.AgentCreateArgs{
 		AgentName:     agentName,
 		WorkspaceName: wsName,
-		Token:         token,
 	}
 
 	agent, err := serv.Create(tmp)
@@ -98,7 +90,6 @@ func add(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Agent Created Successfully!\n")
 	fmt.Printf("Name:       %s\n", agent.Name)
 	fmt.Printf("Workspace:  %s\n", agent.Workspace.Name)
-	fmt.Printf("Token:      %s\n", agent.Token)
 	return nil
 }
 
@@ -146,7 +137,6 @@ func info(cmd *cobra.Command, args []string) error {
 	} else {
 		fmt.Printf("Workspace:null\n")
 	}
-	fmt.Printf("Token:      %s\n", agent.Token)
 
 	return nil
 }

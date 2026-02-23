@@ -33,7 +33,6 @@ func NewWorkspaceSrv() *WorkspaceSrv {
 type WorkspaceCreateArgs struct {
 	BinaryCacheName string // Required
 	WorkspaceName   string // Required
-	Token           string // Required
 }
 
 func (w WorkspaceSrv) Create(args WorkspaceCreateArgs) (*model.Workspace, error) {
@@ -63,7 +62,6 @@ func (w WorkspaceSrv) Create(args WorkspaceCreateArgs) (*model.Workspace, error)
 
 	workspace := model.Workspace{
 		Name:          args.WorkspaceName,
-		Token:         args.Token,
 		BinaryCacheId: cache.ID,
 		BinaryCache:   &cache,
 	}
