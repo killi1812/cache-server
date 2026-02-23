@@ -23,7 +23,11 @@ func newApi(cache *model.BinaryCache) app.GinApi {
 
 // RegisterEndpoints implements app.GinApi.
 func (s *socketApi) RegisterEndpoints(router *gin.Engine) {
-	router.Use(auth.Protect(s.cache.Token))
+	if s.cache.Access == "private" {
+		zap.S().Infof("Protecting cache, access is private")
+		router.Use(auth.Protect(s.cache.Token))
+	}
+
 	router.GET("/nix-cache-info")
 	router.GET("/:storeHash", storeHashCmd)
 	router.HEAD("/:storeHash", storeHashCmd)

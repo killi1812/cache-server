@@ -367,7 +367,7 @@ func update(cmd *cobra.Command, args []string) error {
 	newCache := model.BinaryCache{
 		Name:      newName,
 		Retention: retention,
-		Access:    access,
+		Access:    model.ParseBinaryCacheAccess(access),
 		Port:      port,
 		// TODO: add rest
 	}

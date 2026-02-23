@@ -13,8 +13,7 @@ var (
 	ErrWrongToken    = errors.New("error token mismatch")
 )
 
-// Protect protects routes allowing access
-// only checks for the validity of tokens
+// Protect protects route with a given token
 func Protect(token string) gin.HandlerFunc {
 	tokenC := new(Claims)
 	err := parseToken(tokenC, token)

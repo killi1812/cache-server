@@ -16,7 +16,8 @@ var (
 	ErrTokenRevoked       = errors.New("error token is revoked")
 )
 
-// TODO: check if custom claims are needed
+// TODO: add suport for multiple keys so that caches don't use app keys
+// Suport for createing jwt token on first run
 
 type Claims struct {
 	Id          uuid.UUID        `json:"id"`
