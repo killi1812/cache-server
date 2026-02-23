@@ -82,4 +82,6 @@ tasks:
       - go version
       - gcc --version
       - task --version
+      - nix --version
+      - cachix --version
     silent: true

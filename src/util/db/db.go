@@ -50,6 +50,16 @@ func newSqliteConn(dsn string) *gorm.DB {
 	return db
 }
 
+func Migration(db *gorm.DB) error {
+	zap.S().Infof("Trying to run AutoMigrate")
+	if err := db.AutoMigrate(model.GetAllModels()...); err != nil {
+		zap.S().DPanicf("Can't run AutoMigrate err = %+v", err)
+		return err
+	}
+	zap.S().Infof("Successfull auto migrate")
+	return nil
+}
+
 // New creates a new connection to the dabase based on the config
 func New() *gorm.DB {
 	var db *gorm.DB
@@ -78,13 +88,6 @@ func New() *gorm.DB {
 	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
-	// TODO: move to only development and or flag
-	zap.S().Infof("Trying to run AutoMigrate")
-	if err = db.AutoMigrate(model.GetAllModels()...); err != nil {
-		zap.S().DPanicf("Can't run AutoMigrate err = %+v", err)
-		return db
-	}
-	zap.S().Infof("Successfull auto migrate")
 	return db
 }
 

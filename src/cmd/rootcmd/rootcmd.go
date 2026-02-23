@@ -2,13 +2,19 @@
 package rootcmd
 
 import (
+	"fmt"
+
 	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/config"
+	"github.com/killi1812/go-cache-server/util/db"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
 
-var verbose = false
+var (
+	verbose     = false
+	doMigration = false
+)
 
 func NewCmd() *cobra.Command {
 	ptr := &cobra.Command{
@@ -27,6 +33,7 @@ func NewCmd() *cobra.Command {
 
 	ptr.PersistentFlags().StringVarP(&config.ConfigPath, "config", "c", "cache-server.conf", "path to config file")
 	ptr.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
+	ptr.PersistentFlags().BoolVarP(&doMigration, "migration", "m", false, "preform auto migration")
 
 	// remove cache-server help, only leave cache-server -h and cache-server --help
 	// BUG: still in the compleating
@@ -50,6 +57,14 @@ func setup(cmd *cobra.Command, args []string) {
 	}
 	zap.S().Debugf("Config file %s", config.ConfigPath)
 	config.LoadConfig()
+
+	if app.Build == app.BuildDev || doMigration {
+		err := db.Migration(db.New())
+		if err != nil {
+			zap.S().DPanicf("Failed to run auto migration, err: %v", err)
+			fmt.Println("Migration Failed")
+		}
+	}
 }
 
 var versionTempleta = `{{with .Name}}{{printf "%s " .}}{{end}}
