@@ -89,7 +89,7 @@ func NewCmd() *cobra.Command {
 	ls := &cobra.Command{
 		Use:   "list",
 		Short: "list binary caches",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.NoArgs,
 		RunE:  list,
 	}
 	ls.Flags().BoolP(_PUBLIC_FLAG_NAME, "P", false, "List public caches")
@@ -98,13 +98,13 @@ func NewCmd() *cobra.Command {
 
 	ptr.AddCommand(cr, st, up, ls,
 		&cobra.Command{
-			Use:   "delete [cache name] ",
+			Use:   "delete [cache name]",
 			Short: "delete a binary cache",
 			Args:  cobra.ExactArgs(1),
 			RunE:  remove,
 		},
 		&cobra.Command{
-			Use:   "info [cache name] ",
+			Use:   "info [cache name]",
 			Short: "get info about binary cache",
 			Args:  cobra.ExactArgs(1),
 			RunE:  info,
@@ -257,8 +257,6 @@ func info(cmd *cobra.Command, args []string) error {
 
 func list(cmd *cobra.Command, args []string) error {
 	zap.S().Infof("trying to list binary caches ...")
-	name := args[0]
-	zap.S().Debugf("Parsed args: %v", name)
 
 	// TODO: add json output
 	caches, err := serv.ReadAll()

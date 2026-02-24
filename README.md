@@ -44,3 +44,5 @@ compatible with cachix client
 - [ ] websockets
 
 - [ ] Garbage collector that removes old caches
+- [ ] Redo tokens on agent and workspace
+
