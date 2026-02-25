@@ -1,26 +1,37 @@
 package listen
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/killi1812/go-cache-server/app"
+	"github.com/killi1812/go-cache-server/model"
+	"github.com/killi1812/go-cache-server/service"
+	"github.com/killi1812/go-cache-server/util/auth"
 	"go.uber.org/zap"
 )
 
-type mainApi struct{}
+type mainApi struct {
+	cacheServ *service.CacheSrv
+}
 
 func newApi() app.GinApi {
-	return &mainApi{}
+	var api *mainApi
+	app.Invoke(func(cacheServ *service.CacheSrv) {
+		api = &mainApi{cacheServ}
+	})
+	return api
 }
 
 // RegisterEndpoints implements app.GinApi.
-func (m mainApi) RegisterEndpoints(router *gin.Engine) {
+func (api mainApi) RegisterEndpoints(router *gin.Engine) {
 	apiGroup := router.Group("/api")
 
 	// v1 group
 	v1 := apiGroup.Group("/v1")
 	// cache group
 	cache := v1.Group("/cache")
-	cache.GET("/:name", name)
+	cache.GET("/:name", api.name)
 	cache.POST("/:name/narinfo")
 
 	cache.POST("/:name/multipart-nar")
@@ -39,10 +50,33 @@ func (m mainApi) RegisterEndpoints(router *gin.Engine) {
 	deployV2.POST("activate")
 }
 
-var name gin.HandlerFunc = func(c *gin.Context) {
-	hash := c.Param("name")
+func (api *mainApi) name(c *gin.Context) {
+	name := c.Param("name")
+	zap.S().Infof("Trying to read cache '%s'", name)
 
-	zap.S().Infof("list store hash: '%s'", hash)
+	cache, err := api.cacheServ.Read(name)
+	if err != nil {
+		zap.S().Errorf("Failed to read cache '%s', err: %v", name, err)
+		c.AbortWithStatusJSON(500, gin.H{"error": "failed to read cache"})
+		return
+	}
 
-	c.String(200, "Accessing store: %s", hash)
+	if cache.Access == model.Private {
+		// TODO: protect
+		// not like this this is middleware only
+		auth.Protect(cache.Token)
+	}
+
+	/*
+		return json.dumps({
+		            'githubUsername': '',
+		            'isPublic': (self.access == 'public'),
+		            'name': self.name,
+		            'permission': permission, #TODO
+		            'preferredCompressionMethod': 'XZ',
+		            'publicSigningKeys': [public_key],
+		            'uri': self.url
+		        })
+	*/
+	c.JSON(http.StatusOK, cache)
 }

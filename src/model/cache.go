@@ -5,8 +5,8 @@ import "github.com/google/uuid"
 type BinaryCacheAccess string
 
 const (
-	Private = "private"
-	Public  = "public"
+	Private BinaryCacheAccess = "private"
+	Public                    = "public"
 )
 
 // ParseBinaryCacheAccess parses the input, default private
