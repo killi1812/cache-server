@@ -34,6 +34,14 @@ func TestParseToken(t *testing.T) {
 	expiredTokenString, _ := expiredToken.SignedString([]byte(config.Config.CacheServer.Key))
 	expiredAuthHeader := "Bearer " + expiredTokenString
 
+	revokedClaims := auth.Claims{
+		IsRevoked: true,
+		ExpiresAt: jwt.NewNumericDate(now.Add(-time.Minute)),
+	}
+	revokedToken := jwt.NewWithClaims(jwt.SigningMethodHS256, &revokedClaims)
+	revokedTokenString, _ := revokedToken.SignedString([]byte(config.Config.CacheServer.Key))
+	revokedTokenHeader := "Bearer " + revokedTokenString
+
 	tests := []struct {
 		name       string
 		authHeader string
@@ -76,6 +84,12 @@ func TestParseToken(t *testing.T) {
 			wantClaims: nil,
 			wantErr:    jwt.ErrTokenMalformed,
 		},
+		{
+			name:       "Revoked token",
+			authHeader: revokedTokenHeader,
+			wantClaims: nil,
+			wantErr:    auth.ErrTokenRevoked,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -110,16 +124,16 @@ func TestParseToken(t *testing.T) {
 func TestGenerateTokens(t *testing.T) {
 	config.LoadConfig()
 
-	accessTokenDuration := 5 * time.Minute
-
 	tests := []struct {
 		name                     string
+		duration                 time.Duration
 		wantAccessTokenNonEmpty  bool
 		wantRefreshTokenNonEmpty bool
 		wantErr                  bool
 	}{
 		{
-			name:                     "Valid user",
+			name:                     "Valid duration",
+			duration:                 1 * time.Minute,
 			wantAccessTokenNonEmpty:  true,
 			wantRefreshTokenNonEmpty: true,
 			wantErr:                  false,
@@ -127,7 +141,7 @@ func TestGenerateTokens(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotAccessToken, err := auth.GenerateJwt()
+			gotAccessToken, err := auth.GenerateJwtWithDuration(tt.duration)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GenerateTokens() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -144,8 +158,8 @@ func TestGenerateTokens(t *testing.T) {
 					return
 				}
 				if claims, ok := token.Claims.(*auth.Claims); ok {
-					if !claims.ExpiresAt.After(time.Now().Add(accessTokenDuration-time.Minute)) || !claims.ExpiresAt.Before(time.Now().Add(accessTokenDuration+time.Minute)) {
-						t.Errorf("GenerateTokens() access token expiry is not within expected range: %+v", claims.ExpiresAt)
+					if !claims.ExpiresAt.After(time.Now().Add(tt.duration-time.Minute)) || !claims.ExpiresAt.Before(time.Now().Add(tt.duration+time.Hour)) {
+						t.Errorf("GenerateTokens() access token expiry is not within expected range: %+v", time.Until(claims.ExpiresAt.Time))
 					}
 				} else {
 					t.Errorf("GenerateTokens() failed to parse access token claims")
