@@ -77,6 +77,12 @@ tasks:
       - cmd: go tool cover -html=../coverage.out
     silent: true
 
+  start:
+    description: start poroject development enviroment
+    cmds:
+      - cmd: docker compose up {{.CLI_ARGS}}
+    silent: true
+
   list-tools:
     cmds:
       - go version
