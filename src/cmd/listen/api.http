@@ -1,0 +1,22 @@
+### Configuration
+@baseUrl = http://localhost:12345/api/v1
+@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQxYTVmNDJjLTcxM2YtNDU0MC05ZmQ4LTMyYWVhNGEwNGU0YSIsImV4cGlyZXNPbiI6MTgwMzM4MTY1MywiY3JlYXRlZE9uIjoxNzcxODQ1NjUzLCJsYXN0VXNlZE9uIjpudWxsLCJwZXJtaXNzaW9uIjoiIiwiaXNSZXZva2VkIjpmYWxzZSwiZGVzY3JpcHRpb24iOiIifQ.knGeyfoa0o7Spdm7eWeZ241uWDNKOz3Embqs1pCkkFc
+@cacheName = test
+
+
+### 1. Get Cache Information
+# This should return the JSON with Priority and StoreDir
+GET {{baseUrl}}/cache/{{cacheName}}
+Authorization: Bearer {{authToken}}
+
+### Get Missing Store Hashes
+# Sends a list of hashes; returns a list of those NOT found in the cache
+POST {{baseUrl}}/cache/cacheName/narinfo
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+[
+  "7f8df8765c98d7a654321",
+  "an0th3rh4sh123456789",
+  "k3yv4lu3h4sh98765432"
+]

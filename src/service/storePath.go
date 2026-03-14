@@ -106,3 +106,28 @@ References: %s
 Sig: %s
 `, p.StoreHash, p.StoreSuffix, p.FileHash, p.FileHash, p.FileSize, p.NarHash, p.NarSize, p.Deriver, p.References, sigString), nil
 }
+
+func (s *StorePathSrv) GetMissingHashes(cacheName string, incomingHashes []string) ([]string, error) {
+	var existingHashes []string
+
+	err := s.db.Model(&model.StorePath{}).
+		Where("binary_caches.name = ?", cacheName).
+		Pluck("store_paths.store_hash", &existingHashes).Error
+	if err != nil {
+		return nil, err
+	}
+
+	existingMap := make(map[string]struct{}, len(existingHashes))
+	for _, h := range existingHashes {
+		existingMap[h] = struct{}{}
+	}
+
+	var missing []string
+	for _, h := range incomingHashes {
+		if _, found := existingMap[h]; !found {
+			missing = append(missing, h)
+		}
+	}
+
+	return missing, nil
+}
