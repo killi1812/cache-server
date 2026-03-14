@@ -8,6 +8,7 @@ import (
 
 	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/service"
+	"github.com/killi1812/go-cache-server/util/auth"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -76,9 +77,16 @@ func create(cmd *cobra.Command, args []string) error {
 
 	zap.S().Debugf("Parsed args: %v %v", wsName, cacheName)
 
+	t, err := auth.GenerateJwt(wsName)
+	if err != nil {
+		zap.S().Errorf("Failed to generate token, err: %v", err)
+		return err
+	}
+
 	tmp := service.WorkspaceCreateArgs{
 		WorkspaceName:   wsName,
 		BinaryCacheName: cacheName,
+		Token:           t,
 	}
 
 	worskpace, err := serv.Create(tmp)
@@ -90,6 +98,7 @@ func create(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Workspace Created Successfully!\n")
 	fmt.Printf("Name:       %s\n", worskpace.Name)
 	fmt.Printf("Cache:      %s\n", worskpace.BinaryCache.Name)
+	fmt.Printf("Token:      %s\n", worskpace.Token)
 
 	return nil
 }
@@ -101,7 +110,7 @@ func remove(cmd *cobra.Command, args []string) error {
 	zap.S().Debugf("Parsed args: %v", name)
 
 	if err := serv.Delete(name); err != nil {
-		zap.S().Errorf("Failed to create cache token, err: %+v", err)
+		zap.S().Errorf("Failed to delete workspace, err: %+v", err)
 		return err
 	}
 

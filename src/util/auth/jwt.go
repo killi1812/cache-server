@@ -21,6 +21,7 @@ var (
 
 type Claims struct {
 	Id          uuid.UUID        `json:"id"`
+	Name        string           `json:"name"`
 	ExpiresAt   *jwt.NumericDate `json:"expiresOn"`
 	CreatedOn   *jwt.NumericDate `json:"createdOn"`
 	LastUsedOn  *jwt.NumericDate `json:"lastUsedOn"` // not implemented currently
@@ -88,24 +89,25 @@ func cutHeader(authHeader string) (string, error) {
 }
 
 // GenerateJwt return a jwt api token or an error
-func GenerateJwt() (string, error) {
-	return GenerateJwtWithDuration(_API_TOKEN_DURATION)
+func GenerateJwt(name string) (string, error) {
+	return GenerateJwtWithDuration(name, _API_TOKEN_DURATION)
 }
 
-// GenerateJwt return a jwt api token or an error
-func GenerateJwtWithDuration(duration time.Duration) (string, error) {
-	apiTokenClaims := &Claims{
+// GenerateJwtWithDuration return a jwt api token or an error
+func GenerateJwtWithDuration(name string, duration time.Duration) (string, error) {
+	clames := &Claims{
 		Id:        uuid.New(),
+		Name:      name,
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
 		CreatedOn: jwt.NewNumericDate(time.Now()),
 	}
-	apiToken := jwt.NewWithClaims(jwt.SigningMethodHS256, apiTokenClaims)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, clames)
 
-	apiTokenString, err := apiToken.SignedString([]byte(config.Config.CacheServer.Key))
+	tokenStr, err := token.SignedString([]byte(config.Config.CacheServer.Key))
 	if err != nil {
 		zap.S().Errorf("Failed to generate api token err = %w", err)
 		return "", err
 	}
 
-	return apiTokenString, nil
+	return tokenStr, nil
 }

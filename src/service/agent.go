@@ -27,6 +27,7 @@ func NewAgentSrv() *AgentSrv {
 type AgentCreateArgs struct {
 	AgentName     string // Required
 	WorkspaceName string // Required
+	Token         string // Required
 }
 
 func (a *AgentSrv) Create(args AgentCreateArgs) (*model.Agent, error) {
@@ -61,6 +62,7 @@ func (a *AgentSrv) Create(args AgentCreateArgs) (*model.Agent, error) {
 		Name:        args.AgentName,
 		WorkspaceId: workspace.ID,
 		Workspace:   &workspace,
+		Token:       args.Token,
 	}
 
 	if err := a.db.Create(&agent).Error; err != nil {

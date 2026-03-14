@@ -123,6 +123,7 @@ func (c *CacheSrv) Update(name string, newCache model.BinaryCache) (*model.Binar
 	zap.S().Infof("Old cache %+v", cache)
 	if newCache.Name != "" {
 		cache.Name = newCache.Name
+		cache.Token = newCache.Token
 	}
 	if newCache.Port != 0 {
 		cache.Port = newCache.Port

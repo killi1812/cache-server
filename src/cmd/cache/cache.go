@@ -162,11 +162,9 @@ func create(cmd *cobra.Command, args []string) error {
 		zap.S().DPanicf("Failed to retrieve retention flag, err: %v", err)
 	}
 
-	// cache.token = jwt.encode({'name': new_name}, config.key, algorithm="HS256")
-	t, err := auth.GenerateJwt()
+	t, err := auth.GenerateJwt(name)
 	if err != nil {
-		zap.S().Errorf("Failed to generate token ")
-		zap.S().Debug(err)
+		zap.S().Errorf("Failed to generate token, err: %v ", err)
 		return err
 	}
 
@@ -362,13 +360,20 @@ func update(cmd *cobra.Command, args []string) error {
 		zap.S().DPanicf("Failed to retrieve %s flag, err: %v", _PORT_FLAG_NAME, err)
 	}
 
+	t, err := auth.GenerateJwt(newName)
+	if err != nil {
+		zap.S().Errorf("Failed to generate token, err: %v ", err)
+		return err
+	}
+
 	newCache := model.BinaryCache{
 		Name:      newName,
 		Retention: retention,
 		Access:    model.ParseBinaryCacheAccess(access),
 		Port:      port,
-		// TODO: add rest
+		Token:     t,
 	}
+
 	cache, err = serv.Update(name, newCache)
 	if err != nil {
 		zap.S().Errorf("Failed to update cache '%s', err: %v", name, err)
