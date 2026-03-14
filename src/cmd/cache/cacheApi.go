@@ -58,7 +58,7 @@ func (s *socketApi) storeHashCmd(c *gin.Context) {
 	if before, ok := strings.CutSuffix(filename, ".ls"); ok {
 		storeHash := before
 		zap.S().Infof("list store hash: '%s'", storeHash)
-		// Your logic for .ls here
+		// TODO: implement ls logic
 		c.JSON(200, gin.H{"type": "ls", "hash": storeHash})
 		return
 	}
