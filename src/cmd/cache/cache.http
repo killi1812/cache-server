@@ -1,0 +1,48 @@
+### Configuration
+@baseUrl = http://localhost:4321
+@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQxYTVmNDJjLTcxM2YtNDU0MC05ZmQ4LTMyYWVhNGEwNGU0YSIsImV4cGlyZXNPbiI6MTgwMzM4MTY1MywiY3JlYXRlZE9uIjoxNzcxODQ1NjUzLCJsYXN0VXNlZE9uIjpudWxsLCJwZXJtaXNzaW9uIjoiIiwiaXNSZXZva2VkIjpmYWxzZSwiZGVzY3JpcHRpb24iOiIifQ.knGeyfoa0o7Spdm7eWeZ241uWDNKOz3Embqs1pCkkFc
+@storeHash = 7f8df8765c98d7a654321
+@narUuid = 7f8df8765c98d7a654321
+
+### 1. Get Cache Information
+# This should return the JSON with Priority and StoreDir
+GET {{baseUrl}}/nix-cache-info
+Authorization: Bearer {{authToken}}
+
+###
+
+### 2. Get NarInfo (.narinfo)
+# Matches the s.storeHashCmd logic via strings.CutSuffix
+GET {{baseUrl}}/{{storeHash}}.narinfo
+Authorization: Bearer {{authToken}}
+
+###
+
+### 3. Head Request for NarInfo
+# Useful for Nix to check if a path exists without downloading
+HEAD {{baseUrl}}/{{storeHash}}.narinfo
+Authorization: Bearer {{authToken}}
+
+###
+
+### 4. List Store Hash (.ls)
+# Matches the s.storeHashCmd logic for listing
+GET {{baseUrl}}/{{storeHash}}.ls
+Authorization: Bearer {{authToken}}
+
+###
+
+### 5. Upload NAR Data (PUT)
+# Matches s.uploadData. This sends a small dummy binary stream.
+PUT {{baseUrl}}/{{narUuid}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/octet-stream
+
+< ./test-data.nar.xz
+
+###
+
+### 6. Test 404 / Command Not Found
+# Matches the fallback in s.storeHashCmd
+GET {{baseUrl}}/invalid-command-name
+Authorization: Bearer {{authToken}}

@@ -12,6 +12,8 @@ type StorePath struct {
 	Deriver     string `gorm:"type:varchar(255)" json:"deriver"`
 	References  string `gorm:"type:text" json:"references"` // Stored as a string (serialized)
 
-	BinaryCacheId uint         `json:"binary_cache_id"`
+	// BinaryCacheId uint         `json:"binarycacheId"`
+	// BinaryCache   *BinaryCache `json:"-"`
+	BinaryCacheId uint         `gorm:"column:binary_cache_id" json:"binaryCacheId"`
 	BinaryCache   *BinaryCache `gorm:"foreignKey:BinaryCacheId" json:"-"`
 }

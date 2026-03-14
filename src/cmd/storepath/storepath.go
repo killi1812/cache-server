@@ -22,9 +22,10 @@ var serv *service.StorePathSrv
 */
 func NewCmd() *cobra.Command {
 	ptr := &cobra.Command{
-		Use:   "store-path",
-		Short: "Manage deployment paths",
-		Run:   storepath,
+		Use:               "store-path",
+		Short:             "Manage deployment paths",
+		Run:               storepath,
+		PersistentPreRunE: setup,
 	}
 
 	ptr.AddCommand(

@@ -6,7 +6,7 @@ type BinaryCacheAccess string
 
 const (
 	Private BinaryCacheAccess = "private"
-	Public                    = "public"
+	Public  BinaryCacheAccess = "public"
 )
 
 // ParseBinaryCacheAccess parses the input, default private

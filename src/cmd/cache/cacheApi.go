@@ -2,6 +2,7 @@ package cache
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"github.com/killi1812/go-cache-server/util/auth"
 	"github.com/killi1812/go-cache-server/util/objstor"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 type socketApi struct {
@@ -38,6 +40,7 @@ func (s *socketApi) RegisterEndpoints(router *gin.Engine) {
 
 	router.GET("/nix-cache-info", s.cacheInfo)
 	router.GET("/:storeHash", s.storeHashCmd)
+	// TODO: see what to do with this
 	router.HEAD("/:storeHash", s.storeHashCmd)
 
 	router.PUT("/:narUuid", s.uploadData)
@@ -67,7 +70,7 @@ func (s *socketApi) cacheInfo(c *gin.Context) {
 	data := gin.H{"Priority": 30, "StoreDir": "/nix/store", "WantMassQuery": 1}
 	resp, err := json.Marshal(data)
 	if err != nil {
-		c.AbortWithStatus(500)
+		c.AbortWithStatus(http.StatusInternalServerError)
 	}
 
 	c.Data(http.StatusOK, "application/octet-stream", resp)
@@ -76,8 +79,14 @@ func (s *socketApi) cacheInfo(c *gin.Context) {
 func (s *socketApi) storeHashNarInfo(c *gin.Context, storeHash string) {
 	path, err := s.pathServ.Read(storeHash, s.cache.Name)
 	if err != nil {
-		zap.S().Errorf("Error reading store path for hash '%s', err: %v ", storeHash, err)
-		c.AbortWithStatus(500)
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			zap.S().Errorf("Store path not found hash '%s', err: %v ", storeHash, err)
+			c.AbortWithStatus(http.StatusNotFound)
+		} else {
+			zap.S().Errorf("Error reading store path for hash '%s', err: %v ", storeHash, err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+		}
 		return
 	}
 

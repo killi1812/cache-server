@@ -21,6 +21,9 @@ func NewStorePathSrv() *StorePathSrv {
 	var srv *StorePathSrv
 
 	app.Invoke(func(db *gorm.DB, store objstor.ObjectStorage) {
+		db = db.
+			Table("store_paths").
+			Joins("JOIN binary_caches ON binary_caches.id = store_paths.binary_cache_id")
 		srv = &StorePathSrv{db, store}
 	})
 
@@ -28,16 +31,18 @@ func NewStorePathSrv() *StorePathSrv {
 }
 
 // ReadAll fetches all store paths for a specific cache
-func (s *StorePathSrv) ReadAll(cache string) ([]model.StorePath, error) {
+func (s *StorePathSrv) ReadAll(cacheName string) ([]model.StorePath, error) {
 	var paths []model.StorePath
-	result := s.db.Where("cache_name = ?", cache).Find(&paths)
+	result := s.db.
+		Where("binary_caches.name = ?", cacheName).
+		Find(&paths)
 	return paths, result.Error
 }
 
 // Read fetches a specific store path by its hash and cache name
 func (s *StorePathSrv) Read(storeHash string, cache string) (*model.StorePath, error) {
 	var path model.StorePath
-	result := s.db.Where("store_hash = ? AND cache_name = ?", storeHash, cache).First(&path)
+	result := s.db.Where("store_paths.store_hash = ? AND binary_caches.name = ?", storeHash, cache).First(&path)
 
 	if result.Error != nil {
 		// if result.Error == gorm.ErrRecordNotFound {
