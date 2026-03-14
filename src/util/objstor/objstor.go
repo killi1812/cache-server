@@ -10,6 +10,7 @@ import (
 type ObjectStorage interface {
 	CreateDir(name string) (string, error)
 	WriteFile(name string, file io.Reader) error
+	CreatFile(cachename, filename string) error
 
 	DeleteFile(name string) error
 	// TODO: change to different interface of file

@@ -20,3 +20,13 @@ Content-Type: application/json
   "an0th3rh4sh123456789",
   "k3yv4lu3h4sh98765432"
 ]
+
+### Initialize Multipart NAR Upload
+POST {{baseUrl}}/cache/{{cacheName}}/multipart-nar?compression=xz
+Authorization: Bearer {{authToken}}
+
+
+### Step 2: Get the Upload URL for a specific narId
+POST {{baseUrl}}/cache/{{cacheName}}/multipart-nar/06a4c63a-9d7a-45a3-b948-3eef9b8d79c6
+Authorization: Bearer {{authToken}}
+Content-Type: application/json

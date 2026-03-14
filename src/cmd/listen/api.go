@@ -4,17 +4,23 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/service"
+	"github.com/killi1812/go-cache-server/util/objstor"
 )
 
 type mainApi struct {
 	cacheServ *service.CacheSrv
 	pathServ  *service.StorePathSrv
+	storage   objstor.ObjectStorage
 }
 
 func newApi() app.GinApi {
 	var api *mainApi
-	app.Invoke(func(cacheServ *service.CacheSrv, pathServ *service.StorePathSrv) {
-		api = &mainApi{cacheServ, pathServ}
+	app.Invoke(func(
+		cacheServ *service.CacheSrv,
+		pathServ *service.StorePathSrv,
+		storage objstor.ObjectStorage,
+	) {
+		api = &mainApi{cacheServ, pathServ, storage}
 	})
 	return api
 }
@@ -30,8 +36,8 @@ func (api mainApi) RegisterEndpoints(router *gin.Engine) {
 	cache.GET("/:name", api.name)
 	cache.POST("/:name/narinfo", api.narinfo)
 
-	cache.POST("/:name/multipart-nar")
-	cache.POST("/:name/multipart-nar/:narUuid")
+	cache.POST("/:name/multipart-nar", api.createNar)
+	cache.POST("/:name/multipart-nar/:narUuid", api.redirect)
 	cache.POST("/:name/multipart-nar/:narUuid/complete")
 	cache.POST("/:name/multipart-nar/:narUuid/abort")
 

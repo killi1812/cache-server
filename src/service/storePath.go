@@ -108,23 +108,30 @@ Sig: %s
 }
 
 func (s *StorePathSrv) GetMissingHashes(cacheName string, incomingHashes []string) ([]string, error) {
-	var existingHashes []string
+	if len(incomingHashes) == 0 {
+		return []string{}, nil
+	}
 
+	var foundHashes []string
+
+	// 1. Find which of the INCOMING hashes actually exist in the DB
 	err := s.db.Model(&model.StorePath{}).
-		Where("binary_caches.name = ?", cacheName).
-		Pluck("store_paths.store_hash", &existingHashes).Error
+		Where("binary_caches.name = ? AND store_paths.store_hash IN ?", cacheName, incomingHashes).
+		Pluck("store_paths.store_hash", &foundHashes).Error
 	if err != nil {
 		return nil, err
 	}
 
-	existingMap := make(map[string]struct{}, len(existingHashes))
-	for _, h := range existingHashes {
-		existingMap[h] = struct{}{}
+	// 2. Convert found hashes to a map for quick diffing
+	foundMap := make(map[string]struct{}, len(foundHashes))
+	for _, h := range foundHashes {
+		foundMap[h] = struct{}{}
 	}
 
+	// 3. The 'missing' ones are the ones we asked for but didn't find
 	var missing []string
 	for _, h := range incomingHashes {
-		if _, found := existingMap[h]; !found {
+		if _, found := foundMap[h]; !found {
 			missing = append(missing, h)
 		}
 	}
