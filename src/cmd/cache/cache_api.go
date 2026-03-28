@@ -1,8 +1,8 @@
 package cache
 
 import (
-	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -67,19 +67,13 @@ func (s *socketApi) storeHashCmd(c *gin.Context) {
 }
 
 func (s *socketApi) cacheInfo(c *gin.Context) {
-	data := gin.H{"Priority": 30, "StoreDir": "/nix/store", "WantMassQuery": 1}
-	resp, err := json.Marshal(data)
-	if err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
-	}
-
-	c.Data(http.StatusOK, "application/octet-stream", resp)
+	resp := fmt.Sprintf("StoreDir: /nix/store\nWantMassQuery: 1\nPriority: 30\n")
+	c.Data(http.StatusOK, "text/x-nix-cache-info", []byte(resp))
 }
 
 func (s *socketApi) storeHashNarInfo(c *gin.Context, storeHash string) {
 	path, err := s.pathServ.Read(storeHash, s.cache.Name)
 	if err != nil {
-
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			zap.S().Errorf("Store path not found hash '%s', err: %v ", storeHash, err)
 			c.AbortWithStatus(http.StatusNotFound)
@@ -92,15 +86,16 @@ func (s *socketApi) storeHashNarInfo(c *gin.Context, storeHash string) {
 
 	zap.S().Infof("Found cache path, %v", path)
 
-	// Your logic for .narinfo here
-	resp, err := json.Marshal(path)
+	// TODO: Get private key from cache settings when implemented
+	resp, err := s.pathServ.GenerateNarInfo(path, "test:dummy")
 	if err != nil {
+		zap.S().Errorf("Failed to generate narinfo: %v", err)
 		c.AbortWithStatus(500)
 		return
 	}
 
 	c.Header("Content-Length", strconv.Itoa(len(resp)))
-	c.Data(http.StatusOK, "text/x-nix-narinfo", resp)
+	c.Data(http.StatusOK, "text/x-nix-narinfo", []byte(resp))
 }
 
 func (s *socketApi) uploadData(c *gin.Context) {

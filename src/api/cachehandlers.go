@@ -31,8 +31,18 @@ func (api *cacheApi) name(c *gin.Context) {
 		}
 	}
 
-	// TODO: Missing publicSigningKeys from output
-	c.JSON(http.StatusOK, cache)
+	// Cachix-compliant response
+	response := gin.H{
+		"githubUsername":             "",
+		"isPublic":                   cache.Access == model.Public,
+		"name":                       cache.Name,
+		"permission":                 "Admin", // Default for now
+		"preferredCompressionMethod": "XZ",
+		"publicSigningKeys":          []string{}, // TODO: Implement key management
+		"uri":                        cache.URL,
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 func (api *cacheApi) narinfo(c *gin.Context) {
