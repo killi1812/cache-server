@@ -5,5 +5,9 @@ import (
 )
 
 type GinApi interface {
-	RegisterEndpoints(router *gin.Engine)
+	RegisterEndpoints(routerGroupByVersion ...*gin.RouterGroup)
+}
+
+type CreateGinApi interface {
+	NewGinApi(router *gin.Engine)
 }

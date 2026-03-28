@@ -23,7 +23,7 @@ type socketApi struct {
 	storage  objstor.ObjectStorage
 }
 
-func newApi(cache *model.BinaryCache) app.GinApi {
+func newCacheApi(cache *model.BinaryCache) app.CreateGinApi {
 	var resp *socketApi
 	app.Invoke(func(pathServ *service.StorePathSrv, storage objstor.ObjectStorage) {
 		resp = &socketApi{cache, pathServ, storage}
@@ -32,7 +32,7 @@ func newApi(cache *model.BinaryCache) app.GinApi {
 }
 
 // RegisterEndpoints implements app.GinApi.
-func (s *socketApi) RegisterEndpoints(router *gin.Engine) {
+func (s *socketApi) NewGinApi(router *gin.Engine) {
 	if s.cache.Access == "private" {
 		zap.S().Infof("Protecting cache, access is private")
 		router.Use(auth.Protect(s.cache.Token))
@@ -92,20 +92,6 @@ func (s *socketApi) storeHashNarInfo(c *gin.Context, storeHash string) {
 
 	zap.S().Infof("Found cache path, %v", path)
 
-	// path = StorePath.get(self.server.cache.name, store_hash = m.group(1))
-	// if not path:
-	//     self.send_response(404)
-	//     self.end_headers()
-	//     return
-	//
-	// response = path.get_narinfo().encode('utf-8')
-	//
-	// self.send_response(200)
-	// self.send_header("Content-Type", "text/x-nix-narinfo")
-	// self.send_header("Content-Length", str(len(response)))
-	// self.end_headers()
-	// self.wfile.write(response)
-
 	// Your logic for .narinfo here
 	resp, err := json.Marshal(path)
 	if err != nil {
@@ -117,35 +103,7 @@ func (s *socketApi) storeHashNarInfo(c *gin.Context, storeHash string) {
 	c.Data(http.StatusOK, "text/x-nix-narinfo", resp)
 }
 
-var writeHeaders gin.HandlerFunc = func(c *gin.Context) {
-	c.Header("Content-Type", "text/x-nix-narinfo")
-}
-
 func (s *socketApi) uploadData(c *gin.Context) {
-	/*
-		    content_length = int(self.headers['Content-Length'])
-
-		    filename = None
-		    for f in os.listdir(self.server.cache.cache_dir):
-		        if m.group(1) in f:
-		            filename = f
-
-		    if not filename:
-		        self.send_response(400)
-		        self.end_headers()
-		        return
-
-		    body = self.rfile.read(content_length)
-		    with open(os.path.join(self.server.cache.cache_dir, filename), "wb") as file:
-		        file.write(body)
-		    self.send_response(201)
-		    self.send_header("Content-Location", "/")
-		    self.end_headers()
-		else:
-		    self.send_response(400)
-		    self.end_headers()
-	*/
-
 	fileHash := c.Param("narUuid")
 	if fileHash == "" {
 		c.AbortWithStatusJSON(400, gin.H{"error": "missing file hash"})

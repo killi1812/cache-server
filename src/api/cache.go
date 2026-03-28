@@ -1,36 +1,39 @@
-package listen
+package api
 
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/service"
 	"github.com/killi1812/go-cache-server/util/objstor"
+	"go.uber.org/zap"
 )
 
-type mainApi struct {
+type cacheApi struct {
 	cacheServ *service.CacheSrv
 	pathServ  *service.StorePathSrv
 	storage   objstor.ObjectStorage
 }
 
-func newApi() app.GinApi {
-	var api *mainApi
+func newCacheApi() app.GinApi {
+	var api *cacheApi
 	app.Invoke(func(
 		cacheServ *service.CacheSrv,
 		pathServ *service.StorePathSrv,
 		storage objstor.ObjectStorage,
 	) {
-		api = &mainApi{cacheServ, pathServ, storage}
+		api = &cacheApi{cacheServ, pathServ, storage}
 	})
 	return api
 }
 
 // RegisterEndpoints implements app.GinApi.
-func (api mainApi) RegisterEndpoints(router *gin.Engine) {
-	apiGroup := router.Group("/api")
+func (api *cacheApi) RegisterEndpoints(routerGroupByVersion ...*gin.RouterGroup) {
+	if len(routerGroupByVersion) == 0 {
+		zap.S().Warn("Did not register any endpoints")
+		return
+	}
+	v1 := routerGroupByVersion[0]
 
-	// v1 group
-	v1 := apiGroup.Group("/v1")
 	// cache group
 	cache := v1.Group("/cache")
 	cache.GET("/:name", api.name)
@@ -41,13 +44,17 @@ func (api mainApi) RegisterEndpoints(router *gin.Engine) {
 	cache.POST("/:name/multipart-nar/:narUuid/complete")
 	cache.POST("/:name/multipart-nar/:narUuid/abort")
 
-	// deploy group
-	deployApi := newDeployApi()
-	deployApi.RegisterEndpoints(v1.Group("/deploy"))
-
-	// v2 group
-	v2 := apiGroup.Group("/v2")
+	if len(routerGroupByVersion) == 1 {
+		zap.S().Infof("Regester v1 apis")
+		return
+	}
+	v2 := routerGroupByVersion[1]
 	// deploy group
 	deployV2 := v2.Group("/deploy")
 	deployV2.POST("activate")
+
+	if len(routerGroupByVersion) == 2 {
+		zap.S().Infof("Regester v2 apis")
+		return
+	}
 }

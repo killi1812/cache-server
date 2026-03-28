@@ -19,7 +19,7 @@ var signalNotificationCh = make(chan os.Signal, 1)
 // Start will start the web server of the app
 // addr: in the form "host:port". If empty, ":http" (port 80) is used.
 // api: register api to server
-func Start(api GinApi, addr string) {
+func Start(api CreateGinApi, addr string) {
 	// relay selected signals to channel
 	// - os.Interrupt, ctrl-c
 	// - syscall.SIGTERM, program termination
@@ -61,7 +61,7 @@ func checkInterrupt(ctx context.Context, wg *sync.WaitGroup, schedulerCancel con
 	}
 }
 
-func run(ctx context.Context, wg *sync.WaitGroup, api GinApi, addr string) {
+func run(ctx context.Context, wg *sync.WaitGroup, api CreateGinApi, addr string) {
 	defer wg.Done()
 
 	// setup gin
@@ -74,7 +74,7 @@ func run(ctx context.Context, wg *sync.WaitGroup, api GinApi, addr string) {
 	// setup controllers
 	if api != nil {
 		zap.S().Debug("Registering Api")
-		api.RegisterEndpoints(router)
+		api.NewGinApi(router)
 	} else {
 		zap.S().Warn("No Api to regeister, api is nil")
 	}

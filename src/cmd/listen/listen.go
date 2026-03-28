@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/killi1812/go-cache-server/api"
 	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/config"
 	"github.com/killi1812/go-cache-server/util/proc"
@@ -37,7 +38,7 @@ func listen(cmd *cobra.Command, args []string) error {
 	addr := fmt.Sprintf("%s:%d", config.Config.CacheServer.Hostname, config.Config.CacheServer.ServerPort)
 	if foreground {
 		// start the app foreground
-		app.Start(newApi(), addr)
+		app.Start(api.NewApi(), addr)
 	} else {
 		err := proc.StartProcBackground(app.PID_FILE_NAME)
 		if err != nil {
