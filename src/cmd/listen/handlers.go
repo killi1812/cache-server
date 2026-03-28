@@ -271,7 +271,7 @@ func (api *deployApi) getWorkspace(c *gin.Context) {
 }
 
 func (api *deployApi) getDeployment(c *gin.Context) {
-	uuid := c.Param("uuid")
+	uuid := c.Param("workspace")
 	zap.S().Infof("Get deployment %s", uuid)
 	deployment, _ := api.deploymentServ.Read(uuid)
 	c.JSON(http.StatusOK, deployment)

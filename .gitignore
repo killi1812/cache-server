@@ -44,3 +44,5 @@ _cache-server
 
 [Tt]mp
 [Tt]emp
+
+*.log

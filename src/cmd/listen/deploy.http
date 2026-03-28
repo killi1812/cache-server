@@ -1,0 +1,65 @@
+### Configuration
+@baseUrl = http://localhost:12345/api/v1
+@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQxYTVmNDJjLTcxM2YtNDU0MC05ZmQ4LTMyYWVhNGEwNGU0YSIsImV4cGlyZXNPbiI6MTgwMzM4MTY1MywiY3JlYXRlZE9uIjoxNzcxODQ1NjUzLCJsYXN0VXNlZE9uIjpudWxsLCJwZXJtaXNzaW9uIjoiIiwiaXNSZXZva2VkIjpmYWxzZSwiZGVzY3JpcHRpb24iOiIifQ.knGeyfoa0o7Spdm7eWeZ241uWDNKOz3Embqs1pCkkFc
+@workspaceName = prod-workspace
+@cacheName = test-cache
+@agentName = web-server-01
+@deploymentUuid = 06a4c63a-9d7a-45a3-b948-3eef9b8d79c6
+
+### --- Workspace Endpoints ---
+
+### 1. Create Workspace
+POST {{baseUrl}}/deploy/workspace
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "name": "{{workspaceName}}",
+  "cacheName": "{{cacheName}}"
+}
+
+### 2. Get Workspace Details
+GET {{baseUrl}}/deploy/workspace/{{workspaceName}}
+Authorization: Bearer {{authToken}}
+
+### 3. List Agents in Workspace
+GET {{baseUrl}}/deploy/workspace/{{workspaceName}}/agents
+Authorization: Bearer {{authToken}}
+
+### 4. Delete Workspace
+DELETE {{baseUrl}}/deploy/workspace/{{workspaceName}}
+Authorization: Bearer {{authToken}}
+
+
+### --- Agent Endpoints ---
+
+### 5. Create Agent
+POST {{baseUrl}}/deploy/agent/{{workspaceName}}/{{agentName}}
+Authorization: Bearer {{authToken}}
+
+### 6. Get Agent Details
+GET {{baseUrl}}/deploy/agent/{{workspaceName}}/{{agentName}}
+Authorization: Bearer {{authToken}}
+
+### 7. Delete Agent
+DELETE {{baseUrl}}/deploy/agent/{{workspaceName}}/{{agentName}}
+Authorization: Bearer {{authToken}}
+
+
+### --- Deployment Endpoints (Placeholders) ---
+
+### 8. Create Deployment
+POST {{baseUrl}}/deploy/deployment/{{workspaceName}}/{{agentName}}
+Authorization: Bearer {{authToken}}
+
+### 9. Get Deployments for Agent
+GET {{baseUrl}}/deploy/deployment/{{workspaceName}}/{{agentName}}
+Authorization: Bearer {{authToken}}
+
+### 10. Get Deployment by UUID
+GET {{baseUrl}}/deploy/deployment/{{deploymentUuid}}
+Authorization: Bearer {{authToken}}
+
+### 11. Get Deployment by Index
+GET {{baseUrl}}/deploy/deployment/{{workspaceName}}/{{agentName}}/1
+Authorization: Bearer {{authToken}}

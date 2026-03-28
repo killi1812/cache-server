@@ -26,15 +26,14 @@ func newDeployApi() *deployApi {
 
 func (api *deployApi) RegisterEndpoints(group *gin.RouterGroup) {
 	// deployment endpoints
-	group.GET("/deployment/:uuid", api.getDeployment)
+	group.GET("/deployment/:workspace", api.getDeployment)
 	group.GET("/deployment/:workspace/:name", api.getDeployments)
 	group.POST("/deployment/:workspace/:name", api.createDeployment)
 	group.GET("/deployment/:workspace/:name/:index", api.getDeploymentByIndex)
 
 	// agent endpoints
 	group.GET("/agent/:workspace/:name", api.getAgent)
-	deployPost := group.Group("/agent/:workspace/:name")
-	deployPost.POST("", api.createAgent)
+	group.POST("/agent/:workspace/:name", api.createAgent)
 	group.DELETE("/agent/:workspace/:name", api.deleteAgent)
 	group.GET("/workspace/:workspace/agents", api.listAgents)
 
