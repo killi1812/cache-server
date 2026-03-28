@@ -41,6 +41,7 @@ func init() {
 	app.Provide(service.NewCacheSrv)
 	app.Provide(service.NewStorePathSrv)
 	app.Provide(service.NewWorkspaceSrv)
+	app.Provide(service.NewDeploymentSrv)
 }
 
 func main() {

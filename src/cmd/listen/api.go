@@ -42,8 +42,8 @@ func (api mainApi) RegisterEndpoints(router *gin.Engine) {
 	cache.POST("/:name/multipart-nar/:narUuid/abort")
 
 	// deploy group
-	deploy := v1.Group("/deploy")
-	deploy.GET("/deployment/:uuid")
+	deployApi := newDeployApi()
+	deployApi.RegisterEndpoints(v1.Group("/deploy"))
 
 	// v2 group
 	v2 := apiGroup.Group("/v2")
