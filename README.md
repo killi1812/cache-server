@@ -64,9 +64,9 @@ binary cache protocol, the following steps must be implemented:
 - **Finalization Logic:** Implement the `.../complete` and `.../abort` handlers for multipart uploads.
 - **Persistence:** Ensure that once a multipart upload is completed, the corresponding `StorePath` record is updated/finalized in the database.
 
-### Step 4: Implement Deployment Activation [IN PROGRESS]
-- **Endpoint:** Connect `POST /api/v1/deploy/activate` to a new handler in `deployApi`. [Basic handler added]
-- **Logic:** Parse the deployment specification and trigger notifications/tasks for the targeted agents.
+### Step 4: Implement Deployment Activation [COMPLETED]
+- **Endpoint:** Connect `POST /api/v1/deploy/activate` to a new handler in `deployApi`.
+- **Logic:** Parse the deployment specification and trigger notifications/tasks for the targeted agents. [Deployment records created]
 
 ### Step 5: Signing Key Management
 

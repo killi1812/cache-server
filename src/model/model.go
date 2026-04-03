@@ -8,5 +8,6 @@ func GetAllModels() []any {
 		&Workspace{},   // 2. Child of Cache, Parent of Agent
 		&Agent{},       // 3. Child of Workspace
 		&StorePath{},   // 4. Child of Cache
+		&Deployment{},  // 5. Child of Agent
 	}
 }

@@ -157,6 +157,33 @@ func (suite *ApiTestSuite) TestMultipartNarCompletion() {
 	})
 }
 
+func (suite *ApiTestSuite) TestDeploymentActivation() {
+	t := suite.T()
+
+	// 1. Setup prerequisite: Cache -> Workspace -> Agent
+	app.Invoke(func(cs *service.CacheSrv, ws *service.WorkspaceSrv, as *service.AgentSrv) {
+		cs.Create(service.CreateCacheArgs{Name: "c-deploy", Port: 9004, Token: "t4"})
+		ws.Create(service.WorkspaceCreateArgs{WorkspaceName: "w-deploy", BinaryCacheName: "c-deploy", Token: "tw"})
+		as.Create(service.AgentCreateArgs{AgentName: "a-deploy", WorkspaceName: "w-deploy", Token: "ta"})
+	})
+
+	// 2. Activate Deployment
+	activateReq := map[string]any{
+		"agents": map[string]string{
+			"a-deploy": "/nix/store/hash-deploy-pkg",
+		},
+	}
+
+	w := suite.request("POST", "/api/v1/deploy/activate", activateReq)
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	var resp []map[string]any
+	json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.Len(t, resp, 1)
+	assert.Equal(t, "/nix/store/hash-deploy-pkg", resp[0]["storePath"])
+	assert.Equal(t, "pending", resp[0]["status"])
+}
+
 func (suite *ApiTestSuite) TestCacheInfo() {
 	t := suite.T()
 

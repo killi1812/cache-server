@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/killi1812/go-cache-server/model"
 	"github.com/killi1812/go-cache-server/service"
 	"github.com/killi1812/go-cache-server/util/auth"
 	"go.uber.org/zap"
@@ -206,8 +207,17 @@ func (api *deployApi) activateDeployment(c *gin.Context) {
 
 	zap.S().Infof("Activating deployment for agents: %v", req.Agents)
 
-	// In a real implementation, we would create deployment records
-	// and notify agents (e.g., via WebSockets).
-	// For now, we just return success.
-	c.Status(http.StatusOK)
+	var deployments []*model.Deployment
+	for agentName, storePath := range req.Agents {
+		deployment, err := api.deploymentServ.Create(agentName, storePath)
+		if err != nil {
+			zap.S().Errorf("Failed to create deployment for agent %s: %v", agentName, err)
+			continue
+		}
+		deployments = append(deployments, deployment)
+	}
+
+	// In a real implementation, we would notify agents here.
+	// For now, we return the created deployment records.
+	c.JSON(http.StatusCreated, deployments)
 }
