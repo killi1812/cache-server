@@ -2,7 +2,9 @@ package api
 
 import (
 	"fmt"
+	"net"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -96,9 +98,17 @@ func (api *cacheApi) createNar(c *gin.Context) {
 }
 
 func (api *cacheApi) redirect(c *gin.Context) {
+	name := c.Param("name")
 	narId := c.Param("narUuid")
 	if narId == "" {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "missing narId"})
+		return
+	}
+
+	cache, err := api.cacheServ.Read(name)
+	if err != nil {
+		zap.S().Errorf("Failed to read cache '%s', err: %v", name, err)
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "cache not found"})
 		return
 	}
 
@@ -107,7 +117,14 @@ func (api *cacheApi) redirect(c *gin.Context) {
 		scheme = "https"
 	}
 
-	uploadUrl := fmt.Sprintf("%s://%s/%s", scheme, c.Request.Host, narId)
+	host := c.Request.Host
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		host = net.JoinHostPort(h, strconv.Itoa(cache.Port))
+	} else {
+		host = net.JoinHostPort(host, strconv.Itoa(cache.Port))
+	}
+
+	uploadUrl := fmt.Sprintf("%s://%s/%s", scheme, host, narId)
 
 	// TODO: add check if path or cache exists
 
