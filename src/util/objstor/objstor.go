@@ -3,6 +3,8 @@ package objstor
 import (
 	"errors"
 	"io"
+
+	"github.com/killi1812/go-cache-server/config"
 )
 
 // common interface between OS file system and minio storage
@@ -16,8 +18,10 @@ type ObjectStorage interface {
 }
 
 func New() ObjectStorage {
-	// TODO: change to not tmp
-	return newFileStorage("tmp/cache")
+	if config.Config.CacheServer.StorageType == "minio" {
+		return newMinioStorage()
+	}
+	return newFileStorage(config.Config.CacheServer.CacheDir)
 }
 
 // errors

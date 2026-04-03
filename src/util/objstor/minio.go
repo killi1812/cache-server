@@ -2,6 +2,7 @@ package objstor
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/killi1812/go-cache-server/config"
@@ -10,28 +11,77 @@ import (
 	"go.uber.org/zap"
 )
 
+const _DEFAULT_BUCKET = "cache-server"
+
 type mStorage struct {
-	c *minio.Client
+	c      *minio.Client
+	bucket string
 }
 
 // DeleteFile implements ObjectStorage.
 func (m *mStorage) DeleteFile(name string) error {
-	panic("unimplemented")
+	zap.S().Infof("MinIO: Trying to remove object '%s' from bucket '%s'", name, m.bucket)
+	err := m.c.RemoveObject(context.Background(), m.bucket, name, minio.RemoveObjectOptions{})
+	if err != nil {
+		zap.S().Errorf("MinIO: Failed to remove object '%s', err: %v", name, err)
+		return err
+	}
+	return nil
 }
 
 // ReadFile implements ObjectStorage.
 func (m *mStorage) ReadFile(name string) (io.ReadCloser, error) {
-	panic("unimplemented")
+	zap.S().Infof("MinIO: Trying to read object '%s' from bucket '%s'", name, m.bucket)
+	return m.c.GetObject(context.Background(), m.bucket, name, minio.GetObjectOptions{})
 }
 
-// createDir implements ObjectStorage.
-func (m *mStorage) createDir(name string) error {
-	panic("unimplemented")
+// CreateDir implements ObjectStorage.
+func (m *mStorage) CreateDir(name string) (string, error) {
+	// In MinIO, we ensure the bucket exists. 'name' could be used as a prefix if needed,
+	// but here we just ensure the main bucket exists.
+	ctx := context.Background()
+	exists, err := m.c.BucketExists(ctx, m.bucket)
+	if err != nil {
+		return "", err
+	}
+	if !exists {
+		zap.S().Infof("MinIO: Creating bucket '%s'", m.bucket)
+		err = m.c.MakeBucket(ctx, m.bucket, minio.MakeBucketOptions{})
+		if err != nil {
+			return "", err
+		}
+	}
+	return m.bucket, nil
 }
 
-// createFile implements ObjectStorage.
-func (m *mStorage) createFile(path string) error {
-	panic("unimplemented")
+// WriteFile implements ObjectStorage.
+func (m *mStorage) WriteFile(name string, data io.Reader) error {
+	zap.S().Infof("MinIO: Trying to write object '%s' to bucket '%s'", name, m.bucket)
+	// Using -1 for size tells minio-go to use internal buffering for unknown size
+	_, err := m.c.PutObject(context.Background(), m.bucket, name, data, -1, minio.PutObjectOptions{
+		ContentType: "application/octet-stream",
+	})
+	if err != nil {
+		zap.S().Errorf("MinIO: Failed to write object '%s', err: %v", name, err)
+		return err
+	}
+	return nil
+}
+
+// CreatFile implements ObjectStorage.
+func (m *mStorage) CreatFile(cachename, filename string) error {
+	objectName := fmt.Sprintf("%s/%s", cachename, filename)
+	zap.S().Infof("MinIO: Creating placeholder object '%s' in bucket '%s'", objectName, m.bucket)
+
+	// Create an empty object
+	_, err := m.c.PutObject(context.Background(), m.bucket, objectName, nil, 0, minio.PutObjectOptions{
+		ContentType: "application/octet-stream",
+	})
+	if err != nil {
+		zap.S().Errorf("MinIO: Failed to create object '%s', err: %v", objectName, err)
+		return err
+	}
+	return nil
 }
 
 // New creates a new minio.Client
@@ -52,5 +102,5 @@ func newMinioStorage() *mStorage {
 	}
 	zap.S().Debugf("MinIO contains %d buckets", len(buckets))
 
-	return &mStorage{c: minioClient}
+	return &mStorage{c: minioClient, bucket: _DEFAULT_BUCKET}
 }

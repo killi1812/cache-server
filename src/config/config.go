@@ -32,9 +32,10 @@ type (
 	}
 
 	ServerConf struct {
-		Hostname   string `ini:"hostname"`
-		CacheDir   string `ini:"cache-dir"`
-		ServerPort int    `ini:"server-port"`
+		Hostname    string `ini:"hostname"`
+		CacheDir    string `ini:"cache-dir"`
+		ServerPort  int    `ini:"server-port"`
+		StorageType string `ini:"storage-type"`
 		// connections string or sqlite file name
 		Database   string `ini:"database"`
 		DeployPort int    `ini:"deploy-port"`
@@ -45,12 +46,13 @@ type (
 func NewConfig() *AppConfig {
 	c := &AppConfig{
 		CacheServer: &ServerConf{
-			Hostname:   "localhost",
-			CacheDir:   "binary-caches",
-			ServerPort: 12345,
-			Database:   "dbfile.db",
-			DeployPort: 54321,
-			Key:        "secret",
+			Hostname:    "localhost",
+			CacheDir:    "binary-caches",
+			ServerPort:  12345,
+			StorageType: "file",
+			Database:    "dbfile.db",
+			DeployPort:  54321,
+			Key:         "secret",
 		},
 		Minio: &MinioConf{
 			Endpoint:   "play.min.io",

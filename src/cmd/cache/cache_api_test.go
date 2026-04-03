@@ -77,8 +77,7 @@ func TestSocketApi(t *testing.T) {
 
 	t.Run("Download NAR", func(t *testing.T) {
 		// 1. Create a dummy file in the "storage"
-		// The default storage in tests is fileStorage at "tmp/cache"
-		storageDir := "tmp/cache"
+		storageDir := config.Config.CacheServer.CacheDir
 		fileName := "dummyhash"
 		content := []byte("dummy nar content")
 		
