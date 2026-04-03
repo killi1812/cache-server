@@ -1,0 +1,28 @@
+services:
+  db:
+    image: postgres
+    restart: always
+    environment:
+      postgres_user: ${POSTGRES_USER}
+      postgres_password: ${POSTGRES_PASSWORD}
+    ports:
+      - "5332:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["cmd", "pg_isready", "-u", "postgres", "-d", "cachesrv"]
+      start_period: 1s
+      interval: 0.5s
+      retries: 5
+      timeout: 0.5s
+
+  minio:
+    image: minio/minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    command: server --console-address ":9001" /data
