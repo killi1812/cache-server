@@ -3,9 +3,7 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/killi1812/go-cache-server/app"
-	"github.com/killi1812/go-cache-server/config"
 	"github.com/killi1812/go-cache-server/service"
-	"github.com/killi1812/go-cache-server/util/auth"
 	"go.uber.org/zap"
 )
 
@@ -34,7 +32,6 @@ func (api *deployApi) RegisterEndpoints(routerGroupByVersion ...*gin.RouterGroup
 	}
 	v1 := routerGroupByVersion[0]
 	deploy := v1.Group("/deploy")
-	deploy.Use(auth.Protect(config.Config.CacheServer.Key))
 
 	// deployment endpoints
 	deploy.GET("/deployment/:workspace", api.getDeployment)

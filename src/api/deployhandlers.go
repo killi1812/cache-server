@@ -219,5 +219,5 @@ func (api *deployApi) activateDeployment(c *gin.Context) {
 
 	// In a real implementation, we would notify agents here.
 	// For now, we return the created deployment records.
-	c.JSON(http.StatusCreated, deployments)
+	c.JSON(http.StatusOK, deployments)
 }

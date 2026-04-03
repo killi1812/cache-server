@@ -66,6 +66,10 @@ func (api *cacheApi) narinfo(c *gin.Context) {
 		return
 	}
 
+	if missing == nil {
+		missing = []string{}
+	}
+
 	c.JSON(200, missing)
 }
 
@@ -180,7 +184,7 @@ func (api *cacheApi) completeNar(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	c.JSON(http.StatusOK, gin.H{})
 }
 
 func (api *cacheApi) abortNar(c *gin.Context) {
@@ -194,5 +198,5 @@ func (api *cacheApi) abortNar(c *gin.Context) {
 		zap.S().Warnf("Failed to clean up aborted NAR file: %v", err)
 	}
 
-	c.Status(http.StatusNoContent)
+	c.JSON(http.StatusOK, gin.H{})
 }

@@ -22,7 +22,7 @@ func (f fileStorage) WriteFile(cachename, name string, data io.Reader) error {
 	zap.S().Infof("Trying to write file '%s' in cache '%s'", name, cachename)
 	cachePath := filepath.Join(f.rootDir, cachename, name)
 
-	file, err := os.OpenFile(cachePath, os.O_WRONLY, filePerms)
+	file, err := os.OpenFile(cachePath, os.O_CREATE|os.O_WRONLY, filePerms)
 	if err != nil {
 		zap.S().Errorf("Failed to open file '%s', err: %v", cachePath, err)
 		return err

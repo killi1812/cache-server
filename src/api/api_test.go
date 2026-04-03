@@ -35,7 +35,7 @@ func (suite *ApiTestSuite) SetupTest() {
 	// Use a unique memory database name for each test to ensure absolute isolation
 	suite.T().Logf("Setting up test: %s", suite.T().Name())
 	config.Config.CacheServer.Database = "file:" + suite.T().Name() + "?mode=memory&cache=shared"
-	
+
 	// Provide dependencies
 	app.Provide(db.New)
 	app.Provide(objstor.New)
@@ -94,7 +94,7 @@ func (suite *ApiTestSuite) TestWorkspaceAndAgentLifecycle() {
 
 	// 3. Get Workspace
 	w = suite.request("GET", "/api/v1/deploy/workspace/w-unique-1", nil)
-	// assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, http.StatusOK, w.Code)
 
 	// 4. Create Agent
 	w = suite.request("POST", "/api/v1/deploy/agent/w-unique-1/a-unique-1", nil)
@@ -194,7 +194,7 @@ func (suite *ApiTestSuite) TestCacheInfo() {
 
 	w := suite.request("GET", "/api/v1/cache/c-unique-2", nil)
 	assert.Equal(t, http.StatusOK, w.Code)
-	
+
 	var resp map[string]any
 	json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.Equal(t, "c-unique-2", resp["name"])
