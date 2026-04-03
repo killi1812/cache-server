@@ -74,7 +74,7 @@ func (s *StorePathSrv) Delete(storeHash string, cache string) error {
 	// 3. Delete the actual NAR file from Object Storage (S3/Local)
 	// Note: You'll need to determine the extension (e.g., .nar.xz)
 	// based on your storage logic.
-	return s.store.DeleteFile(path.FileHash)
+	return s.store.DeleteFile(cache, path.FileHash)
 }
 
 // TODO: check wtf is this needed for

@@ -19,20 +19,22 @@ type mStorage struct {
 }
 
 // DeleteFile implements ObjectStorage.
-func (m *mStorage) DeleteFile(name string) error {
-	zap.S().Infof("MinIO: Trying to remove object '%s' from bucket '%s'", name, m.bucket)
-	err := m.c.RemoveObject(context.Background(), m.bucket, name, minio.RemoveObjectOptions{})
+func (m *mStorage) DeleteFile(cachename, name string) error {
+	objectName := fmt.Sprintf("%s/%s", cachename, name)
+	zap.S().Infof("MinIO: Trying to remove object '%s' from bucket '%s'", objectName, m.bucket)
+	err := m.c.RemoveObject(context.Background(), m.bucket, objectName, minio.RemoveObjectOptions{})
 	if err != nil {
-		zap.S().Errorf("MinIO: Failed to remove object '%s', err: %v", name, err)
+		zap.S().Errorf("MinIO: Failed to remove object '%s', err: %v", objectName, err)
 		return err
 	}
 	return nil
 }
 
 // ReadFile implements ObjectStorage.
-func (m *mStorage) ReadFile(name string) (io.ReadCloser, error) {
-	zap.S().Infof("MinIO: Trying to read object '%s' from bucket '%s'", name, m.bucket)
-	return m.c.GetObject(context.Background(), m.bucket, name, minio.GetObjectOptions{})
+func (m *mStorage) ReadFile(cachename, name string) (io.ReadCloser, error) {
+	objectName := fmt.Sprintf("%s/%s", cachename, name)
+	zap.S().Infof("MinIO: Trying to read object '%s' from bucket '%s'", objectName, m.bucket)
+	return m.c.GetObject(context.Background(), m.bucket, objectName, minio.GetObjectOptions{})
 }
 
 // CreateDir implements ObjectStorage.
@@ -55,14 +57,15 @@ func (m *mStorage) CreateDir(name string) (string, error) {
 }
 
 // WriteFile implements ObjectStorage.
-func (m *mStorage) WriteFile(name string, data io.Reader) error {
-	zap.S().Infof("MinIO: Trying to write object '%s' to bucket '%s'", name, m.bucket)
+func (m *mStorage) WriteFile(cachename, name string, data io.Reader) error {
+	objectName := fmt.Sprintf("%s/%s", cachename, name)
+	zap.S().Infof("MinIO: Trying to write object '%s' to bucket '%s'", objectName, m.bucket)
 	// Using -1 for size tells minio-go to use internal buffering for unknown size
-	_, err := m.c.PutObject(context.Background(), m.bucket, name, data, -1, minio.PutObjectOptions{
+	_, err := m.c.PutObject(context.Background(), m.bucket, objectName, data, -1, minio.PutObjectOptions{
 		ContentType: "application/octet-stream",
 	})
 	if err != nil {
-		zap.S().Errorf("MinIO: Failed to write object '%s', err: %v", name, err)
+		zap.S().Errorf("MinIO: Failed to write object '%s', err: %v", objectName, err)
 		return err
 	}
 	return nil

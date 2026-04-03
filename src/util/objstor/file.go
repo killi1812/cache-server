@@ -18,11 +18,10 @@ const (
 )
 
 // WriteFile implements [ObjectStorage].
-func (f fileStorage) WriteFile(name string, data io.Reader) error {
-	zap.S().Infof("Trying to write file '%s'", name)
-	cachePath := filepath.Join(f.rootDir, name)
+func (f fileStorage) WriteFile(cachename, name string, data io.Reader) error {
+	zap.S().Infof("Trying to write file '%s' in cache '%s'", name, cachename)
+	cachePath := filepath.Join(f.rootDir, cachename, name)
 
-	// TODO: missing cache name
 	file, err := os.OpenFile(cachePath, os.O_WRONLY, filePerms)
 	if err != nil {
 		zap.S().Errorf("Failed to open file '%s', err: %v", cachePath, err)
@@ -41,21 +40,30 @@ func (f fileStorage) WriteFile(name string, data io.Reader) error {
 }
 
 // DeleteFile implements ObjectStorage.
-func (f fileStorage) DeleteFile(name string) error {
-	zap.S().Infof("Trying to remove file '%s'", name)
-	cachePath := filepath.Join(f.rootDir, name)
+func (f fileStorage) DeleteFile(cachename, name string) error {
+	zap.S().Infof("Trying to remove file '%s' in cache '%s'", name, cachename)
+	cachePath := filepath.Join(f.rootDir, cachename, name)
 
 	info, err := os.Stat(cachePath)
 	if err != nil {
-		pErr := err.(*os.PathError)
-		zap.S().Errorf("Failed to access path 's', err: %+v", pErr)
+		pErr, ok := err.(*os.PathError)
+		if ok {
+			zap.S().Errorf("Failed to access path '%s', err: %+v", cachePath, pErr)
+		} else {
+			zap.S().Errorf("Failed to access path '%s', err: %+v", cachePath, err)
+		}
+	} else {
+		zap.S().Infof("File info %+v", info)
 	}
-	zap.S().Infof("File info %+v", info)
 
 	err = os.Remove(cachePath)
 	if err != nil {
-		pErr := err.(*os.PathError)
-		zap.S().Errorf("Failed to remove path '%s', err: %+v", cachePath, pErr)
+		pErr, ok := err.(*os.PathError)
+		if ok {
+			zap.S().Errorf("Failed to remove path '%s', err: %+v", cachePath, pErr)
+		} else {
+			zap.S().Errorf("Failed to remove path '%s', err: %+v", cachePath, err)
+		}
 		return err
 	}
 
@@ -64,8 +72,8 @@ func (f fileStorage) DeleteFile(name string) error {
 }
 
 // ReadFile implements ObjectStorage.
-func (f fileStorage) ReadFile(name string) (io.ReadCloser, error) {
-	cachePath := filepath.Join(f.rootDir, name)
+func (f fileStorage) ReadFile(cachename, name string) (io.ReadCloser, error) {
+	cachePath := filepath.Join(f.rootDir, cachename, name)
 	return os.Open(cachePath)
 }
 

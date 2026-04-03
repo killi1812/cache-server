@@ -189,7 +189,7 @@ func (api *cacheApi) abortNar(c *gin.Context) {
 	zap.S().Infof("Aborting multipart NAR upload: %s/%s", name, narUuid)
 
 	// Clean up the placeholder file
-	err := api.storage.DeleteFile(name + "/" + narUuid) // Assuming directory structure
+	err := api.storage.DeleteFile(name, narUuid)
 	if err != nil {
 		zap.S().Warnf("Failed to clean up aborted NAR file: %v", err)
 	}

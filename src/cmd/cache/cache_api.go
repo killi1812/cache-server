@@ -50,12 +50,12 @@ func (s *socketApi) NewGinApi(router *gin.Engine) {
 
 func (s *socketApi) downloadNar(c *gin.Context) {
 	filename := c.Param("filename")
-	zap.S().Infof("Downloading NAR file: %s", filename)
+	zap.S().Infof("Downloading NAR file: %s from cache %s", filename, s.cache.Name)
 
 	// Strip .nar extension if present
 	fileHash := strings.TrimSuffix(filename, ".nar")
 
-	reader, err := s.storage.ReadFile(fileHash)
+	reader, err := s.storage.ReadFile(s.cache.Name, fileHash)
 	if err != nil {
 		zap.S().Errorf("Failed to read NAR file %s, err: %v", fileHash, err)
 		c.AbortWithStatus(http.StatusNotFound)
@@ -125,15 +125,10 @@ func (s *socketApi) uploadData(c *gin.Context) {
 		return
 	}
 
-	storePath, err := s.pathServ.Read(fileHash, s.cache.Name)
-	if err != nil || storePath == nil {
-		c.AbortWithStatusJSON(400, gin.H{"error": "file record not found in database"})
-		return
-	}
-
 	// 3. Stream the body to Object Storage
 	// c.Request.Body is an io.ReadCloser. We stream it to avoid RAM spikes.
-	err = s.storage.WriteFile(storePath.FileHash, c.Request.Body)
+	// We no longer check for storePath in DB here because it might not exist yet during multipart upload.
+	err := s.storage.WriteFile(s.cache.Name, fileHash, c.Request.Body)
 	if err != nil {
 		c.AbortWithStatusJSON(500, gin.H{"error": "failed to save to storage"})
 		return
