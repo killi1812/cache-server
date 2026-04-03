@@ -31,23 +31,26 @@ func (api *deployApi) RegisterEndpoints(routerGroupByVersion ...*gin.RouterGroup
 		return
 	}
 	v1 := routerGroupByVersion[0]
+	deploy := v1.Group("/deploy")
 
 	// deployment endpoints
-	v1.GET("/deployment/:workspace", api.getDeployment)
-	v1.GET("/deployment/:workspace/:name", api.getDeployments)
-	v1.POST("/deployment/:workspace/:name", api.createDeployment)
-	v1.GET("/deployment/:workspace/:name/:index", api.getDeploymentByIndex)
+	deploy.GET("/deployment/:workspace", api.getDeployment)
+	deploy.GET("/deployment/:workspace/:name", api.getDeployments)
+	deploy.POST("/deployment/:workspace/:name", api.createDeployment)
+	deploy.GET("/deployment/:workspace/:name/:index", api.getDeploymentByIndex)
 
 	// agent endpoints
-	v1.GET("/agent/:workspace/:name", api.getAgent)
-	v1.POST("/agent/:workspace/:name", api.createAgent)
-	v1.DELETE("/agent/:workspace/:name", api.deleteAgent)
-	v1.GET("/workspace/:workspace/agents", api.listAgents)
+	deploy.GET("/agent/:workspace/:name", api.getAgent)
+	deploy.POST("/agent/:workspace/:name", api.createAgent)
+	deploy.DELETE("/agent/:workspace/:name", api.deleteAgent)
+	deploy.GET("/workspace/:workspace/agents", api.listAgents)
 
 	// workspace endpoints
-	v1.POST("/workspace", api.createWorkspace)
-	v1.DELETE("/workspace/:workspace", api.deleteWorkspace)
-	v1.GET("/workspace/:workspace", api.getWorkspace)
+	deploy.POST("/workspace", api.createWorkspace)
+	deploy.DELETE("/workspace/:workspace", api.deleteWorkspace)
+	deploy.GET("/workspace/:workspace", api.getWorkspace)
+
+	deploy.POST("/activate", api.activateDeployment)
 
 	if len(routerGroupByVersion) == 1 {
 		zap.S().Infof("Regester v1 apis")

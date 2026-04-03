@@ -192,3 +192,22 @@ func (api *deployApi) getDeploymentByIndex(c *gin.Context) {
 	// Just placeholder
 	c.JSON(http.StatusOK, gin.H{"index": index, "workspace": workspace, "agent": name})
 }
+
+type ActivateRequest struct {
+	Agents map[string]string `json:"agents"`
+}
+
+func (api *deployApi) activateDeployment(c *gin.Context) {
+	var req ActivateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	zap.S().Infof("Activating deployment for agents: %v", req.Agents)
+
+	// In a real implementation, we would create deployment records
+	// and notify agents (e.g., via WebSockets).
+	// For now, we just return success.
+	c.Status(http.StatusOK)
+}

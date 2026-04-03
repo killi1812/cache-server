@@ -41,8 +41,8 @@ func (api *cacheApi) RegisterEndpoints(routerGroupByVersion ...*gin.RouterGroup)
 
 	cache.POST("/:name/multipart-nar", api.createNar)
 	cache.POST("/:name/multipart-nar/:narUuid", api.redirect)
-	cache.POST("/:name/multipart-nar/:narUuid/complete")
-	cache.POST("/:name/multipart-nar/:narUuid/abort")
+	cache.POST("/:name/multipart-nar/:narUuid/complete", api.completeNar)
+	cache.POST("/:name/multipart-nar/:narUuid/abort", api.abortNar)
 
 	if len(routerGroupByVersion) == 1 {
 		zap.S().Infof("Regester v1 apis")

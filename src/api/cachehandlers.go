@@ -114,3 +114,23 @@ func (api *cacheApi) redirect(c *gin.Context) {
 		"uploadUrl": uploadUrl,
 	})
 }
+
+func (api *cacheApi) completeNar(c *gin.Context) {
+	name := c.Param("name")
+	narUuid := c.Param("narUuid")
+	zap.S().Infof("Completing multipart NAR upload: %s/%s", name, narUuid)
+
+	// In a real implementation, we would verify all parts are uploaded
+	// and finalize the NAR in the database.
+	// For now, we just return success.
+	c.Status(http.StatusNoContent)
+}
+
+func (api *cacheApi) abortNar(c *gin.Context) {
+	name := c.Param("name")
+	narUuid := c.Param("narUuid")
+	zap.S().Infof("Aborting multipart NAR upload: %s/%s", name, narUuid)
+
+	// In a real implementation, we would clean up partial files.
+	c.Status(http.StatusNoContent)
+}

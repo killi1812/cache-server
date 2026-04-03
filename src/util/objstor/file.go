@@ -64,8 +64,9 @@ func (f fileStorage) DeleteFile(name string) error {
 }
 
 // ReadFile implements ObjectStorage.
-func (f fileStorage) ReadFile(name string) (os.File, error) {
-	panic("unimplemented")
+func (f fileStorage) ReadFile(name string) (io.ReadCloser, error) {
+	cachePath := filepath.Join(f.rootDir, name)
+	return os.Open(cachePath)
 }
 
 // CreateDir implements ObjectStorage.

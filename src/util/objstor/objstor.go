@@ -3,7 +3,6 @@ package objstor
 import (
 	"errors"
 	"io"
-	"os"
 )
 
 // common interface between OS file system and minio storage
@@ -13,8 +12,7 @@ type ObjectStorage interface {
 	CreatFile(cachename, filename string) error
 
 	DeleteFile(name string) error
-	// TODO: change to different interface of file
-	ReadFile(name string) (os.File, error)
+	ReadFile(name string) (io.ReadCloser, error)
 }
 
 func New() ObjectStorage {

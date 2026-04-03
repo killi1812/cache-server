@@ -43,7 +43,28 @@ func (s *socketApi) NewGinApi(router *gin.Engine) {
 	// TODO: see what to do with this
 	router.HEAD("/:storeHash", s.storeHashCmd)
 
+	router.GET("/nar/:filename", s.downloadNar)
+
 	router.PUT("/:narUuid", s.uploadData)
+}
+
+func (s *socketApi) downloadNar(c *gin.Context) {
+	filename := c.Param("filename")
+	zap.S().Infof("Downloading NAR file: %s", filename)
+
+	// Strip .nar extension if present
+	fileHash := strings.TrimSuffix(filename, ".nar")
+
+	reader, err := s.storage.ReadFile(fileHash)
+	if err != nil {
+		zap.S().Errorf("Failed to read NAR file %s, err: %v", fileHash, err)
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	defer reader.Close()
+
+	// Nix usually expects application/x-nix-archive or octet-stream
+	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
 }
 
 func (s *socketApi) storeHashCmd(c *gin.Context) {
@@ -87,7 +108,7 @@ func (s *socketApi) storeHashNarInfo(c *gin.Context, storeHash string) {
 	zap.S().Infof("Found cache path, %v", path)
 
 	// TODO: Get private key from cache settings when implemented
-	resp, err := s.pathServ.GenerateNarInfo(path, "test:dummy")
+	resp, err := s.pathServ.GenerateNarInfo(path, "test:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
 	if err != nil {
 		zap.S().Errorf("Failed to generate narinfo: %v", err)
 		c.AbortWithStatus(500)

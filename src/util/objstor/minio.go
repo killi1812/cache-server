@@ -2,7 +2,7 @@ package objstor
 
 import (
 	"context"
-	"os"
+	"io"
 
 	"github.com/killi1812/go-cache-server/config"
 	"github.com/minio/minio-go/v7"
@@ -20,7 +20,7 @@ func (m *mStorage) DeleteFile(name string) error {
 }
 
 // ReadFile implements ObjectStorage.
-func (m *mStorage) ReadFile(name string) (os.File, error) {
+func (m *mStorage) ReadFile(name string) (io.ReadCloser, error) {
 	panic("unimplemented")
 }
 
