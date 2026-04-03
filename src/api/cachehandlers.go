@@ -39,7 +39,7 @@ func (api *cacheApi) name(c *gin.Context) {
 		"name":                       cache.Name,
 		"permission":                 "Admin", // Default for now
 		"preferredCompressionMethod": "XZ",
-		"publicSigningKeys":          []string{}, // TODO: Implement key management
+		"publicSigningKeys":          []string{cache.PublicKey},
 		"uri":                        cache.URL,
 	}
 

@@ -68,12 +68,9 @@ binary cache protocol, the following steps must be implemented:
 - **Endpoint:** Connect `POST /api/v1/deploy/activate` to a new handler in `deployApi`.
 - **Logic:** Parse the deployment specification and trigger notifications/tasks for the targeted agents. [Deployment records created]
 
-### Step 5: Signing Key Management
-
-- **Key Generation:** Add support for generating Ed25519 signing keys for each
-binary cache.
-- **Signature Integration:** Ensure `GenerateNarInfo` uses the cache-specific
-private key to sign the output.
+### Step 5: Signing Key Management [COMPLETED]
+- **Key Generation:** Add support for generating Ed25519 signing keys for each binary cache.
+- **Signature Integration:** Ensure `GenerateNarInfo` uses the cache-specific private key to sign the output.
 
 ### Step 6: Protocol Compliance Verification
 

@@ -107,8 +107,7 @@ func (s *socketApi) storeHashNarInfo(c *gin.Context, storeHash string) {
 
 	zap.S().Infof("Found cache path, %v", path)
 
-	// TODO: Get private key from cache settings when implemented
-	resp, err := s.pathServ.GenerateNarInfo(path, "test:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
+	resp, err := s.pathServ.GenerateNarInfo(path, s.cache.SecretKey)
 	if err != nil {
 		zap.S().Errorf("Failed to generate narinfo: %v", err)
 		c.AbortWithStatus(500)

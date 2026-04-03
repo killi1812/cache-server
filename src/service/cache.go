@@ -1,6 +1,9 @@
 package service
 
 import (
+	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
 
@@ -51,12 +54,24 @@ func (c *CacheSrv) Create(args CreateCacheArgs) (*model.BinaryCache, error) {
 		return nil, err
 	}
 
+	// Generate signing keys
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate keys: %w", err)
+	}
+
+	// Format: name:base64
+	pubStr := args.Name + ":" + base64.StdEncoding.EncodeToString(pub)
+	privStr := args.Name + ":" + base64.StdEncoding.EncodeToString(priv.Seed())
+
 	cache := model.BinaryCache{
 		Name:      args.Name,
 		Uuid:      uuid.New(),
 		Port:      args.Port,
 		Token:     args.Token,
 		Retention: args.Retention,
+		PublicKey: pubStr,
+		SecretKey: privStr,
 
 		URL: fmt.Sprintf("http://%s:%d", config.Config.CacheServer.Hostname, args.Port),
 	}
