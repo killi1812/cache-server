@@ -60,8 +60,8 @@ binary cache protocol, the following steps must be implemented:
 - **NAR Download Endpoint:** Create a route (e.g., `/nar/:fileHash.nar.xz`) that streams the actual binary package data from `ObjectStorage` to the client.
 - **Content-Type handling:** Ensure binary downloads use `application/x-nix-archive` or `application/octet-stream`.
 
-### Step 3: Complete Multipart NAR Protocol [IN PROGRESS]
-- **Finalization Logic:** Implement the `.../complete` and `.../abort` handlers for multipart uploads. [Basic handlers added]
+### Step 3: Complete Multipart NAR Protocol [COMPLETED]
+- **Finalization Logic:** Implement the `.../complete` and `.../abort` handlers for multipart uploads.
 - **Persistence:** Ensure that once a multipart upload is completed, the corresponding `StorePath` record is updated/finalized in the database.
 
 ### Step 4: Implement Deployment Activation [IN PROGRESS]

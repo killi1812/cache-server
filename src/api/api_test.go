@@ -120,6 +120,43 @@ func (suite *ApiTestSuite) TestWorkspaceAndAgentLifecycle() {
 	assert.Equal(t, http.StatusNoContent, w.Code)
 }
 
+func (suite *ApiTestSuite) TestMultipartNarCompletion() {
+	t := suite.T()
+
+	// 1. Create Cache
+	app.Invoke(func(s *service.CacheSrv) {
+		s.Create(service.CreateCacheArgs{Name: "c-multipart", Port: 9003, Token: "t3"})
+	})
+
+	// 2. Complete Multipart
+	narUuid := "00000000-0000-0000-0000-000000000001"
+	completeReq := map[string]any{
+		"narInfoCreate": map[string]any{
+			"cStoreHash":   "hash-mp",
+			"cStoreSuffix": "suffix-mp",
+			"cNarHash":     "narhash-mp",
+			"cNarSize":     1234,
+			"cFileHash":    "filehash-mp",
+			"cFileSize":    5678,
+			"cReferences":  []string{"ref1", "ref2"},
+			"cDeriver":     "deriver-mp",
+			"cSig":         "sig-mp",
+		},
+	}
+
+	w := suite.request("POST", "/api/v1/cache/c-multipart/multipart-nar/"+narUuid+"/complete?uploadId=up1", completeReq)
+	assert.Equal(t, http.StatusNoContent, w.Code)
+
+	// 3. Verify in DB via StorePathSrv
+	app.Invoke(func(s *service.StorePathSrv) {
+		path, err := s.Read("hash-mp", "c-multipart")
+		assert.NoError(t, err)
+		assert.NotNil(t, path)
+		assert.Equal(t, "suffix-mp", path.StoreSuffix)
+		assert.Equal(t, narUuid, path.FileHash) // Should match our mapping
+	})
+}
+
 func (suite *ApiTestSuite) TestCacheInfo() {
 	t := suite.T()
 

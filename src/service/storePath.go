@@ -9,6 +9,7 @@ import (
 	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/model"
 	"github.com/killi1812/go-cache-server/util/objstor"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -21,19 +22,22 @@ func NewStorePathSrv() *StorePathSrv {
 	var srv *StorePathSrv
 
 	app.Invoke(func(db *gorm.DB, store objstor.ObjectStorage) {
-		db = db.
-			Table("store_paths").
-			Joins("JOIN binary_caches ON binary_caches.id = store_paths.binary_cache_id")
 		srv = &StorePathSrv{db, store}
 	})
 
 	return srv
 }
 
+func (s *StorePathSrv) dbWithCache() *gorm.DB {
+	return s.db.Session(&gorm.Session{}).
+		Table("store_paths").
+		Joins("JOIN binary_caches ON binary_caches.id = store_paths.binary_cache_id")
+}
+
 // ReadAll fetches all store paths for a specific cache
 func (s *StorePathSrv) ReadAll(cacheName string) ([]model.StorePath, error) {
 	var paths []model.StorePath
-	result := s.db.
+	result := s.dbWithCache().
 		Where("binary_caches.name = ?", cacheName).
 		Find(&paths)
 	return paths, result.Error
@@ -42,12 +46,9 @@ func (s *StorePathSrv) ReadAll(cacheName string) ([]model.StorePath, error) {
 // Read fetches a specific store path by its hash and cache name
 func (s *StorePathSrv) Read(storeHash string, cache string) (*model.StorePath, error) {
 	var path model.StorePath
-	result := s.db.Where("store_paths.store_hash = ? AND binary_caches.name = ?", storeHash, cache).First(&path)
+	result := s.dbWithCache().Where("store_paths.store_hash = ? AND binary_caches.name = ?", storeHash, cache).First(&path)
 
 	if result.Error != nil {
-		// if result.Error == gorm.ErrRecordNotFound {
-		// 	return nil, nil
-		// }
 		return nil, result.Error
 	}
 
@@ -115,7 +116,7 @@ func (s *StorePathSrv) GetMissingHashes(cacheName string, incomingHashes []strin
 	var foundHashes []string
 
 	// 1. Find which of the INCOMING hashes actually exist in the DB
-	err := s.db.Model(&model.StorePath{}).
+	err := s.dbWithCache().
 		Where("binary_caches.name = ? AND store_paths.store_hash IN ?", cacheName, incomingHashes).
 		Pluck("store_paths.store_hash", &foundHashes).Error
 	if err != nil {
@@ -137,4 +138,22 @@ func (s *StorePathSrv) GetMissingHashes(cacheName string, incomingHashes []strin
 	}
 
 	return missing, nil
+}
+
+func (s *StorePathSrv) Create(cacheName string, path model.StorePath) (*model.StorePath, error) {
+	zap.S().Infof("Creating store path %s in cache %s", path.StoreHash, cacheName)
+
+	var cache model.BinaryCache
+	err := s.db.Session(&gorm.Session{}).Where("name = ?", cacheName).First(&cache).Error
+	if err != nil {
+		return nil, err
+	}
+
+	path.BinaryCacheId = cache.ID
+	err = s.db.Session(&gorm.Session{}).Create(&path).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &path, nil
 }

@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -115,14 +116,53 @@ func (api *cacheApi) redirect(c *gin.Context) {
 	})
 }
 
+type NarInfoCreate struct {
+	CStoreHash   string   `json:"cStoreHash"`
+	CStoreSuffix string   `json:"cStoreSuffix"`
+	CNarHash     string   `json:"cNarHash"`
+	CNarSize     int64    `json:"cNarSize"`
+	CFileHash    string   `json:"cFileHash"`
+	CFileSize    int64    `json:"cFileSize"`
+	CReferences  []string `json:"cReferences"`
+	CDeriver     string   `json:"cDeriver"`
+	CSig         string   `json:"cSig"`
+}
+
+type CompletedMultipartUpload struct {
+	NarInfoCreate NarInfoCreate `json:"narInfoCreate"`
+	// Parts []any `json:"parts"` // Ignored for now
+}
+
 func (api *cacheApi) completeNar(c *gin.Context) {
 	name := c.Param("name")
 	narUuid := c.Param("narUuid")
 	zap.S().Infof("Completing multipart NAR upload: %s/%s", name, narUuid)
 
-	// In a real implementation, we would verify all parts are uploaded
-	// and finalize the NAR in the database.
-	// For now, we just return success.
+	var req CompletedMultipartUpload
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	// Map to model
+	sp := model.StorePath{
+		StoreHash:   req.NarInfoCreate.CStoreHash,
+		StoreSuffix: req.NarInfoCreate.CStoreSuffix,
+		NarHash:     req.NarInfoCreate.CNarHash,
+		NarSize:     req.NarInfoCreate.CNarSize,
+		FileHash:    narUuid, // Using the UUID as the file identifier in storage
+		FileSize:    req.NarInfoCreate.CFileSize,
+		Deriver:     req.NarInfoCreate.CDeriver,
+		References:  strings.Join(req.NarInfoCreate.CReferences, " "),
+	}
+
+	_, err := api.pathServ.Create(name, sp)
+	if err != nil {
+		zap.S().Errorf("Failed to finalize store path: %v", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to save store path"})
+		return
+	}
+
 	c.Status(http.StatusNoContent)
 }
 
@@ -131,6 +171,11 @@ func (api *cacheApi) abortNar(c *gin.Context) {
 	narUuid := c.Param("narUuid")
 	zap.S().Infof("Aborting multipart NAR upload: %s/%s", name, narUuid)
 
-	// In a real implementation, we would clean up partial files.
+	// Clean up the placeholder file
+	err := api.storage.DeleteFile(name + "/" + narUuid) // Assuming directory structure
+	if err != nil {
+		zap.S().Warnf("Failed to clean up aborted NAR file: %v", err)
+	}
+
 	c.Status(http.StatusNoContent)
 }
