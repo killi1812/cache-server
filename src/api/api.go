@@ -25,8 +25,8 @@ func (api *Api) NewGinApi(router *gin.Engine) {
 	v2 := apiGroup.Group("/v2")
 
 	// cache group
-	api.cacheApi.RegisterEndpoints(v1)
+	api.cacheApi.RegisterEndpoints(v1, v2)
 
 	// deploy group
-	api.deployApi.RegisterEndpoints(v1, v2)
+	api.deployApi.RegisterEndpoints(v1)
 }

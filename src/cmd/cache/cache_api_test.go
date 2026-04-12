@@ -24,6 +24,7 @@ func TestSocketApi(t *testing.T) {
 
 	config.Config = config.NewConfig()
 	config.Config.CacheServer.Database = "file:" + t.Name() + "?mode=memory&cache=shared"
+	config.Config.CacheServer.CacheDir = t.TempDir()
 
 	app.Provide(db.New)
 	app.Provide(objstor.New)
@@ -82,9 +83,9 @@ func TestSocketApi(t *testing.T) {
 		content := []byte("dummy nar content")
 		
 		// Ensure directory exists
-		os.MkdirAll(storageDir, 0755)
-		os.WriteFile(filepath.Join(storageDir, fileName), content, 0644)
-		defer os.Remove(filepath.Join(storageDir, fileName))
+		os.MkdirAll(filepath.Join(storageDir, cache.Name), 0755)
+		os.WriteFile(filepath.Join(storageDir, cache.Name, fileName), content, 0644)
+		defer os.Remove(filepath.Join(storageDir, cache.Name, fileName))
 
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/nar/"+fileName+".nar", nil)

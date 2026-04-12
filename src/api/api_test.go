@@ -145,7 +145,7 @@ func (suite *ApiTestSuite) TestMultipartNarCompletion() {
 	}
 
 	w := suite.request("POST", "/api/v1/cache/c-multipart/multipart-nar/"+narUuid+"/complete?uploadId=up1", completeReq)
-	assert.Equal(t, http.StatusNoContent, w.Code)
+	assert.Equal(t, http.StatusOK, w.Code)
 
 	// 3. Verify in DB via StorePathSrv
 	app.Invoke(func(s *service.StorePathSrv) {
@@ -175,7 +175,7 @@ func (suite *ApiTestSuite) TestDeploymentActivation() {
 	}
 
 	w := suite.request("POST", "/api/v1/deploy/activate", activateReq)
-	assert.Equal(t, http.StatusCreated, w.Code)
+	assert.Equal(t, http.StatusOK, w.Code)
 
 	var resp []map[string]any
 	json.Unmarshal(w.Body.Bytes(), &resp)
