@@ -33,7 +33,7 @@ go.work.sum
 .swap
 
 # Files to be removed
-.old
+*.old
 
 # build files
 bin/

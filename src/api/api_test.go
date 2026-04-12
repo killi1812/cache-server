@@ -159,14 +159,17 @@ func (suite *ApiTestSuite) TestDeployHandlers() {
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		t.Run("Deployment - Missing Params", func(t *testing.T) {
+			// NOTE:
 			// Gin router usually doesn't match if params are missing entirely for these routes,
 			// but we can test if we hit them somehow or if they are empty strings.
 			// Actually, with RedirectTrailingSlash=false, some might match.
-			
+
 			// getDeployments missing name
 			w := suite.request("GET", "/api/v1/deploy/deployment/w1/", nil)
+			// NOTE:
 			// Depending on gin, this might 404 if it doesn't match /:workspace/:name
 			// If it matches /:workspace, it's getDeployment
+			assert.Equal(t, http.StatusNotFound, w.Result().StatusCode)
 		})
 	})
 
@@ -198,6 +201,7 @@ func (suite *ApiTestSuite) TestDeployHandlers() {
 		assert.Equal(t, http.StatusNoContent, w.Code)
 	})
 }
+
 func (suite *ApiTestSuite) TestCacheHandlers() {
 	t := suite.T()
 
@@ -209,7 +213,7 @@ func (suite *ApiTestSuite) TestCacheHandlers() {
 		assert.NoError(t, err)
 
 		// Ensure storage directory exists
-		os.MkdirAll(filepath.Join(config.Config.CacheServer.CacheDir, "c-handlers"), 0755)
+		os.MkdirAll(filepath.Join(config.Config.CacheServer.CacheDir, "c-handlers"), 0o755)
 
 		// Set public and other fields via Update if needed (though Create sets some)
 		cache.Access = model.Public
@@ -296,7 +300,7 @@ func (suite *ApiTestSuite) TestCacheHandlers() {
 		narUuid := "complete-me"
 		completeReq := map[string]any{
 			"narInfoCreate": map[string]any{
-				"cStoreHash": "final-hash",
+				"cStoreHash":   "final-hash",
 				"cStoreSuffix": "final-suffix",
 			},
 		}
