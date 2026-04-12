@@ -65,7 +65,7 @@ func (suite *ApiTestSuite) SetupTest() {
 	assert.NoError(suite.T(), err)
 }
 
-func (suite *ApiTestSuite) request(method, path string, body any) *httptest.ResponseRecorder {
+func (suite *ApiTestSuite) requestWithToken(method, path string, body any, token string) *httptest.ResponseRecorder {
 	var bodyReader *bytes.Buffer
 	if body != nil {
 		b, _ := json.Marshal(body)
@@ -75,12 +75,16 @@ func (suite *ApiTestSuite) request(method, path string, body any) *httptest.Resp
 	}
 
 	req, _ := http.NewRequest(method, path, bodyReader)
-	req.Header.Set("Authorization", "Bearer "+suite.token)
+	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
 	suite.router.ServeHTTP(w, req)
 	return w
+}
+
+func (suite *ApiTestSuite) request(method, path string, body any) *httptest.ResponseRecorder {
+	return suite.requestWithToken(method, path, body, suite.token)
 }
 
 func (suite *ApiTestSuite) TestWorkspaceAndAgentLifecycle() {
@@ -145,39 +149,100 @@ func (suite *ApiTestSuite) TestCacheHandlers() {
 		assert.NoError(t, err)
 	})
 
-	// 2. Test 'name' handler
-	w := suite.request("GET", "/api/v1/cache/c-handlers", nil)
-	assert.Equal(t, http.StatusOK, w.Code)
-	var nameResp map[string]any
-	json.Unmarshal(w.Body.Bytes(), &nameResp)
-	assert.Equal(t, "c-handlers", nameResp["name"])
+	t.Run("name - Success", func(t *testing.T) {
+		w := suite.request("GET", "/api/v1/cache/c-handlers", nil)
+		assert.Equal(t, http.StatusOK, w.Code)
+		var nameResp map[string]any
+		json.Unmarshal(w.Body.Bytes(), &nameResp)
+		assert.Equal(t, "c-handlers", nameResp["name"])
+	})
 
-	// 3. Test 'narinfo' (GetMissingHashes)
-	hashes := []string{"hash-missing", "hash-exists"}
-	w = suite.request("POST", "/api/v1/cache/c-handlers/narinfo", hashes)
-	assert.Equal(t, http.StatusOK, w.Code)
-	var missing []string
-	json.Unmarshal(w.Body.Bytes(), &missing)
-	assert.Contains(t, missing, "hash-missing")
+	t.Run("name - Cache Not Found", func(t *testing.T) {
+		w := suite.request("GET", "/api/v1/cache/nonexistent", nil)
+		assert.Equal(t, http.StatusInternalServerError, w.Code) // Current implementation returns 500 on read error
+	})
 
-	// 4. Test 'createNar'
-	w = suite.request("POST", "/api/v1/cache/c-handlers/multipart-nar?compression=xz", nil)
-	assert.Equal(t, http.StatusOK, w.Code)
-	var createNarResp map[string]string
-	json.Unmarshal(w.Body.Bytes(), &createNarResp)
-	assert.Contains(t, createNarResp, "narId")
+	t.Run("name - Private Cache Access", func(t *testing.T) {
+		// Create a private cache
+		token, _ := auth.GenerateJwt("test-user")
+		app.Invoke(func(s *service.CacheSrv) {
+			privCache, _ := s.Create(service.CreateCacheArgs{Name: "c-private", Port: 9006, Token: token})
+			privCache.Access = model.Private
+			s.Update("c-private", *privCache)
+		})
 
-	// 5. Test 'redirect'
-	narId := createNarResp["narId"]
-	w = suite.request("POST", "/api/v1/cache/c-handlers/multipart-nar/"+narId, nil)
-	assert.Equal(t, http.StatusOK, w.Code)
-	var redirectResp map[string]string
-	json.Unmarshal(w.Body.Bytes(), &redirectResp)
-	assert.Contains(t, redirectResp["uploadUrl"], narId)
+		// Request with NO token (should fail 401)
+		req, _ := http.NewRequest("GET", "/api/v1/cache/c-private", nil)
+		w := httptest.NewRecorder()
+		suite.router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
 
-	// 6. Test 'abortNar'
-	w = suite.request("POST", "/api/v1/cache/c-handlers/multipart-nar/"+narId+"/abort", nil)
-	assert.Equal(t, http.StatusOK, w.Code)
+		// Request with VALID token (should pass)
+		w = suite.requestWithToken("GET", "/api/v1/cache/c-private", nil, token)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("narinfo - Success", func(t *testing.T) {
+		hashes := []string{"hash-missing", "hash-exists"}
+		w := suite.request("POST", "/api/v1/cache/c-handlers/narinfo", hashes)
+		assert.Equal(t, http.StatusOK, w.Code)
+		var missing []string
+		json.Unmarshal(w.Body.Bytes(), &missing)
+		assert.Contains(t, missing, "hash-missing")
+	})
+
+	t.Run("narinfo - Invalid JSON", func(t *testing.T) {
+		w := suite.request("POST", "/api/v1/cache/c-handlers/narinfo", "not-a-json-array")
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("createNar - Success", func(t *testing.T) {
+		w := suite.request("POST", "/api/v1/cache/c-handlers/multipart-nar?compression=xz", nil)
+		assert.Equal(t, http.StatusOK, w.Code)
+		var createNarResp map[string]string
+		json.Unmarshal(w.Body.Bytes(), &createNarResp)
+		assert.Contains(t, createNarResp, "narId")
+	})
+
+	t.Run("createNar - Invalid Compression", func(t *testing.T) {
+		w := suite.request("POST", "/api/v1/cache/c-handlers/multipart-nar?compression=zip", nil)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("redirect - Success", func(t *testing.T) {
+		w := suite.request("POST", "/api/v1/cache/c-handlers/multipart-nar/some-uuid", nil)
+		assert.Equal(t, http.StatusOK, w.Code)
+		var redirectResp map[string]string
+		json.Unmarshal(w.Body.Bytes(), &redirectResp)
+		assert.Contains(t, redirectResp["uploadUrl"], "some-uuid")
+	})
+
+	t.Run("redirect - Cache Not Found", func(t *testing.T) {
+		w := suite.request("POST", "/api/v1/cache/nonexistent/multipart-nar/some-uuid", nil)
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("completeNar - Success", func(t *testing.T) {
+		narUuid := "complete-me"
+		completeReq := map[string]any{
+			"narInfoCreate": map[string]any{
+				"cStoreHash": "final-hash",
+				"cStoreSuffix": "final-suffix",
+			},
+		}
+		w := suite.request("POST", "/api/v1/cache/c-handlers/multipart-nar/"+narUuid+"/complete", completeReq)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("completeNar - Invalid Body", func(t *testing.T) {
+		w := suite.request("POST", "/api/v1/cache/c-handlers/multipart-nar/uuid/complete", "invalid")
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("abortNar - Success", func(t *testing.T) {
+		w := suite.request("POST", "/api/v1/cache/c-handlers/multipart-nar/abort-me/abort", nil)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
 }
 
 func (suite *ApiTestSuite) TestMultipartNarCompletion() {
