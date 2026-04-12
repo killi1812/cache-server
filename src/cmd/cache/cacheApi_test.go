@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"bytes"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"github.com/killi1812/go-cache-server/config"
 	"github.com/killi1812/go-cache-server/model"
 	"github.com/killi1812/go-cache-server/service"
+	"github.com/killi1812/go-cache-server/util/auth"
 	"github.com/killi1812/go-cache-server/util/db"
 	"github.com/killi1812/go-cache-server/util/objstor"
 	"github.com/stretchr/testify/assert"
@@ -94,5 +96,75 @@ func TestSocketApi(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.Equal(t, content, w.Body.Bytes())
 		assert.Equal(t, "application/octet-stream", w.Header().Get("Content-Type"))
+	})
+
+	t.Run("HEAD .narinfo", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("HEAD", "/hash1.narinfo", nil)
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("Get .ls", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/hash1.ls", nil)
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Contains(t, w.Body.String(), "\"type\":\"ls\"")
+	})
+
+	t.Run("Get non-existent .narinfo", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/nonexistent.narinfo", nil)
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("Download non-existent NAR", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/nar/nonexistent.nar", nil)
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("Upload NAR", func(t *testing.T) {
+		content := []byte("uploaded content")
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("PUT", "/uploadhash", bytes.NewBuffer(content))
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusCreated, w.Code)
+		
+		// Verify file exists in storage
+		storagePath := filepath.Join(config.Config.CacheServer.CacheDir, cache.Name, "uploadhash")
+		_, err := os.Stat(storagePath)
+		assert.NoError(t, err)
+		
+		savedContent, _ := os.ReadFile(storagePath)
+		assert.Equal(t, content, savedContent)
+	})
+
+	t.Run("Private Cache Unauthorized", func(t *testing.T) {
+		token, _ := auth.GenerateJwt("test-user")
+		privateCache := &model.BinaryCache{
+			Name:   "private-cache",
+			Access: "private",
+			Token:  token,
+		}
+		database.Create(privateCache)
+
+		privateRouter := gin.Default()
+		privateApi := newCacheApi(privateCache)
+		privateApi.NewGinApi(privateRouter)
+
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/nix-cache-info", nil)
+		privateRouter.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
 	})
 }

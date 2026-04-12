@@ -5,12 +5,15 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/killi1812/go-cache-server/api"
 	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/config"
+	"github.com/killi1812/go-cache-server/model"
 	"github.com/killi1812/go-cache-server/service"
 	"github.com/killi1812/go-cache-server/util/auth"
 	"github.com/killi1812/go-cache-server/util/db"
@@ -35,6 +38,7 @@ func (suite *ApiTestSuite) SetupTest() {
 	// Use a unique memory database name for each test to ensure absolute isolation
 	suite.T().Logf("Setting up test: %s", suite.T().Name())
 	config.Config.CacheServer.Database = "file:" + suite.T().Name() + "?mode=memory&cache=shared"
+	config.Config.CacheServer.CacheDir = suite.T().TempDir()
 
 	// Provide dependencies
 	app.Provide(db.New)
@@ -51,6 +55,7 @@ func (suite *ApiTestSuite) SetupTest() {
 	})
 
 	suite.router = gin.Default()
+	suite.router.RedirectTrailingSlash = false
 	managementApi := api.NewApi()
 	managementApi.NewGinApi(suite.router)
 
@@ -118,6 +123,61 @@ func (suite *ApiTestSuite) TestWorkspaceAndAgentLifecycle() {
 	// 8. Delete Workspace
 	w = suite.request("DELETE", "/api/v1/deploy/workspace/w-unique-1", nil)
 	assert.Equal(t, http.StatusNoContent, w.Code)
+}
+func (suite *ApiTestSuite) TestCacheHandlers() {
+	t := suite.T()
+
+	// 1. Create Cache
+	var cache *model.BinaryCache
+	app.Invoke(func(s *service.CacheSrv) {
+		var err error
+		cache, err = s.Create(service.CreateCacheArgs{Name: "c-handlers", Port: 9005, Token: "t5"})
+		assert.NoError(t, err)
+
+		// Ensure storage directory exists
+		os.MkdirAll(filepath.Join(config.Config.CacheServer.CacheDir, "c-handlers"), 0755)
+
+		// Set public and other fields via Update if needed (though Create sets some)
+		cache.Access = model.Public
+		cache.PublicKey = "pub1"
+		cache.URL = "http://localhost:9005"
+		_, err = s.Update("c-handlers", *cache)
+		assert.NoError(t, err)
+	})
+
+	// 2. Test 'name' handler
+	w := suite.request("GET", "/api/v1/cache/c-handlers", nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var nameResp map[string]any
+	json.Unmarshal(w.Body.Bytes(), &nameResp)
+	assert.Equal(t, "c-handlers", nameResp["name"])
+
+	// 3. Test 'narinfo' (GetMissingHashes)
+	hashes := []string{"hash-missing", "hash-exists"}
+	w = suite.request("POST", "/api/v1/cache/c-handlers/narinfo", hashes)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var missing []string
+	json.Unmarshal(w.Body.Bytes(), &missing)
+	assert.Contains(t, missing, "hash-missing")
+
+	// 4. Test 'createNar'
+	w = suite.request("POST", "/api/v1/cache/c-handlers/multipart-nar?compression=xz", nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var createNarResp map[string]string
+	json.Unmarshal(w.Body.Bytes(), &createNarResp)
+	assert.Contains(t, createNarResp, "narId")
+
+	// 5. Test 'redirect'
+	narId := createNarResp["narId"]
+	w = suite.request("POST", "/api/v1/cache/c-handlers/multipart-nar/"+narId, nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var redirectResp map[string]string
+	json.Unmarshal(w.Body.Bytes(), &redirectResp)
+	assert.Contains(t, redirectResp["uploadUrl"], narId)
+
+	// 6. Test 'abortNar'
+	w = suite.request("POST", "/api/v1/cache/c-handlers/multipart-nar/"+narId+"/abort", nil)
+	assert.Equal(t, http.StatusOK, w.Code)
 }
 
 func (suite *ApiTestSuite) TestMultipartNarCompletion() {
