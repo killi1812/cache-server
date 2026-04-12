@@ -1,18 +1,20 @@
 name: deployment
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Go"]
     branches: ["master"]
-  pull_request:
-    types: [closed]
-    branches: ["master"]
+    types:
+      - completed
 
 jobs:
   deployment:
     runs-on: ubuntu-latest
     environment: homelab
+    # Only run if the build workflow was successful
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Trigger Deploy Webhook
-        run: 'curl -X POST -H "X-Api-Key: ${{ homelab.WEBHOOK_SECRET }}" https://webhook.francvok.from.hr/hooks/cache-server'
+        run: 'curl -X POST -H "X-Api-Key: ${{ secrets.WEBHOOK_SECRET }}" https://webhook.francvok.from.hr/hooks/cache-server'
