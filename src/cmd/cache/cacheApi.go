@@ -67,9 +67,9 @@ func (s *socketApi) NewGinApi(router *gin.Engine) {
 //	@Description	Download a NAR file from the cache.
 //	@Tags			binary-cache
 //	@Produce		octet-stream
-//	@Param			filename	path	string	true	"NAR filename (with or without .nar extension)"
-//	@Success		200			{file}	binary
-//	@Failure		404
+//	@Param			filename	path		string	true	"NAR filename (with or without .nar extension)"
+//	@Success		200			{file}		binary
+//	@Failure		404			{object}	model.ErrorResponse
 //	@Router			/nar/{filename} [get]
 func (s *socketApi) downloadNar(c *gin.Context) {
 	filename := c.Param("filename")
@@ -81,7 +81,9 @@ func (s *socketApi) downloadNar(c *gin.Context) {
 	reader, err := s.storage.ReadFile(s.cache.Name, fileHash)
 	if err != nil {
 		zap.S().Errorf("Failed to read NAR file %s, err: %v", fileHash, err)
-		c.AbortWithStatus(http.StatusNotFound)
+		c.AbortWithStatusJSON(http.StatusNotFound, model.ErrorResponse{
+			Error: "NAR file not found",
+		})
 		return
 	}
 	defer reader.Close()
@@ -99,7 +101,7 @@ func (s *socketApi) downloadNar(c *gin.Context) {
 //	@Param			storeHash	path		string				true	"Store hash with extension (.narinfo or .ls)"
 //	@Success		200			{string}	string				"narinfo content"
 //	@Success		200			{object}	map[string]string	"ls json"
-//	@Failure		404
+//	@Failure		404			{object}	model.ErrorResponse
 //	@Router			/{storeHash} [get]
 func (s *socketApi) storeHashCmd(c *gin.Context) {
 	filename := c.Param("storeHash")
@@ -118,7 +120,9 @@ func (s *socketApi) storeHashCmd(c *gin.Context) {
 		return
 	}
 
-	c.String(http.StatusNotFound, "Command not found")
+	c.AbortWithStatusJSON(http.StatusNotFound, model.ErrorResponse{
+		Error: "Command not found",
+	})
 }
 
 // cacheInfo godoc
@@ -139,10 +143,14 @@ func (s *socketApi) storeHashNarInfo(c *gin.Context, storeHash string) {
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			zap.S().Errorf("Store path not found hash '%s', err: %v ", storeHash, err)
-			c.AbortWithStatus(http.StatusNotFound)
+			c.AbortWithStatusJSON(http.StatusNotFound, model.ErrorResponse{
+				Error: "store path not found",
+			})
 		} else {
 			zap.S().Errorf("Error reading store path for hash '%s', err: %v ", storeHash, err)
-			c.AbortWithStatus(http.StatusInternalServerError)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, model.ErrorResponse{
+				Error: "internal server error",
+			})
 		}
 		return
 	}
@@ -152,7 +160,9 @@ func (s *socketApi) storeHashNarInfo(c *gin.Context, storeHash string) {
 	resp, err := s.pathServ.GenerateNarInfo(path, s.cache.SecretKey)
 	if err != nil {
 		zap.S().Errorf("Failed to generate narinfo: %v", err)
-		c.AbortWithStatus(500)
+		c.AbortWithStatusJSON(500, model.ErrorResponse{
+			Error: "failed to generate narinfo",
+		})
 		return
 	}
 
@@ -168,13 +178,15 @@ func (s *socketApi) storeHashNarInfo(c *gin.Context, storeHash string) {
 //	@Accept			octet-stream
 //	@Param			narUuid	path	string	true	"NAR UUID"
 //	@Success		201
-//	@Failure		400	{object}	map[string]string
-//	@Failure		500	{object}	map[string]string
+//	@Failure		400	{object}	model.ErrorResponse
+//	@Failure		500	{object}	model.ErrorResponse
 //	@Router			/{narUuid} [put]
 func (s *socketApi) uploadData(c *gin.Context) {
 	fileHash := c.Param("narUuid")
 	if fileHash == "" {
-		c.AbortWithStatusJSON(400, gin.H{"error": "missing file hash"})
+		c.AbortWithStatusJSON(400, model.ErrorResponse{
+			Error: "missing file hash",
+		})
 		return
 	}
 
@@ -183,7 +195,9 @@ func (s *socketApi) uploadData(c *gin.Context) {
 	// We no longer check for storePath in DB here because it might not exist yet during multipart upload.
 	err := s.storage.WriteFile(s.cache.Name, fileHash, c.Request.Body)
 	if err != nil {
-		c.AbortWithStatusJSON(500, gin.H{"error": "failed to save to storage"})
+		c.AbortWithStatusJSON(500, model.ErrorResponse{
+			Error: "failed to save to storage",
+		})
 		return
 	}
 

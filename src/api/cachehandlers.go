@@ -22,7 +22,7 @@ import (
 //	@Produce		json
 //	@Param			name	path		string	true	"Cache Name"
 //	@Success		200		{object}	map[string]interface{}
-//	@Failure		500		{object}	map[string]string
+//	@Failure		500		{object}	model.ErrorResponse
 //	@Router			/cache/{name} [get]
 func (api *cacheApi) name(c *gin.Context) {
 	name := c.Param("name")
@@ -31,7 +31,9 @@ func (api *cacheApi) name(c *gin.Context) {
 	cache, err := api.cacheServ.Read(name)
 	if err != nil {
 		zap.S().Errorf("Failed to read cache '%s', err: %v", name, err)
-		c.AbortWithStatusJSON(500, gin.H{"error": "failed to read cache"})
+		c.AbortWithStatusJSON(500, model.ErrorResponse{
+			Error: "failed to read cache",
+		})
 		return
 	}
 
@@ -68,8 +70,8 @@ func (api *cacheApi) name(c *gin.Context) {
 //	@Param			name	path		string		true	"Cache Name"
 //	@Param			hashes	body		[]string	true	"Hashes to check"
 //	@Success		200		{array}		string
-//	@Failure		400		{object}	map[string]string
-//	@Failure		500		{object}	map[string]string
+//	@Failure		400		{object}	model.ErrorResponse
+//	@Failure		500		{object}	model.ErrorResponse
 //	@Router			/cache/{name}/narinfo [post]
 func (api *cacheApi) narinfo(c *gin.Context) {
 	name := c.Param("name")
@@ -78,14 +80,18 @@ func (api *cacheApi) narinfo(c *gin.Context) {
 	var incomingHashes []string
 
 	if err := c.ShouldBindJSON(&incomingHashes); err != nil {
-		c.AbortWithStatusJSON(400, gin.H{"error": "Invalid JSON format"})
+		c.AbortWithStatusJSON(400, model.ErrorResponse{
+			Error: "Invalid JSON format",
+		})
 		return
 	}
 
 	missing, err := api.pathServ.GetMissingHashes(name, incomingHashes)
 	if err != nil {
 		zap.S().Errorf("Failed to query missing hashes: %v", err)
-		c.AbortWithStatus(500)
+		c.AbortWithStatusJSON(500, model.ErrorResponse{
+			Error: "failed to query missing hashes",
+		})
 		return
 	}
 
@@ -105,8 +111,8 @@ func (api *cacheApi) narinfo(c *gin.Context) {
 //	@Param			name		path		string	true	"Cache Name"
 //	@Param			compression	query		string	true	"Compression method (xz or zst)"
 //	@Success		200			{object}	map[string]string
-//	@Failure		400			{object}	map[string]string
-//	@Failure		500			{object}	map[string]string
+//	@Failure		400			{object}	model.ErrorResponse
+//	@Failure		500			{object}	model.ErrorResponse
 //	@Router			/cache/{name}/multipart-nar [post]
 func (api *cacheApi) createNar(c *gin.Context) {
 	name := c.Param("name")
@@ -114,7 +120,9 @@ func (api *cacheApi) createNar(c *gin.Context) {
 
 	compression := c.Query("compression")
 	if compression != "xz" && compression != "zst" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "invalid compression"})
+		c.AbortWithStatusJSON(http.StatusBadRequest, model.ErrorResponse{
+			Error: "invalid compression",
+		})
 		return
 	}
 
@@ -124,7 +132,9 @@ func (api *cacheApi) createNar(c *gin.Context) {
 	err := api.storage.CreatFile(name, filename)
 	if err != nil {
 		zap.S().Errorf("Failed to create multipart placeholder: %v", err)
-		c.AbortWithStatus(http.StatusInternalServerError)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, model.ErrorResponse{
+			Error: "failed to create multipart placeholder",
+		})
 		return
 	}
 
@@ -145,21 +155,25 @@ func (api *cacheApi) createNar(c *gin.Context) {
 //	@Param			name	path		string	true	"Cache Name"
 //	@Param			narUuid	path		string	true	"NAR UUID"
 //	@Success		200		{object}	map[string]string
-//	@Failure		400		{object}	map[string]string
-//	@Failure		404		{object}	map[string]string
+//	@Failure		400		{object}	model.ErrorResponse
+//	@Failure		404		{object}	model.ErrorResponse
 //	@Router			/cache/{name}/multipart-nar/{narUuid} [post]
 func (api *cacheApi) redirect(c *gin.Context) {
 	name := c.Param("name")
 	narId := c.Param("narUuid")
 	if narId == "" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "missing narId"})
+		c.AbortWithStatusJSON(http.StatusBadRequest, model.ErrorResponse{
+			Error: "missing narId",
+		})
 		return
 	}
 
 	cache, err := api.cacheServ.Read(name)
 	if err != nil {
 		zap.S().Errorf("Failed to read cache '%s', err: %v", name, err)
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "cache not found"})
+		c.AbortWithStatusJSON(http.StatusNotFound, model.ErrorResponse{
+			Error: "cache not found",
+		})
 		return
 	}
 
@@ -212,8 +226,8 @@ type CompletedMultipartUpload struct {
 //	@Param			narUuid	path		string						true	"NAR UUID"
 //	@Param			request	body		CompletedMultipartUpload	true	"Completion details"
 //	@Success		200		{object}	map[string]interface{}
-//	@Failure		400		{object}	map[string]string
-//	@Failure		500		{object}	map[string]string
+//	@Failure		400		{object}	model.ErrorResponse
+//	@Failure		500		{object}	model.ErrorResponse
 //	@Router			/cache/{name}/multipart-nar/{narUuid}/complete [post]
 func (api *cacheApi) completeNar(c *gin.Context) {
 	name := c.Param("name")
@@ -222,7 +236,9 @@ func (api *cacheApi) completeNar(c *gin.Context) {
 
 	var req CompletedMultipartUpload
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		c.AbortWithStatusJSON(http.StatusBadRequest, model.ErrorResponse{
+			Error: "invalid request body",
+		})
 		return
 	}
 
@@ -241,7 +257,9 @@ func (api *cacheApi) completeNar(c *gin.Context) {
 	_, err := api.pathServ.Create(name, sp)
 	if err != nil {
 		zap.S().Errorf("Failed to finalize store path: %v", err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to save store path"})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, model.ErrorResponse{
+			Error: "failed to save store path",
+		})
 		return
 	}
 

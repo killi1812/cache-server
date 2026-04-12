@@ -1,4 +1,15 @@
 basePath: /
+definitions:
+  model.ErrorResponse:
+    properties:
+      additional_info:
+        items:
+          type: string
+        type: array
+      error:
+        example: not found
+        type: string
+    type: object
 info:
   contact: {}
   description: API for nix binary cache interactions (narinfo, nar, etc).
@@ -22,15 +33,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/model.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/model.ErrorResponse'
       summary: Upload NAR data
       tags:
       - binary-cache
@@ -55,6 +62,8 @@ paths:
             type: object
         "404":
           description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
       summary: Get .narinfo or .ls
       tags:
       - binary-cache
@@ -76,6 +85,8 @@ paths:
             type: file
         "404":
           description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
       summary: Download NAR file
       tags:
       - binary-cache
