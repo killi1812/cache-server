@@ -95,6 +95,7 @@ func newMinioStorage() *mStorage {
 	})
 	if err != nil {
 		zap.S().Panicf("failed to create MinIO client %w", err)
+		return nil
 	}
 
 	zap.S().Info("Pinging MinIO instance")
