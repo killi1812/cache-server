@@ -10,7 +10,6 @@ services:
       - "5332:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres", "-d", "cachesrv"]
       start_period: 1s
