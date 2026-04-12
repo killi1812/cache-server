@@ -3,6 +3,9 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/killi1812/go-cache-server/app"
+	_ "github.com/killi1812/go-cache-server/docs"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 type Api struct {
@@ -17,6 +20,8 @@ func NewApi() app.CreateGinApi {
 
 // RegisterEndpoints implements app.GinApi.
 func (api *Api) NewGinApi(router *gin.Engine) {
+	router.GET("/swagger/*any", ginSwagger.CustomWrapHandler(&ginSwagger.Config{URL: "/swagger/doc.json"}, swaggerfiles.Handler))
+
 	apiGroup := router.Group("/api")
 
 	// v1 group

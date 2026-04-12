@@ -10,6 +10,16 @@ import (
 	"go.uber.org/zap"
 )
 
+// getAgent godoc
+//	@Summary		Get agent info
+//	@Description	Get detailed information about an agent in a workspace.
+//	@Tags			agent
+//	@Produce		json
+//	@Param			workspace	path		string	true	"Workspace Name"
+//	@Param			name		path		string	true	"Agent Name"
+//	@Success		200			{object}	model.Agent
+//	@Failure		404			{object}	map[string]string
+//	@Router			/deploy/agent/{workspace}/{name} [get]
 func (api *deployApi) getAgent(c *gin.Context) {
 	workspace := c.Param("workspace")
 	name := c.Param("name")
@@ -30,6 +40,16 @@ func (api *deployApi) getAgent(c *gin.Context) {
 	c.JSON(http.StatusOK, agent)
 }
 
+// createAgent godoc
+//	@Summary		Create agent
+//	@Description	Create a new agent in a workspace.
+//	@Tags			agent
+//	@Produce		json
+//	@Param			workspace	path		string	true	"Workspace Name"
+//	@Param			name		path		string	true	"Agent Name"
+//	@Success		201			{object}	model.Agent
+//	@Failure		500			{object}	map[string]string
+//	@Router			/deploy/agent/{workspace}/{name} [post]
 func (api *deployApi) createAgent(c *gin.Context) {
 	workspace := c.Param("workspace")
 	name := c.Param("name")
@@ -58,6 +78,16 @@ func (api *deployApi) createAgent(c *gin.Context) {
 	c.JSON(http.StatusCreated, agent)
 }
 
+// deleteAgent godoc
+//	@Summary		Delete agent
+//	@Description	Delete an agent from a workspace.
+//	@Tags			agent
+//	@Param			workspace	path	string	true	"Workspace Name"
+//	@Param			name		path	string	true	"Agent Name"
+//	@Success		204
+//	@Failure		404	{object}	map[string]string
+//	@Failure		500	{object}	map[string]string
+//	@Router			/deploy/agent/{workspace}/{name} [delete]
 func (api *deployApi) deleteAgent(c *gin.Context) {
 	workspace := c.Param("workspace")
 	name := c.Param("name")
@@ -83,6 +113,15 @@ func (api *deployApi) deleteAgent(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+// listAgents godoc
+//	@Summary		List agents
+//	@Description	List all agents in a workspace.
+//	@Tags			workspace
+//	@Produce		json
+//	@Param			workspace	path		string	true	"Workspace Name"
+//	@Success		200			{array}		model.Agent
+//	@Failure		500			{object}	map[string]string
+//	@Router			/deploy/workspace/{workspace}/agents [get]
 func (api *deployApi) listAgents(c *gin.Context) {
 	workspace := c.Param("workspace")
 	zap.S().Infof("Trying to list agents in workspace '%s'", workspace)
@@ -102,6 +141,17 @@ type WorkspaceRequest struct {
 	CacheName string `json:"cacheName" binding:"required"`
 }
 
+// createWorkspace godoc
+//	@Summary		Create workspace
+//	@Description	Create a new workspace associated with a binary cache.
+//	@Tags			workspace
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		WorkspaceRequest	true	"Workspace details"
+//	@Success		201		{object}	model.Workspace
+//	@Failure		400		{object}	map[string]string
+//	@Failure		500		{object}	map[string]string
+//	@Router			/deploy/workspace [post]
 func (api *deployApi) createWorkspace(c *gin.Context) {
 	var req WorkspaceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -134,6 +184,14 @@ func (api *deployApi) createWorkspace(c *gin.Context) {
 	c.JSON(http.StatusCreated, workspace)
 }
 
+// deleteWorkspace godoc
+//	@Summary		Delete workspace
+//	@Description	Delete a workspace by name.
+//	@Tags			workspace
+//	@Param			workspace	path	string	true	"Workspace Name"
+//	@Success		204
+//	@Failure		500	{object}	map[string]string
+//	@Router			/deploy/workspace/{workspace} [delete]
 func (api *deployApi) deleteWorkspace(c *gin.Context) {
 	name := c.Param("workspace")
 	zap.S().Infof("Trying to delete workspace '%s'", name)
@@ -148,6 +206,15 @@ func (api *deployApi) deleteWorkspace(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+// getWorkspace godoc
+//	@Summary		Get workspace info
+//	@Description	Get detailed information about a workspace.
+//	@Tags			workspace
+//	@Produce		json
+//	@Param			workspace	path		string	true	"Workspace Name"
+//	@Success		200			{object}	model.Workspace
+//	@Failure		404			{object}	map[string]string
+//	@Router			/deploy/workspace/{workspace} [get]
 func (api *deployApi) getWorkspace(c *gin.Context) {
 	name := c.Param("workspace")
 	zap.S().Infof("Trying to read workspace '%s'", name)
@@ -162,6 +229,16 @@ func (api *deployApi) getWorkspace(c *gin.Context) {
 	c.JSON(http.StatusOK, workspace)
 }
 
+// getDeployment godoc
+//	@Summary		Get deployment info
+//	@Description	Get detailed information about a deployment by UUID.
+//	@Tags			deployment
+//	@Produce		json
+//	@Param			workspace	path		string	true	"Deployment UUID"
+//	@Success		200			{object}	model.Deployment
+//	@Failure		400			{object}	map[string]string
+//	@Failure		404			{object}	map[string]string
+//	@Router			/deploy/deployment/{workspace} [get]
 func (api *deployApi) getDeployment(c *gin.Context) {
 	uuid := c.Param("workspace") // param is ":workspace" in route, but it's used as UUID
 	if uuid == "" {
@@ -182,6 +259,17 @@ func (api *deployApi) getDeployment(c *gin.Context) {
 	c.JSON(http.StatusOK, deployment)
 }
 
+// getDeployments godoc
+//	@Summary		Get deployments for agent
+//	@Description	List all deployments for a specific agent in a workspace.
+//	@Tags			deployment
+//	@Produce		json
+//	@Param			workspace	path		string	true	"Workspace Name"
+//	@Param			name		path		string	true	"Agent Name"
+//	@Success		200			{array}		model.Deployment
+//	@Failure		400			{object}	map[string]string
+//	@Failure		500			{object}	map[string]string
+//	@Router			/deploy/deployment/{workspace}/{name} [get]
 func (api *deployApi) getDeployments(c *gin.Context) {
 	workspace := c.Param("workspace")
 	name := c.Param("name")
@@ -199,6 +287,17 @@ func (api *deployApi) getDeployments(c *gin.Context) {
 	c.JSON(http.StatusOK, deployments)
 }
 
+// createDeployment godoc
+//	@Summary		Create deployment
+//	@Description	Create a new deployment for an agent.
+//	@Tags			deployment
+//	@Produce		json
+//	@Param			workspace	path		string	true	"Workspace Name"
+//	@Param			name		path		string	true	"Agent Name"
+//	@Success		201			{object}	model.Deployment
+//	@Failure		400			{object}	map[string]string
+//	@Failure		500			{object}	map[string]string
+//	@Router			/deploy/deployment/{workspace}/{name} [post]
 func (api *deployApi) createDeployment(c *gin.Context) {
 	workspace := c.Param("workspace")
 	name := c.Param("name")
@@ -216,6 +315,17 @@ func (api *deployApi) createDeployment(c *gin.Context) {
 	c.JSON(http.StatusCreated, deployment)
 }
 
+// getDeploymentByIndex godoc
+//	@Summary		Get deployment by index
+//	@Description	Get a specific deployment for an agent by its index.
+//	@Tags			deployment
+//	@Produce		json
+//	@Param			workspace	path		string	true	"Workspace Name"
+//	@Param			name		path		string	true	"Agent Name"
+//	@Param			index		path		string	true	"Deployment Index"
+//	@Success		200			{object}	map[string]interface{}
+//	@Failure		400			{object}	map[string]string
+//	@Router			/deploy/deployment/{workspace}/{name}/{index} [get]
 func (api *deployApi) getDeploymentByIndex(c *gin.Context) {
 	workspace := c.Param("workspace")
 	name := c.Param("name")
@@ -233,6 +343,16 @@ type ActivateRequest struct {
 	Agents map[string]string `json:"agents"`
 }
 
+// activateDeployment godoc
+//	@Summary		Activate deployment
+//	@Description	Activate deployments for multiple agents.
+//	@Tags			deployment
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		ActivateRequest	true	"Activation details"
+//	@Success		200		{array}		model.Deployment
+//	@Failure		400		{object}	map[string]string
+//	@Router			/deploy/activate [post]
 func (api *deployApi) activateDeployment(c *gin.Context) {
 	var req ActivateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

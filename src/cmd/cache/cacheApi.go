@@ -9,10 +9,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/killi1812/go-cache-server/app"
+	_ "github.com/killi1812/go-cache-server/docs"
 	"github.com/killi1812/go-cache-server/model"
 	"github.com/killi1812/go-cache-server/service"
 	"github.com/killi1812/go-cache-server/util/auth"
 	"github.com/killi1812/go-cache-server/util/objstor"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -33,6 +36,8 @@ func newCacheApi(cache *model.BinaryCache) app.CreateGinApi {
 
 // RegisterEndpoints implements app.GinApi.
 func (s *socketApi) NewGinApi(router *gin.Engine) {
+	router.GET("/swagger/*any", ginSwagger.CustomWrapHandler(&ginSwagger.Config{URL: "/swagger/doc.json"}, swaggerfiles.Handler))
+
 	if s.cache.Access == "private" {
 		zap.S().Infof("Protecting cache, access is private")
 		router.Use(auth.Protect(s.cache.Token))
@@ -48,6 +53,16 @@ func (s *socketApi) NewGinApi(router *gin.Engine) {
 	router.PUT("/:narUuid", s.uploadData)
 }
 
+// downloadNar godoc
+//
+//	@Summary		Download NAR file
+//	@Description	Download a NAR file from the cache.
+//	@Tags			binary-cache
+//	@Produce		octet-stream
+//	@Param			filename	path	string	true	"NAR filename (with or without .nar extension)"
+//	@Success		200			{file}	binary
+//	@Failure		404
+//	@Router			/nar/{filename} [get]
 func (s *socketApi) downloadNar(c *gin.Context) {
 	filename := c.Param("filename")
 	zap.S().Infof("Downloading NAR file: %s from cache %s", filename, s.cache.Name)
@@ -67,6 +82,17 @@ func (s *socketApi) downloadNar(c *gin.Context) {
 	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
 }
 
+// storeHashCmd godoc
+//
+//	@Summary		Get .narinfo or .ls
+//	@Description	Get metadata (.narinfo) or file listing (.ls) for a store hash.
+//	@Tags			binary-cache
+//	@Produce		text/plain,json
+//	@Param			storeHash	path		string				true	"Store hash with extension (.narinfo or .ls)"
+//	@Success		200			{string}	string				"narinfo content"
+//	@Success		200			{object}	map[string]string	"ls json"
+//	@Failure		404
+//	@Router			/{storeHash} [get]
 func (s *socketApi) storeHashCmd(c *gin.Context) {
 	filename := c.Param("storeHash")
 
@@ -87,6 +113,14 @@ func (s *socketApi) storeHashCmd(c *gin.Context) {
 	c.String(http.StatusNotFound, "Command not found")
 }
 
+// cacheInfo godoc
+//
+//	@Summary		Get nix-cache-info
+//	@Description	Get information about the nix store configuration.
+//	@Tags			binary-cache
+//	@Produce		text/plain
+//	@Success		200	{string}	string	"StoreDir: /nix/store..."
+//	@Router			/nix-cache-info [get]
 func (s *socketApi) cacheInfo(c *gin.Context) {
 	resp := fmt.Sprintf("StoreDir: /nix/store\nWantMassQuery: 1\nPriority: 30\n")
 	c.Data(http.StatusOK, "text/x-nix-cache-info", []byte(resp))
@@ -118,6 +152,17 @@ func (s *socketApi) storeHashNarInfo(c *gin.Context, storeHash string) {
 	c.Data(http.StatusOK, "text/x-nix-narinfo", []byte(resp))
 }
 
+// uploadData godoc
+//
+//	@Summary		Upload NAR data
+//	@Description	Upload raw NAR data for a given UUID.
+//	@Tags			binary-cache
+//	@Accept			octet-stream
+//	@Param			narUuid	path	string	true	"NAR UUID"
+//	@Success		201
+//	@Failure		400	{object}	map[string]string
+//	@Failure		500	{object}	map[string]string
+//	@Router			/{narUuid} [put]
 func (s *socketApi) uploadData(c *gin.Context) {
 	fileHash := c.Param("narUuid")
 	if fileHash == "" {

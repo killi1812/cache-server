@@ -92,7 +92,7 @@ func run(ctx context.Context, wg *sync.WaitGroup, api CreateGinApi, addr string)
 			zap.S().Panicf("Failes to start server err = %+v", err)
 		}
 	}()
-	zap.S().Debugf("Started HTTP listen, address = http://localhost%v", srv.Addr)
+	zap.S().Debugf("Started HTTP listen, address = http://%v", srv.Addr)
 	fmt.Printf("listening on http://%s\n", srv.Addr)
 
 	// wait for context cancellation

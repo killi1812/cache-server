@@ -83,9 +83,20 @@ tasks:
       - cmd: docker compose up {{.CLI_ARGS}}
     silent: true
 
+  lint:
+    description: Run linters and formatters
+    dir: "{{.CODE_DIR}}"
+    cmds:
+      - cmd: go vet
+      - cmd: go fmt
+      - cmd: swag init
+      - cmd: swag fmt
+    silent: false
+
   list-tools:
     cmds:
       - go version
+      - swag -version
       - gcc --version
       - task --version
       - nix --version

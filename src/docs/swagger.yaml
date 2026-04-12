@@ -1,0 +1,847 @@
+basePath: /api/v1
+definitions:
+  api.ActivateRequest:
+    properties:
+      agents:
+        additionalProperties:
+          type: string
+        type: object
+    type: object
+  api.CompletedMultipartUpload:
+    properties:
+      narInfoCreate:
+        $ref: '#/definitions/api.NarInfoCreate'
+    type: object
+  api.NarInfoCreate:
+    properties:
+      cDeriver:
+        type: string
+      cFileHash:
+        type: string
+      cFileSize:
+        type: integer
+      cNarHash:
+        type: string
+      cNarSize:
+        type: integer
+      cReferences:
+        items:
+          type: string
+        type: array
+      cSig:
+        type: string
+      cStoreHash:
+        type: string
+      cStoreSuffix:
+        type: string
+    type: object
+  api.WorkspaceRequest:
+    properties:
+      cacheName:
+        type: string
+      name:
+        type: string
+    required:
+    - cacheName
+    - name
+    type: object
+  model.Agent:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      workspace_id:
+        type: integer
+    type: object
+  model.BinaryCache:
+    properties:
+      access:
+        $ref: '#/definitions/model.BinaryCacheAccess'
+      id:
+        type: integer
+      name:
+        type: string
+      port:
+        type: integer
+      publicKey:
+        type: string
+      retention:
+        type: integer
+      store_paths:
+        items:
+          $ref: '#/definitions/model.StorePath'
+        type: array
+      url:
+        type: string
+      uuid:
+        type: string
+      workspaces:
+        items:
+          $ref: '#/definitions/model.Workspace'
+        type: array
+    type: object
+  model.BinaryCacheAccess:
+    enum:
+    - private
+    - public
+    type: string
+    x-enum-varnames:
+    - Private
+    - Public
+  model.Deployment:
+    properties:
+      agent:
+        $ref: '#/definitions/model.Agent'
+      agentId:
+        type: integer
+      createdAt:
+        type: string
+      id:
+        type: string
+      status:
+        $ref: '#/definitions/model.DeploymentStatus'
+      storePath:
+        type: string
+    type: object
+  model.DeploymentStatus:
+    enum:
+    - pending
+    - in_progress
+    - success
+    - failed
+    type: string
+    x-enum-varnames:
+    - DeploymentPending
+    - DeploymentInProgress
+    - DeploymentSuccess
+    - DeploymentFailed
+  model.StorePath:
+    properties:
+      binaryCacheId:
+        description: |-
+          BinaryCacheId uint         `json:"binarycacheId"`
+          BinaryCache   *BinaryCache `json:"-"`
+        type: integer
+      deriver:
+        type: string
+      fileHash:
+        type: string
+      fileSize:
+        type: integer
+      id:
+        type: integer
+      narHash:
+        type: string
+      narSize:
+        type: integer
+      references:
+        description: Stored as a string (serialized)
+        type: string
+      storeHash:
+        type: string
+      storeSuffix:
+        type: string
+    type: object
+  model.Workspace:
+    properties:
+      agents:
+        items:
+          $ref: '#/definitions/model.Agent'
+        type: array
+      binary_cache:
+        $ref: '#/definitions/model.BinaryCache'
+      binary_cache_id:
+        type: integer
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a nix cache server.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Cache Server API
+  version: "1.0"
+paths:
+  /{narUuid}:
+    put:
+      consumes:
+      - application/octet-stream
+      description: Upload raw NAR data for a given UUID.
+      parameters:
+      - description: NAR UUID
+        in: path
+        name: narUuid
+        required: true
+        type: string
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Upload NAR data
+      tags:
+      - binary-cache
+  /{storeHash}:
+    get:
+      description: Get metadata (.narinfo) or file listing (.ls) for a store hash.
+      parameters:
+      - description: Store hash with extension (.narinfo or .ls)
+        in: path
+        name: storeHash
+        required: true
+        type: string
+      produces:
+      - text/plain
+      - application/json
+      responses:
+        "200":
+          description: ls json
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+      summary: Get .narinfo or .ls
+      tags:
+      - binary-cache
+  /cache/{name}:
+    get:
+      description: Get detailed information about a binary cache.
+      parameters:
+      - description: Cache Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get cache info
+      tags:
+      - cache
+  /cache/{name}/multipart-nar:
+    post:
+      description: Initialize a multipart upload for a NAR file.
+      parameters:
+      - description: Cache Name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Compression method (xz or zst)
+        in: query
+        name: compression
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create multipart NAR upload
+      tags:
+      - cache
+  /cache/{name}/multipart-nar/{narUuid}:
+    post:
+      description: Get the direct upload URL for a multipart NAR upload.
+      parameters:
+      - description: Cache Name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: NAR UUID
+        in: path
+        name: narUuid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Redirect to upload URL
+      tags:
+      - cache
+  /cache/{name}/multipart-nar/{narUuid}/abort:
+    post:
+      description: Abort a multipart upload and clean up placeholder files.
+      parameters:
+      - description: Cache Name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: NAR UUID
+        in: path
+        name: narUuid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Abort multipart NAR upload
+      tags:
+      - cache
+  /cache/{name}/multipart-nar/{narUuid}/complete:
+    post:
+      consumes:
+      - application/json
+      description: Finalize a multipart upload and create the store path entry.
+      parameters:
+      - description: Cache Name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: NAR UUID
+        in: path
+        name: narUuid
+        required: true
+        type: string
+      - description: Completion details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.CompletedMultipartUpload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Complete multipart NAR upload
+      tags:
+      - cache
+  /cache/{name}/narinfo:
+    post:
+      consumes:
+      - application/json
+      description: Returns a list of hashes from the input that are missing in the
+        cache.
+      parameters:
+      - description: Cache Name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Hashes to check
+        in: body
+        name: hashes
+        required: true
+        schema:
+          items:
+            type: string
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get missing narinfo hashes
+      tags:
+      - cache
+  /deploy/activate:
+    post:
+      consumes:
+      - application/json
+      description: Activate deployments for multiple agents.
+      parameters:
+      - description: Activation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.ActivateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Deployment'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Activate deployment
+      tags:
+      - deployment
+  /deploy/agent/{workspace}/{name}:
+    delete:
+      description: Delete an agent from a workspace.
+      parameters:
+      - description: Workspace Name
+        in: path
+        name: workspace
+        required: true
+        type: string
+      - description: Agent Name
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete agent
+      tags:
+      - agent
+    get:
+      description: Get detailed information about an agent in a workspace.
+      parameters:
+      - description: Workspace Name
+        in: path
+        name: workspace
+        required: true
+        type: string
+      - description: Agent Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Agent'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get agent info
+      tags:
+      - agent
+    post:
+      description: Create a new agent in a workspace.
+      parameters:
+      - description: Workspace Name
+        in: path
+        name: workspace
+        required: true
+        type: string
+      - description: Agent Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Agent'
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create agent
+      tags:
+      - agent
+  /deploy/deployment/{workspace}:
+    get:
+      description: Get detailed information about a deployment by UUID.
+      parameters:
+      - description: Deployment UUID
+        in: path
+        name: workspace
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Deployment'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get deployment info
+      tags:
+      - deployment
+  /deploy/deployment/{workspace}/{name}:
+    get:
+      description: List all deployments for a specific agent in a workspace.
+      parameters:
+      - description: Workspace Name
+        in: path
+        name: workspace
+        required: true
+        type: string
+      - description: Agent Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Deployment'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get deployments for agent
+      tags:
+      - deployment
+    post:
+      description: Create a new deployment for an agent.
+      parameters:
+      - description: Workspace Name
+        in: path
+        name: workspace
+        required: true
+        type: string
+      - description: Agent Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Deployment'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create deployment
+      tags:
+      - deployment
+  /deploy/deployment/{workspace}/{name}/{index}:
+    get:
+      description: Get a specific deployment for an agent by its index.
+      parameters:
+      - description: Workspace Name
+        in: path
+        name: workspace
+        required: true
+        type: string
+      - description: Agent Name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Deployment Index
+        in: path
+        name: index
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get deployment by index
+      tags:
+      - deployment
+  /deploy/workspace:
+    post:
+      consumes:
+      - application/json
+      description: Create a new workspace associated with a binary cache.
+      parameters:
+      - description: Workspace details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.WorkspaceRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Workspace'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create workspace
+      tags:
+      - workspace
+  /deploy/workspace/{workspace}:
+    delete:
+      description: Delete a workspace by name.
+      parameters:
+      - description: Workspace Name
+        in: path
+        name: workspace
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete workspace
+      tags:
+      - workspace
+    get:
+      description: Get detailed information about a workspace.
+      parameters:
+      - description: Workspace Name
+        in: path
+        name: workspace
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Workspace'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get workspace info
+      tags:
+      - workspace
+  /deploy/workspace/{workspace}/agents:
+    get:
+      description: List all agents in a workspace.
+      parameters:
+      - description: Workspace Name
+        in: path
+        name: workspace
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Agent'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List agents
+      tags:
+      - workspace
+  /nar/{filename}:
+    get:
+      description: Download a NAR file from the cache.
+      parameters:
+      - description: NAR filename (with or without .nar extension)
+        in: path
+        name: filename
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "404":
+          description: Not Found
+      summary: Download NAR file
+      tags:
+      - binary-cache
+  /nix-cache-info:
+    get:
+      description: Get information about the nix store configuration.
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: 'StoreDir: /nix/store...'
+          schema:
+            type: string
+      summary: Get nix-cache-info
+      tags:
+      - binary-cache
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer <your-jwt-token>" to authenticate
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

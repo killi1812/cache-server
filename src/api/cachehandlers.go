@@ -14,6 +14,15 @@ import (
 	"go.uber.org/zap"
 )
 
+// name godoc
+//	@Summary		Get cache info
+//	@Description	Get detailed information about a binary cache.
+//	@Tags			cache
+//	@Produce		json
+//	@Param			name	path		string	true	"Cache Name"
+//	@Success		200		{object}	map[string]interface{}
+//	@Failure		500		{object}	map[string]string
+//	@Router			/cache/{name} [get]
 func (api *cacheApi) name(c *gin.Context) {
 	name := c.Param("name")
 	zap.S().Infof("Trying to read cache '%s'", name)
@@ -48,6 +57,18 @@ func (api *cacheApi) name(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// narinfo godoc
+//	@Summary		Get missing narinfo hashes
+//	@Description	Returns a list of hashes from the input that are missing in the cache.
+//	@Tags			cache
+//	@Accept			json
+//	@Produce		json
+//	@Param			name	path		string		true	"Cache Name"
+//	@Param			hashes	body		[]string	true	"Hashes to check"
+//	@Success		200		{array}		string
+//	@Failure		400		{object}	map[string]string
+//	@Failure		500		{object}	map[string]string
+//	@Router			/cache/{name}/narinfo [post]
 func (api *cacheApi) narinfo(c *gin.Context) {
 	name := c.Param("name")
 	zap.S().Infof("Trying to retrive missing narinfo '%s'", name)
@@ -73,6 +94,17 @@ func (api *cacheApi) narinfo(c *gin.Context) {
 	c.JSON(200, missing)
 }
 
+// createNar godoc
+//	@Summary		Create multipart NAR upload
+//	@Description	Initialize a multipart upload for a NAR file.
+//	@Tags			cache
+//	@Produce		json
+//	@Param			name		path		string	true	"Cache Name"
+//	@Param			compression	query		string	true	"Compression method (xz or zst)"
+//	@Success		200			{object}	map[string]string
+//	@Failure		400			{object}	map[string]string
+//	@Failure		500			{object}	map[string]string
+//	@Router			/cache/{name}/multipart-nar [post]
 func (api *cacheApi) createNar(c *gin.Context) {
 	name := c.Param("name")
 	zap.S().Infof("Trying to retrive missing narinfo '%s'", name)
@@ -101,6 +133,17 @@ func (api *cacheApi) createNar(c *gin.Context) {
 	})
 }
 
+// redirect godoc
+//	@Summary		Redirect to upload URL
+//	@Description	Get the direct upload URL for a multipart NAR upload.
+//	@Tags			cache
+//	@Produce		json
+//	@Param			name	path		string	true	"Cache Name"
+//	@Param			narUuid	path		string	true	"NAR UUID"
+//	@Success		200		{object}	map[string]string
+//	@Failure		400		{object}	map[string]string
+//	@Failure		404		{object}	map[string]string
+//	@Router			/cache/{name}/multipart-nar/{narUuid} [post]
 func (api *cacheApi) redirect(c *gin.Context) {
 	name := c.Param("name")
 	narId := c.Param("narUuid")
@@ -154,6 +197,19 @@ type CompletedMultipartUpload struct {
 	// Parts []any `json:"parts"` // Ignored for now
 }
 
+// completeNar godoc
+//	@Summary		Complete multipart NAR upload
+//	@Description	Finalize a multipart upload and create the store path entry.
+//	@Tags			cache
+//	@Accept			json
+//	@Produce		json
+//	@Param			name	path		string						true	"Cache Name"
+//	@Param			narUuid	path		string						true	"NAR UUID"
+//	@Param			request	body		CompletedMultipartUpload	true	"Completion details"
+//	@Success		200		{object}	map[string]interface{}
+//	@Failure		400		{object}	map[string]string
+//	@Failure		500		{object}	map[string]string
+//	@Router			/cache/{name}/multipart-nar/{narUuid}/complete [post]
 func (api *cacheApi) completeNar(c *gin.Context) {
 	name := c.Param("name")
 	narUuid := c.Param("narUuid")
@@ -187,6 +243,14 @@ func (api *cacheApi) completeNar(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{})
 }
 
+// abortNar godoc
+//	@Summary		Abort multipart NAR upload
+//	@Description	Abort a multipart upload and clean up placeholder files.
+//	@Tags			cache
+//	@Param			name	path		string	true	"Cache Name"
+//	@Param			narUuid	path		string	true	"NAR UUID"
+//	@Success		200		{object}	map[string]interface{}
+//	@Router			/cache/{name}/multipart-nar/{narUuid}/abort [post]
 func (api *cacheApi) abortNar(c *gin.Context) {
 	name := c.Param("name")
 	narUuid := c.Param("narUuid")
