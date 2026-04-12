@@ -3,19 +3,22 @@ services:
     image: postgres
     restart: always
     environment:
-      postgres_user: ${POSTGRES_USER}
-      postgres_password: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: cachesrv
     ports:
       - "5332:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["cmd", "pg_isready", "-u", "postgres", "-d", "cachesrv"]
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "cachesrv"]
       start_period: 1s
       interval: 0.5s
       retries: 5
       timeout: 0.5s
+    networks:
+      - cache-local
 
   minio:
     image: minio/minio
@@ -26,3 +29,31 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     command: server --console-address ":9001" /data
+    volumes:
+      - minio_data:/data
+    networks:
+      - cache-local
+
+  cache-server:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "12345:12345" # Management API
+      - "10000-10100:10000-10100" # Range for dynamic Binary Caches
+    volumes:
+      - ./cache-server.conf:/app/cache-server.conf
+      - cache_storage:/app/binary-caches
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - cache-local
+
+networks:
+  cache-local:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  minio_data:
+  cache_storage:

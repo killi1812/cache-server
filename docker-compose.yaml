@@ -5,6 +5,7 @@ services:
     environment:
       postgres_user: postgres
       postgres_password: postgres
+      POSTGRES_DB: cachesrv
     ports:
       - "5332:5432"
     volumes:
