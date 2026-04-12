@@ -163,25 +163,56 @@ func (api *deployApi) getWorkspace(c *gin.Context) {
 }
 
 func (api *deployApi) getDeployment(c *gin.Context) {
-	uuid := c.Param("workspace")
+	uuid := c.Param("workspace") // param is ":workspace" in route, but it's used as UUID
+	if uuid == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "missing deployment UUID"})
+		return
+	}
 	zap.S().Infof("Get deployment %s", uuid)
-	deployment, _ := api.deploymentServ.Read(uuid)
+	deployment, err := api.deploymentServ.Read(uuid)
+	if err != nil {
+		zap.S().Errorf("Failed to read deployment %s, err: %v", uuid, err)
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "deployment not found"})
+		return
+	}
+	if deployment == nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "deployment not found"})
+		return
+	}
 	c.JSON(http.StatusOK, deployment)
 }
 
 func (api *deployApi) getDeployments(c *gin.Context) {
 	workspace := c.Param("workspace")
 	name := c.Param("name")
+	if workspace == "" || name == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "missing workspace or agent name"})
+		return
+	}
 	zap.S().Infof("Get deployments for %s/%s", workspace, name)
-	deployments, _ := api.deploymentServ.ReadAll(workspace, name)
+	deployments, err := api.deploymentServ.ReadAll(workspace, name)
+	if err != nil {
+		zap.S().Errorf("Failed to read deployments for %s/%s, err: %v", workspace, name, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to list deployments"})
+		return
+	}
 	c.JSON(http.StatusOK, deployments)
 }
 
 func (api *deployApi) createDeployment(c *gin.Context) {
 	workspace := c.Param("workspace")
 	name := c.Param("name")
+	if workspace == "" || name == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "missing workspace or agent name"})
+		return
+	}
 	zap.S().Infof("Create deployment for %s/%s", workspace, name)
-	deployment, _ := api.deploymentServ.Create(workspace, name)
+	deployment, err := api.deploymentServ.Create(name, workspace) // Corrected: agentName is 'name'
+	if err != nil {
+		zap.S().Errorf("Failed to create deployment for %s/%s, err: %v", workspace, name, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to create deployment"})
+		return
+	}
 	c.JSON(http.StatusCreated, deployment)
 }
 
@@ -189,6 +220,10 @@ func (api *deployApi) getDeploymentByIndex(c *gin.Context) {
 	workspace := c.Param("workspace")
 	name := c.Param("name")
 	index := c.Param("index")
+	if workspace == "" || name == "" || index == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "missing workspace, agent name, or index"})
+		return
+	}
 	zap.S().Infof("Get deployment %s for %s/%s", index, workspace, name)
 	// Just placeholder
 	c.JSON(http.StatusOK, gin.H{"index": index, "workspace": workspace, "agent": name})

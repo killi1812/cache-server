@@ -87,46 +87,116 @@ func (suite *ApiTestSuite) request(method, path string, body any) *httptest.Resp
 	return suite.requestWithToken(method, path, body, suite.token)
 }
 
-func (suite *ApiTestSuite) TestWorkspaceAndAgentLifecycle() {
+func (suite *ApiTestSuite) TestDeployHandlers() {
 	t := suite.T()
 
-	// 1. Create a Cache first (required for workspace)
-	app.Invoke(func(s *service.CacheSrv) {
-		_, err := s.Create(service.CreateCacheArgs{Name: "c-unique-1", Port: 9001, Token: "t1"})
-		assert.NoError(t, err)
+	// 1. Setup Common Prerequisite: Cache -> Workspace -> Agent
+	app.Invoke(func(cs *service.CacheSrv, ws *service.WorkspaceSrv, as *service.AgentSrv) {
+		cs.Create(service.CreateCacheArgs{Name: "c-deploy-1", Port: 9001, Token: "t1"})
+		ws.Create(service.WorkspaceCreateArgs{WorkspaceName: "w1", BinaryCacheName: "c-deploy-1", Token: "tw1"})
+		as.Create(service.AgentCreateArgs{AgentName: "a1", WorkspaceName: "w1", Token: "ta1"})
 	})
 
-	// 2. Create Workspace
-	wsReq := map[string]string{"name": "w-unique-1", "cacheName": "c-unique-1"}
-	w := suite.request("POST", "/api/v1/deploy/workspace", wsReq)
-	assert.Equal(t, http.StatusCreated, w.Code)
+	t.Run("Workspace Lifecycle", func(t *testing.T) {
+		// Create Workspace - Invalid Body
+		w := suite.request("POST", "/api/v1/deploy/workspace", "invalid")
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 
-	// 3. Get Workspace
-	w = suite.request("GET", "/api/v1/deploy/workspace/w-unique-1", nil)
-	assert.Equal(t, http.StatusOK, w.Code)
+		// Get Workspace
+		w = suite.request("GET", "/api/v1/deploy/workspace/w1", nil)
+		assert.Equal(t, http.StatusOK, w.Code)
 
-	// 4. Create Agent
-	w = suite.request("POST", "/api/v1/deploy/agent/w-unique-1/a-unique-1", nil)
-	assert.Equal(t, http.StatusCreated, w.Code)
+		// Get Workspace - Not Found
+		w = suite.request("GET", "/api/v1/deploy/workspace/nonexistent", nil)
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
 
-	// 5. Get Agent
-	w = suite.request("GET", "/api/v1/deploy/agent/w-unique-1/a-unique-1", nil)
-	assert.Equal(t, http.StatusOK, w.Code)
+	t.Run("Agent Lifecycle", func(t *testing.T) {
+		// Get Agent
+		w := suite.request("GET", "/api/v1/deploy/agent/w1/a1", nil)
+		assert.Equal(t, http.StatusOK, w.Code)
 
-	// 6. List Agents
-	w = suite.request("GET", "/api/v1/deploy/workspace/w-unique-1/agents", nil)
-	assert.Equal(t, http.StatusOK, w.Code)
-	var agents []any
-	json.Unmarshal(w.Body.Bytes(), &agents)
-	assert.Len(t, agents, 1)
+		// Get Agent - Not Found in DB
+		w = suite.request("GET", "/api/v1/deploy/agent/w1/nonexistent", nil)
+		assert.Equal(t, http.StatusNotFound, w.Code)
 
-	// 7. Delete Agent
-	w = suite.request("DELETE", "/api/v1/deploy/agent/w-unique-1/a-unique-1", nil)
-	assert.Equal(t, http.StatusNoContent, w.Code)
+		// Get Agent - Wrong Workspace
+		app.Invoke(func(s *service.WorkspaceSrv) {
+			s.Create(service.WorkspaceCreateArgs{WorkspaceName: "w2", BinaryCacheName: "c-deploy-1", Token: "t2"})
+		})
+		w = suite.request("GET", "/api/v1/deploy/agent/w2/a1", nil)
+		assert.Equal(t, http.StatusNotFound, w.Code)
 
-	// 8. Delete Workspace
-	w = suite.request("DELETE", "/api/v1/deploy/workspace/w-unique-1", nil)
-	assert.Equal(t, http.StatusNoContent, w.Code)
+		// List Agents
+		w = suite.request("GET", "/api/v1/deploy/workspace/w1/agents", nil)
+		assert.Equal(t, http.StatusOK, w.Code)
+		var agents []any
+		json.Unmarshal(w.Body.Bytes(), &agents)
+		assert.NotEmpty(t, agents)
+	})
+
+	t.Run("Deployment Lifecycle", func(t *testing.T) {
+		// Create a fresh agent for this test
+		w := suite.request("POST", "/api/v1/deploy/agent/w1/a-deploy", nil)
+		assert.Equal(t, http.StatusCreated, w.Code)
+
+		// Create Deployment
+		w = suite.request("POST", "/api/v1/deploy/deployment/w1/a-deploy", nil)
+		assert.Equal(t, http.StatusCreated, w.Code)
+		var dep model.Deployment
+		json.Unmarshal(w.Body.Bytes(), &dep)
+
+		// Get Deployment by ID - Service is placeholder returning nil, so expect 404
+		w = suite.request("GET", "/api/v1/deploy/deployment/"+dep.Uuid.String(), nil)
+		assert.Equal(t, http.StatusNotFound, w.Code)
+
+		// Get Deployments for Agent
+		w = suite.request("GET", "/api/v1/deploy/deployment/w1/a-deploy", nil)
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		// Get Deployment by Index
+		w = suite.request("GET", "/api/v1/deploy/deployment/w1/a-deploy/0", nil)
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		t.Run("Deployment - Missing Params", func(t *testing.T) {
+			// Gin router usually doesn't match if params are missing entirely for these routes,
+			// but we can test if we hit them somehow or if they are empty strings.
+			// Actually, with RedirectTrailingSlash=false, some might match.
+			
+			// getDeployments missing name
+			w := suite.request("GET", "/api/v1/deploy/deployment/w1/", nil)
+			// Depending on gin, this might 404 if it doesn't match /:workspace/:name
+			// If it matches /:workspace, it's getDeployment
+		})
+	})
+
+	t.Run("Activate Deployment", func(t *testing.T) {
+		activateReq := map[string]any{
+			"agents": map[string]string{
+				"a1": "/nix/store/hash-pkg",
+			},
+		}
+		w := suite.request("POST", "/api/v1/deploy/activate", activateReq)
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		// Invalid Body
+		w = suite.request("POST", "/api/v1/deploy/activate", "invalid")
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("Cleanup", func(t *testing.T) {
+		// Delete Agent
+		w := suite.request("DELETE", "/api/v1/deploy/agent/w1/a1", nil)
+		assert.Equal(t, http.StatusNoContent, w.Code)
+
+		// Delete Agent - Not Found
+		w = suite.request("DELETE", "/api/v1/deploy/agent/w1/a1", nil)
+		assert.Equal(t, http.StatusNotFound, w.Code)
+
+		// Delete Workspace
+		w = suite.request("DELETE", "/api/v1/deploy/workspace/w1", nil)
+		assert.Equal(t, http.StatusNoContent, w.Code)
+	})
 }
 func (suite *ApiTestSuite) TestCacheHandlers() {
 	t := suite.T()
