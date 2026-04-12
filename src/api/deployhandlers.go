@@ -11,6 +11,7 @@ import (
 )
 
 // getAgent godoc
+//
 //	@Summary		Get agent info
 //	@Description	Get detailed information about an agent in a workspace.
 //	@Tags			agent
@@ -41,6 +42,7 @@ func (api *deployApi) getAgent(c *gin.Context) {
 }
 
 // createAgent godoc
+//
 //	@Summary		Create agent
 //	@Description	Create a new agent in a workspace.
 //	@Tags			agent
@@ -79,6 +81,7 @@ func (api *deployApi) createAgent(c *gin.Context) {
 }
 
 // deleteAgent godoc
+//
 //	@Summary		Delete agent
 //	@Description	Delete an agent from a workspace.
 //	@Tags			agent
@@ -114,6 +117,7 @@ func (api *deployApi) deleteAgent(c *gin.Context) {
 }
 
 // listAgents godoc
+//
 //	@Summary		List agents
 //	@Description	List all agents in a workspace.
 //	@Tags			workspace
@@ -142,6 +146,7 @@ type WorkspaceRequest struct {
 }
 
 // createWorkspace godoc
+//
 //	@Summary		Create workspace
 //	@Description	Create a new workspace associated with a binary cache.
 //	@Tags			workspace
@@ -185,6 +190,7 @@ func (api *deployApi) createWorkspace(c *gin.Context) {
 }
 
 // deleteWorkspace godoc
+//
 //	@Summary		Delete workspace
 //	@Description	Delete a workspace by name.
 //	@Tags			workspace
@@ -207,6 +213,7 @@ func (api *deployApi) deleteWorkspace(c *gin.Context) {
 }
 
 // getWorkspace godoc
+//
 //	@Summary		Get workspace info
 //	@Description	Get detailed information about a workspace.
 //	@Tags			workspace
@@ -230,6 +237,7 @@ func (api *deployApi) getWorkspace(c *gin.Context) {
 }
 
 // getDeployment godoc
+//
 //	@Summary		Get deployment info
 //	@Description	Get detailed information about a deployment by UUID.
 //	@Tags			deployment
@@ -260,6 +268,7 @@ func (api *deployApi) getDeployment(c *gin.Context) {
 }
 
 // getDeployments godoc
+//
 //	@Summary		Get deployments for agent
 //	@Description	List all deployments for a specific agent in a workspace.
 //	@Tags			deployment
@@ -288,6 +297,7 @@ func (api *deployApi) getDeployments(c *gin.Context) {
 }
 
 // createDeployment godoc
+//
 //	@Summary		Create deployment
 //	@Description	Create a new deployment for an agent.
 //	@Tags			deployment
@@ -316,6 +326,7 @@ func (api *deployApi) createDeployment(c *gin.Context) {
 }
 
 // getDeploymentByIndex godoc
+//
 //	@Summary		Get deployment by index
 //	@Description	Get a specific deployment for an agent by its index.
 //	@Tags			deployment
@@ -344,6 +355,7 @@ type ActivateRequest struct {
 }
 
 // activateDeployment godoc
+//
 //	@Summary		Activate deployment
 //	@Description	Activate deployments for multiple agents.
 //	@Tags			deployment

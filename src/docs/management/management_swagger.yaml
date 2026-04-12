@@ -159,71 +159,11 @@ definitions:
         type: string
     type: object
 info:
-  contact:
-    email: support@swagger.io
-    name: API Support
-    url: http://www.swagger.io/support
-  description: This is a nix cache server.
-  license:
-    name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0.html
-  termsOfService: http://swagger.io/terms/
-  title: Cache Server API
+  contact: {}
+  description: API for managing binary caches, workspaces, and agents.
+  title: Management API
   version: "1.0"
 paths:
-  /{narUuid}:
-    put:
-      consumes:
-      - application/octet-stream
-      description: Upload raw NAR data for a given UUID.
-      parameters:
-      - description: NAR UUID
-        in: path
-        name: narUuid
-        required: true
-        type: string
-      responses:
-        "201":
-          description: Created
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Upload NAR data
-      tags:
-      - binary-cache
-  /{storeHash}:
-    get:
-      description: Get metadata (.narinfo) or file listing (.ls) for a store hash.
-      parameters:
-      - description: Store hash with extension (.narinfo or .ls)
-        in: path
-        name: storeHash
-        required: true
-        type: string
-      produces:
-      - text/plain
-      - application/json
-      responses:
-        "200":
-          description: ls json
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Not Found
-      summary: Get .narinfo or .ls
-      tags:
-      - binary-cache
   /cache/{name}:
     get:
       description: Get detailed information about a binary cache.
@@ -804,43 +744,8 @@ paths:
       summary: List agents
       tags:
       - workspace
-  /nar/{filename}:
-    get:
-      description: Download a NAR file from the cache.
-      parameters:
-      - description: NAR filename (with or without .nar extension)
-        in: path
-        name: filename
-        required: true
-        type: string
-      produces:
-      - application/octet-stream
-      responses:
-        "200":
-          description: OK
-          schema:
-            type: file
-        "404":
-          description: Not Found
-      summary: Download NAR file
-      tags:
-      - binary-cache
-  /nix-cache-info:
-    get:
-      description: Get information about the nix store configuration.
-      produces:
-      - text/plain
-      responses:
-        "200":
-          description: 'StoreDir: /nix/store...'
-          schema:
-            type: string
-      summary: Get nix-cache-info
-      tags:
-      - binary-cache
 securityDefinitions:
   BearerAuth:
-    description: Type "Bearer <your-jwt-token>" to authenticate
     in: header
     name: Authorization
     type: apiKey

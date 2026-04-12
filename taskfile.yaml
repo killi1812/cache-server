@@ -32,6 +32,7 @@ tasks:
       LDFLAGS: "-X '{{.PACKAGE}}/app.Build={{.BUILD}}' -X '{{.PACKAGE}}/app.Version={{.VERSION}}' -X '{{.PACKAGE}}/app.CommitHash={{.COMMIT_HASH}}' -X '{{.PACKAGE}}/app.BuildTimestamp={{.BUILD_TIMESTAMP}}'"
     cmds:
       - cmd: "echo 'Build info\n\tBuild:\t\t{{.BUILD}}\n\tVersion:\t{{.VERSION}}\n\tCommit:\t\t{{.COMMIT_HASH}}\n\tTime Stamp:\t{{.BUILD_TIMESTAMP}}'"
+      - task: lint
       - cmd: mkdir -p {{.BINARY_DIR}}
       - cmd: go build -C {{.CODE_DIR}} -ldflags="{{.LDFLAGS}}" -v -o ../{{.BINARY_DIR}}/{{.APP_NAME}}
     silent: true
@@ -89,8 +90,9 @@ tasks:
     cmds:
       - cmd: go vet
       - cmd: go fmt
-      - cmd: swag init
-      - cmd: swag fmt
+      - cmd: go run github.com/swaggo/swag/cmd/swag fmt
+      - cmd: go run github.com/swaggo/swag/cmd/swag init -g api.go --instanceName management -o docs/management -d api,model
+      - cmd: go run github.com/swaggo/swag/cmd/swag init -g cacheApi.go --instanceName cache -o docs/cache -d cmd/cache,model
     silent: false
 
   list-tools:

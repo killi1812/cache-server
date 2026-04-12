@@ -15,6 +15,7 @@ import (
 )
 
 // name godoc
+//
 //	@Summary		Get cache info
 //	@Description	Get detailed information about a binary cache.
 //	@Tags			cache
@@ -58,6 +59,7 @@ func (api *cacheApi) name(c *gin.Context) {
 }
 
 // narinfo godoc
+//
 //	@Summary		Get missing narinfo hashes
 //	@Description	Returns a list of hashes from the input that are missing in the cache.
 //	@Tags			cache
@@ -95,6 +97,7 @@ func (api *cacheApi) narinfo(c *gin.Context) {
 }
 
 // createNar godoc
+//
 //	@Summary		Create multipart NAR upload
 //	@Description	Initialize a multipart upload for a NAR file.
 //	@Tags			cache
@@ -134,6 +137,7 @@ func (api *cacheApi) createNar(c *gin.Context) {
 }
 
 // redirect godoc
+//
 //	@Summary		Redirect to upload URL
 //	@Description	Get the direct upload URL for a multipart NAR upload.
 //	@Tags			cache
@@ -198,6 +202,7 @@ type CompletedMultipartUpload struct {
 }
 
 // completeNar godoc
+//
 //	@Summary		Complete multipart NAR upload
 //	@Description	Finalize a multipart upload and create the store path entry.
 //	@Tags			cache
@@ -244,6 +249,7 @@ func (api *cacheApi) completeNar(c *gin.Context) {
 }
 
 // abortNar godoc
+//
 //	@Summary		Abort multipart NAR upload
 //	@Description	Abort a multipart upload and clean up placeholder files.
 //	@Tags			cache

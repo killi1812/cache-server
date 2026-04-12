@@ -9,7 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/killi1812/go-cache-server/app"
-	_ "github.com/killi1812/go-cache-server/docs"
+	_ "github.com/killi1812/go-cache-server/docs/cache"
 	"github.com/killi1812/go-cache-server/model"
 	"github.com/killi1812/go-cache-server/service"
 	"github.com/killi1812/go-cache-server/util/auth"
@@ -19,6 +19,11 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
+
+//	@title			Binary Cache API
+//	@version		1.0
+//	@description	API for nix binary cache interactions (narinfo, nar, etc).
+//	@BasePath		/
 
 type socketApi struct {
 	cache    *model.BinaryCache
@@ -36,7 +41,10 @@ func newCacheApi(cache *model.BinaryCache) app.CreateGinApi {
 
 // RegisterEndpoints implements app.GinApi.
 func (s *socketApi) NewGinApi(router *gin.Engine) {
-	router.GET("/swagger/*any", ginSwagger.CustomWrapHandler(&ginSwagger.Config{URL: "/swagger/doc.json"}, swaggerfiles.Handler))
+	router.GET("/swagger/*any", ginSwagger.CustomWrapHandler(&ginSwagger.Config{
+		InstanceName: "cache",
+		URL:          "doc.json",
+	}, swaggerfiles.Handler))
 
 	if s.cache.Access == "private" {
 		zap.S().Infof("Protecting cache, access is private")
