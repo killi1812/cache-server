@@ -15,6 +15,7 @@ tasks:
   dev:
     description: build project binary for development
     cmds:
+      - task: lint
       - task: build-int
         vars:
           BUILD: "dev"
@@ -32,7 +33,6 @@ tasks:
       LDFLAGS: "-X '{{.PACKAGE}}/app.Build={{.BUILD}}' -X '{{.PACKAGE}}/app.Version={{.VERSION}}' -X '{{.PACKAGE}}/app.CommitHash={{.COMMIT_HASH}}' -X '{{.PACKAGE}}/app.BuildTimestamp={{.BUILD_TIMESTAMP}}'"
     cmds:
       - cmd: "echo 'Build info\n\tBuild:\t\t{{.BUILD}}\n\tVersion:\t{{.VERSION}}\n\tCommit:\t\t{{.COMMIT_HASH}}\n\tTime Stamp:\t{{.BUILD_TIMESTAMP}}'"
-      - task: lint
       - cmd: mkdir -p {{.BINARY_DIR}}
       - cmd: go build -C {{.CODE_DIR}} -ldflags="{{.LDFLAGS}}" -v -o ../{{.BINARY_DIR}}/{{.APP_NAME}}
     silent: true
