@@ -28,3 +28,11 @@ jobs:
 
       - name: Test
         run: task test
+
+  deploy:
+    needs: build
+    # Only deploy on pushes to master (not on PRs)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    uses: ./.github/workflows/deployment.yaml
+    secrets:
+      WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}

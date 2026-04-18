@@ -37,6 +37,7 @@ func init() {
 	app.Provide(objstor.New)
 
 	// Provide services
+	app.Provide(service.NewHub)
 	app.Provide(service.NewAgentSrv)
 	app.Provide(service.NewCacheSrv)
 	app.Provide(service.NewStorePathSrv)

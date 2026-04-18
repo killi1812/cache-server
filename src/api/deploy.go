@@ -11,6 +11,7 @@ type deployApi struct {
 	agentServ      *service.AgentSrv
 	workspaceServ  *service.WorkspaceSrv
 	deploymentServ *service.DeploymentSrv
+	hub            *service.Hub
 }
 
 func newDeployApi() app.GinApi {
@@ -19,9 +20,16 @@ func newDeployApi() app.GinApi {
 		agentServ *service.AgentSrv,
 		workspaceServ *service.WorkspaceSrv,
 		deploymentServ *service.DeploymentSrv,
+		hub *service.Hub,
 	) {
-		api = &deployApi{agentServ, workspaceServ, deploymentServ}
+		api = &deployApi{agentServ, workspaceServ, deploymentServ, hub}
 	})
+	return respToGin(api)
+}
+
+// Convert deployApi to app.GinApi if needed, or just ensure it implements it.
+// Looking at api.go, it expects app.GinApi.
+func respToGin(api *deployApi) app.GinApi {
 	return api
 }
 
@@ -32,6 +40,9 @@ func (api *deployApi) RegisterEndpoints(routerGroupByVersion ...*gin.RouterGroup
 	}
 	v1 := routerGroupByVersion[0]
 	deploy := v1.Group("/deploy")
+
+	// websocket endpoint
+	deploy.GET("/ws", api.wsHandler)
 
 	// deployment endpoints
 	deploy.GET("/deployment/:workspace", api.getDeployment)

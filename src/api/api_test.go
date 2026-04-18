@@ -43,6 +43,7 @@ func (suite *ApiTestSuite) SetupTest() {
 	// Provide dependencies
 	app.Provide(db.New)
 	app.Provide(objstor.New)
+	app.Provide(service.NewHub)
 	app.Provide(service.NewAgentSrv)
 	app.Provide(service.NewCacheSrv)
 	app.Provide(service.NewStorePathSrv)

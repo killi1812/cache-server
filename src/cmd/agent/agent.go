@@ -16,14 +16,6 @@ import (
 // Package level service
 var serv *service.AgentSrv
 
-/*
-NewCmd creates a new agent command
-
-			add                 Create agent
-	    remove              Remove agent
-	    list                List agents
-	    info                Display info about agent
-*/
 func NewCmd() *cobra.Command {
 	ptr := &cobra.Command{
 		Use:               "agent",
@@ -173,9 +165,9 @@ func agent(cmd *cobra.Command, args []string) {
 // setup for agent subcommands
 func setup(cmd *cobra.Command, args []string) error {
 	// run parent setup
-	parent := cmd.Parent().Parent()
+	parent := cmd.Parent()
 	if parent != nil && parent.PersistentPreRun != nil {
-		zap.S().Debugf("Running parent setup %d ...", parent.Use)
+		zap.S().Debugf("Running parent setup %s ...", parent.Use)
 		parent.PersistentPreRun(parent, args)
 	}
 

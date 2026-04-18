@@ -22,14 +22,23 @@ func NewDeploymentSrv() *DeploymentSrv {
 	return srv
 }
 
-func (d *DeploymentSrv) Read(uuid string) (any, error) {
-	zap.S().Infof("Reading deployment %s - NOT IMPLEMENTED", uuid)
-	return nil, nil
+func (d *DeploymentSrv) Read(uuidStr string) (*model.Deployment, error) {
+	var dep model.Deployment
+	err := d.db.Where("uuid = ?", uuidStr).Preload("Agent").First(&dep).Error
+	if err != nil {
+		return nil, err
+	}
+	return &dep, nil
 }
 
-func (d *DeploymentSrv) ReadAll(workspace, agent string) ([]any, error) {
-	zap.S().Infof("Reading deployments for %s/%s - NOT IMPLEMENTED", workspace, agent)
-	return nil, nil
+func (d *DeploymentSrv) ReadAll(workspace, agent string) ([]model.Deployment, error) {
+	var deps []model.Deployment
+	// We join with Agent and Workspace to filter by names
+	err := d.db.Joins("Agent").
+		Joins("Agent.Workspace").
+		Where("\"Agent__Workspace\".\"name\" = ? AND \"Agent\".\"name\" = ?", workspace, agent).
+		Find(&deps).Error
+	return deps, err
 }
 
 func (d *DeploymentSrv) Create(agentName, storePath string) (*model.Deployment, error) {
@@ -53,4 +62,8 @@ func (d *DeploymentSrv) Create(agentName, storePath string) (*model.Deployment, 
 	}
 
 	return &deployment, nil
+}
+
+func (d *DeploymentSrv) UpdateStatus(uuidStr string, status model.DeploymentStatus) error {
+	return d.db.Model(&model.Deployment{}).Where("uuid = ?", uuidStr).Update("status", status).Error
 }
