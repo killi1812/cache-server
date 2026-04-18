@@ -4,6 +4,7 @@ package service
 import (
 	"errors"
 
+	"github.com/google/uuid"
 	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/model"
 	"go.uber.org/zap"
@@ -59,6 +60,7 @@ func (a *AgentSrv) Create(args AgentCreateArgs) (*model.Agent, error) {
 	}
 
 	agent := model.Agent{
+		Uuid:        uuid.New(),
 		Name:        args.AgentName,
 		WorkspaceId: workspace.ID,
 		Workspace:   &workspace,
@@ -66,8 +68,13 @@ func (a *AgentSrv) Create(args AgentCreateArgs) (*model.Agent, error) {
 	}
 
 	if err := a.db.Create(&agent).Error; err != nil {
-		zap.S().Errorf("Failed to save agent to database: %v", err)
+		zap.S().Errorf("Failed to create agent: %v", err)
 		return nil, err
+	}
+
+	if err := a.db.Preload("Workspace.BinaryCache").First(&agent, agent.ID).Error; err != nil {
+		zap.S().Errorf("Failed to reload agent relations: %v", err)
+		return &agent, nil // Return agent anyway, it's created
 	}
 
 	zap.S().Infof("Agent '%s' created successfully (ID: %d)", agent.Name, agent.ID)
@@ -95,7 +102,7 @@ func (a *AgentSrv) Read(name string) (*model.Agent, error) {
 	zap.S().Infof("Reading Agent '%s'", name)
 
 	err := a.db.
-		Preload("Workspace").
+		Preload("Workspace.BinaryCache").
 		Where("name = ?", name).
 		First(&agent).Error
 	if err != nil {

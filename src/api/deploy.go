@@ -41,8 +41,10 @@ func (api *deployApi) RegisterEndpoints(routerGroupByVersion ...*gin.RouterGroup
 	v1 := routerGroupByVersion[0]
 	deploy := v1.Group("/deploy")
 
-	// websocket endpoint
+	// websocket endpoints
 	deploy.GET("/ws", api.wsHandler)
+	deploy.GET("/ws-deployment", api.deploymentHandler)
+	deploy.GET("/log/", api.logHandler)
 
 	// deployment endpoints
 	deploy.GET("/deployment/:workspace", api.getDeployment)

@@ -1,0 +1,24 @@
+### 1. Agent Connect (WebSocket)
+# Requires REST Client with WS support (e.g. VS Code REST Client)
+# Note: Use valid name/token from your database
+WEBSOCKET ws://localhost:54321/ws?name=test-agent&token=secret-token
+
+### 2. Send Deployment Finished (WebSocket)
+WEBSOCKET ws://localhost:54321/ws-deployment
+Content-Type: application/json
+
+{
+  "method": "DeploymentFinished",
+  "command": {
+    "id": "INSERT-UUID-HERE",
+    "hasSucceeded": true
+  }
+}
+
+### 3. Stream Logs (WebSocket)
+WEBSOCKET ws://localhost:54321/api/v1/deploy/log/
+Content-Type: application/json
+
+{
+  "line": "Successfully activated the deployment."
+}

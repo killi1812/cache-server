@@ -33,7 +33,6 @@ func (d *DeploymentSrv) Read(uuidStr string) (*model.Deployment, error) {
 
 func (d *DeploymentSrv) ReadAll(workspace, agent string) ([]model.Deployment, error) {
 	var deps []model.Deployment
-	// We join with Agent and Workspace to filter by names
 	err := d.db.Joins("Agent").
 		Joins("Agent.Workspace").
 		Where("\"Agent__Workspace\".\"name\" = ? AND \"Agent\".\"name\" = ?", workspace, agent).

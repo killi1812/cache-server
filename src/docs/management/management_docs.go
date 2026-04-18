@@ -660,6 +660,20 @@ const docTemplatemanagement = `{
                 }
             }
         },
+        "/deploy/log/": {
+            "get": {
+                "description": "Stream real-time logs from the agent during deployment.",
+                "tags": [
+                    "deployment"
+                ],
+                "summary": "Deployment log WebSocket",
+                "responses": {
+                    "101": {
+                        "description": "Switching Protocols"
+                    }
+                }
+            }
+        },
         "/deploy/workspace": {
             "post": {
                 "description": "Create a new workspace associated with a binary cache.",
@@ -805,6 +819,62 @@ const docTemplatemanagement = `{
                     }
                 }
             }
+        },
+        "/deploy/ws": {
+            "get": {
+                "description": "Long-lived WebSocket connection for agents to receive deployment commands.",
+                "tags": [
+                    "deployment"
+                ],
+                "summary": "Agent WebSocket registration",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Agent Name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Agent Token",
+                        "name": "token",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "101": {
+                        "description": "Switching Protocols"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/deploy/ws-deployment": {
+            "get": {
+                "description": "Channel for agents to report deployment completion.",
+                "tags": [
+                    "deployment"
+                ],
+                "summary": "Deployment status WebSocket",
+                "responses": {
+                    "101": {
+                        "description": "Switching Protocols"
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -884,6 +954,9 @@ const docTemplatemanagement = `{
                     "type": "integer"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "uuid": {
                     "type": "string"
                 },
                 "workspace_id": {

@@ -51,6 +51,8 @@ definitions:
         type: integer
       name:
         type: string
+      uuid:
+        type: string
       workspace_id:
         type: integer
     type: object
@@ -606,6 +608,15 @@ paths:
       summary: Get deployment by index
       tags:
       - deployment
+  /deploy/log/:
+    get:
+      description: Stream real-time logs from the agent during deployment.
+      responses:
+        "101":
+          description: Switching Protocols
+      summary: Deployment log WebSocket
+      tags:
+      - deployment
   /deploy/workspace:
     post:
       consumes:
@@ -702,6 +713,44 @@ paths:
       summary: List agents
       tags:
       - workspace
+  /deploy/ws:
+    get:
+      description: Long-lived WebSocket connection for agents to receive deployment
+        commands.
+      parameters:
+      - description: Agent Name
+        in: query
+        name: name
+        required: true
+        type: string
+      - description: Agent Token
+        in: query
+        name: token
+        required: true
+        type: string
+      responses:
+        "101":
+          description: Switching Protocols
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Agent WebSocket registration
+      tags:
+      - deployment
+  /deploy/ws-deployment:
+    get:
+      description: Channel for agents to report deployment completion.
+      responses:
+        "101":
+          description: Switching Protocols
+      summary: Deployment status WebSocket
+      tags:
+      - deployment
 securityDefinitions:
   BearerAuth:
     in: header

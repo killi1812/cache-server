@@ -4,85 +4,11 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 	"github.com/killi1812/go-cache-server/model"
 	"github.com/killi1812/go-cache-server/service"
 	"github.com/killi1812/go-cache-server/util/auth"
 	"go.uber.org/zap"
 )
-
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return true // For now
-	},
-}
-
-func (api *deployApi) wsHandler(c *gin.Context) {
-	name := c.Query("name")
-	token := c.Query("token")
-
-	if name == "" || token == "" {
-		c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "missing agent name or token"})
-		return
-	}
-
-	// Validate agent and token
-	agent, err := api.agentServ.Read(name)
-	if err != nil {
-		c.JSON(http.StatusNotFound, model.ErrorResponse{Error: "agent not found"})
-		return
-	}
-
-	if agent.Token != token {
-		c.JSON(http.StatusUnauthorized, model.ErrorResponse{Error: "invalid token"})
-		return
-	}
-
-	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-	if err != nil {
-		zap.S().Errorf("Failed to upgrade to websocket: %v", err)
-		return
-	}
-
-	api.hub.Register(name, conn)
-
-	// Keep connection alive and listen for status updates
-	go func() {
-		defer func() {
-			api.hub.Unregister(name)
-			conn.Close()
-		}()
-
-		for {
-			var msg map[string]any
-			err := conn.ReadJSON(&msg)
-			if err != nil {
-				zap.S().Infof("Agent '%s' connection closed: %v", name, err)
-				break
-			}
-			// Handle status updates from agent
-			method, _ := msg["method"].(string)
-			if method == "DeploymentFinished" {
-				command, _ := msg["command"].(map[string]any)
-				id, _ := command["id"].(string)
-				success, _ := command["hasSucceeded"].(bool)
-
-				status := model.DeploymentSuccess
-				if !success {
-					status = model.DeploymentFailed
-				}
-
-				err := api.deploymentServ.UpdateStatus(id, status)
-				if err != nil {
-					zap.S().Errorf("Failed to update deployment %s status: %v", id, err)
-				} else {
-					zap.S().Infof("Deployment %s marked as %s", id, status)
-				}
-			}
-			zap.S().Infof("Received from agent '%s': %v", name, msg)
-		}
-	}()
-}
 
 // getAgent godoc
 //
@@ -502,7 +428,7 @@ func (api *deployApi) activateDeployment(c *gin.Context) {
 			continue
 		}
 
-		// Notify agent via WebSocket Hub
+		// Notify agent via Hub
 		msg := map[string]any{
 			"method": "Deployment",
 			"command": map[string]any{
@@ -513,6 +439,8 @@ func (api *deployApi) activateDeployment(c *gin.Context) {
 					"index":     0,
 				},
 			},
+			"agent": deployment.Uuid.String(), // Using UUID as agent identifier in message
+			"id":    "00000000-0000-0000-0000-000000000000",
 		}
 		_ = api.hub.NotifyAgent(agentName, msg)
 
