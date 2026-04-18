@@ -33,7 +33,7 @@ func NewCmd() *cobra.Command {
 
 	ptr.PersistentFlags().StringVarP(&config.ConfigPath, "config", "c", "cache-server.conf", "path to config file")
 	ptr.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
-	ptr.PersistentFlags().BoolVarP(&doMigration, "migration", "m", false, "preform auto migration")
+	ptr.PersistentFlags().BoolVarP(&doMigration, "migration", "m", false, "perform auto migration")
 
 	// remove cache-server help, only leave cache-server -h and cache-server --help
 	// BUG: still in the compleating
