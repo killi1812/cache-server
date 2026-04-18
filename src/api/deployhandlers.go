@@ -66,12 +66,12 @@ func (api *deployApi) wsHandler(c *gin.Context) {
 				command, _ := msg["command"].(map[string]any)
 				id, _ := command["id"].(string)
 				success, _ := command["hasSucceeded"].(bool)
-				
+
 				status := model.DeploymentSuccess
 				if !success {
 					status = model.DeploymentFailed
 				}
-				
+
 				err := api.deploymentServ.UpdateStatus(id, status)
 				if err != nil {
 					zap.S().Errorf("Failed to update deployment %s status: %v", id, err)
@@ -104,16 +104,14 @@ func (api *deployApi) getAgent(c *gin.Context) {
 	if err != nil {
 		zap.S().Errorf("Failed to read agent '%s', err: %v", name, err)
 		c.AbortWithStatusJSON(http.StatusNotFound, model.ErrorResponse{
-			Error:     "agent not found",
-			ErrorCode: 404,
+			Error: "agent not found",
 		})
 		return
 	}
 
 	if agent.Workspace == nil || agent.Workspace.Name != workspace {
 		c.AbortWithStatusJSON(http.StatusNotFound, model.ErrorResponse{
-			Error:     "agent not found in this workspace",
-			ErrorCode: 404,
+			Error: "agent not found in this workspace",
 		})
 		return
 	}
@@ -141,8 +139,7 @@ func (api *deployApi) createAgent(c *gin.Context) {
 	if err != nil {
 		zap.S().Errorf("Failed to generate token, err: %v", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, model.ErrorResponse{
-			Error:     "failed to generate token",
-			ErrorCode: 500,
+			Error: "failed to generate token",
 		})
 		return
 	}
@@ -157,8 +154,7 @@ func (api *deployApi) createAgent(c *gin.Context) {
 	if err != nil {
 		zap.S().Errorf("Failed to create agent, err: %v", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, model.ErrorResponse{
-			Error:     "failed to create agent",
-			ErrorCode: 500,
+			Error: "failed to create agent",
 		})
 		return
 	}
@@ -185,15 +181,13 @@ func (api *deployApi) deleteAgent(c *gin.Context) {
 	agent, err := api.agentServ.Read(name)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusNotFound, model.ErrorResponse{
-			Error:     "agent not found",
-			ErrorCode: 404,
+			Error: "agent not found",
 		})
 		return
 	}
 	if agent.Workspace == nil || agent.Workspace.Name != workspace {
 		c.AbortWithStatusJSON(http.StatusNotFound, model.ErrorResponse{
-			Error:     "agent not found in this workspace",
-			ErrorCode: 404,
+			Error: "agent not found in this workspace",
 		})
 		return
 	}
@@ -202,8 +196,7 @@ func (api *deployApi) deleteAgent(c *gin.Context) {
 	if err != nil {
 		zap.S().Errorf("Failed to delete agent, err: %v", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, model.ErrorResponse{
-			Error:     "failed to delete agent",
-			ErrorCode: 500,
+			Error: "failed to delete agent",
 		})
 		return
 	}
@@ -229,8 +222,7 @@ func (api *deployApi) listAgents(c *gin.Context) {
 	if err != nil {
 		zap.S().Errorf("Failed to read agents, err: %v", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, model.ErrorResponse{
-			Error:     "failed to list agents",
-			ErrorCode: 500,
+			Error: "failed to list agents",
 		})
 		return
 	}
@@ -259,8 +251,7 @@ func (api *deployApi) createWorkspace(c *gin.Context) {
 	var req WorkspaceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, model.ErrorResponse{
-			Error:     "invalid request body",
-			ErrorCode: 400,
+			Error: "invalid request body",
 		})
 		return
 	}
@@ -271,8 +262,7 @@ func (api *deployApi) createWorkspace(c *gin.Context) {
 	if err != nil {
 		zap.S().Errorf("Failed to generate token, err: %v", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, model.ErrorResponse{
-			Error:     "failed to generate token",
-			ErrorCode: 500,
+			Error: "failed to generate token",
 		})
 		return
 	}
@@ -287,8 +277,7 @@ func (api *deployApi) createWorkspace(c *gin.Context) {
 	if err != nil {
 		zap.S().Errorf("Failed to create workspace, err: %v", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, model.ErrorResponse{
-			Error:     "failed to create workspace",
-			ErrorCode: 500,
+			Error: "failed to create workspace",
 		})
 		return
 	}
@@ -313,8 +302,7 @@ func (api *deployApi) deleteWorkspace(c *gin.Context) {
 	if err != nil {
 		zap.S().Errorf("Failed to delete workspace, err: %v", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, model.ErrorResponse{
-			Error:     "failed to delete workspace",
-			ErrorCode: 500,
+			Error: "failed to delete workspace",
 		})
 		return
 	}
@@ -340,8 +328,7 @@ func (api *deployApi) getWorkspace(c *gin.Context) {
 	if err != nil {
 		zap.S().Errorf("Failed to read workspace '%s', err: %v", name, err)
 		c.AbortWithStatusJSON(http.StatusNotFound, model.ErrorResponse{
-			Error:     "workspace not found",
-			ErrorCode: 404,
+			Error: "workspace not found",
 		})
 		return
 	}
@@ -364,8 +351,7 @@ func (api *deployApi) getDeployment(c *gin.Context) {
 	uuid := c.Param("workspace") // param is ":workspace" in route, but it's used as UUID
 	if uuid == "" {
 		c.AbortWithStatusJSON(http.StatusBadRequest, model.ErrorResponse{
-			Error:     "missing deployment UUID",
-			ErrorCode: 400,
+			Error: "missing deployment UUID",
 		})
 		return
 	}
@@ -374,15 +360,13 @@ func (api *deployApi) getDeployment(c *gin.Context) {
 	if err != nil {
 		zap.S().Errorf("Failed to read deployment %s, err: %v", uuid, err)
 		c.AbortWithStatusJSON(http.StatusNotFound, model.ErrorResponse{
-			Error:     "deployment not found",
-			ErrorCode: 404,
+			Error: "deployment not found",
 		})
 		return
 	}
 	if deployment == nil {
 		c.AbortWithStatusJSON(http.StatusNotFound, model.ErrorResponse{
-			Error:     "deployment not found",
-			ErrorCode: 404,
+			Error: "deployment not found",
 		})
 		return
 	}
@@ -406,8 +390,7 @@ func (api *deployApi) getDeployments(c *gin.Context) {
 	name := c.Param("name")
 	if workspace == "" || name == "" {
 		c.AbortWithStatusJSON(http.StatusBadRequest, model.ErrorResponse{
-			Error:     "missing workspace or agent name",
-			ErrorCode: 400,
+			Error: "missing workspace or agent name",
 		})
 		return
 	}
@@ -416,8 +399,7 @@ func (api *deployApi) getDeployments(c *gin.Context) {
 	if err != nil {
 		zap.S().Errorf("Failed to read deployments for %s/%s, err: %v", workspace, name, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, model.ErrorResponse{
-			Error:     "failed to list deployments",
-			ErrorCode: 500,
+			Error: "failed to list deployments",
 		})
 		return
 	}
@@ -441,8 +423,7 @@ func (api *deployApi) createDeployment(c *gin.Context) {
 	name := c.Param("name")
 	if workspace == "" || name == "" {
 		c.AbortWithStatusJSON(http.StatusBadRequest, model.ErrorResponse{
-			Error:     "missing workspace or agent name",
-			ErrorCode: 400,
+			Error: "missing workspace or agent name",
 		})
 		return
 	}
@@ -451,8 +432,7 @@ func (api *deployApi) createDeployment(c *gin.Context) {
 	if err != nil {
 		zap.S().Errorf("Failed to create deployment for %s/%s, err: %v", workspace, name, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, model.ErrorResponse{
-			Error:     "failed to create deployment",
-			ErrorCode: 500,
+			Error: "failed to create deployment",
 		})
 		return
 	}
@@ -477,8 +457,7 @@ func (api *deployApi) getDeploymentByIndex(c *gin.Context) {
 	index := c.Param("index")
 	if workspace == "" || name == "" || index == "" {
 		c.AbortWithStatusJSON(http.StatusBadRequest, model.ErrorResponse{
-			Error:     "missing workspace, agent name, or index",
-			ErrorCode: 400,
+			Error: "missing workspace, agent name, or index",
 		})
 		return
 	}
@@ -506,8 +485,7 @@ func (api *deployApi) activateDeployment(c *gin.Context) {
 	var req ActivateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, model.ErrorResponse{
-			Error:     "invalid request body",
-			ErrorCode: 400,
+			Error: "invalid request body",
 		})
 		return
 	}
@@ -544,7 +522,6 @@ func (api *deployApi) activateDeployment(c *gin.Context) {
 	if len(errs) != 0 {
 		c.JSON(http.StatusMultiStatus, model.ErrorResponse{
 			Error:          "Some deployments failed",
-			ErrorCode:      207,
 			AdditionalInfo: errs,
 		})
 		return
