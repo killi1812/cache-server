@@ -8,6 +8,8 @@ import (
 	"github.com/killi1812/go-cache-server/api"
 	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/config"
+	"github.com/killi1812/go-cache-server/service"
+	"github.com/killi1812/go-cache-server/util/objstor"
 	"github.com/killi1812/go-cache-server/util/proc"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -38,7 +40,17 @@ func listen(cmd *cobra.Command, args []string) error {
 	addr := fmt.Sprintf("%s:%d", config.Config.CacheServer.Hostname, config.Config.CacheServer.ServerPort)
 	if foreground {
 		// start the app foreground
-		app.Start(api.NewApi(), addr)
+		app.Invoke(func(
+			cs *service.CacheSrv,
+			ps *service.StorePathSrv,
+			as *service.AgentSrv,
+			ws *service.WorkspaceSrv,
+			ds *service.DeploymentSrv,
+			h *service.Hub,
+			storage objstor.ObjectStorage,
+		) {
+			app.Start(api.NewApi(cs, ps, as, ws, ds, h, storage), addr)
+		})
 	} else {
 		err := proc.StartProcBackground(app.PID_FILE_NAME)
 		if err != nil {

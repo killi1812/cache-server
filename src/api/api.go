@@ -4,6 +4,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/killi1812/go-cache-server/app"
 	_ "github.com/killi1812/go-cache-server/docs/management"
+	"github.com/killi1812/go-cache-server/service"
+	"github.com/killi1812/go-cache-server/util/objstor"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -22,9 +24,18 @@ type Api struct {
 	cacheApi  app.GinApi
 }
 
-func NewApi() app.CreateGinApi {
-	var api *Api = &Api{cacheApi: newCacheApi(), deployApi: newDeployApi()}
-	return api
+func NewApi(
+	cacheServ *service.CacheSrv,
+	pathServ *service.StorePathSrv,
+	agentServ *service.AgentSrv,
+	workspaceServ *service.WorkspaceSrv,
+	deploymentServ *service.DeploymentSrv,
+	hub *service.Hub,
+	storage objstor.ObjectStorage,
+) app.CreateGinApi {
+	cacheApi := newCacheApi(cacheServ, pathServ, storage)
+	deployApi := newDeployApi(agentServ, workspaceServ, deploymentServ, hub)
+	return &Api{cacheApi: cacheApi, deployApi: deployApi}
 }
 
 // RegisterEndpoints implements app.GinApi.

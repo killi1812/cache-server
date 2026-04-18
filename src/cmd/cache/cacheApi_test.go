@@ -30,8 +30,11 @@ func TestSocketApi(t *testing.T) {
 
 	app.Provide(db.New)
 	app.Provide(objstor.New)
+	app.Provide(service.NewHub)
+	app.Provide(service.NewAgentSrv)
 	app.Provide(service.NewStorePathSrv)
 	app.Provide(service.NewCacheSrv)
+	app.Provide(service.NewDeploymentSrv)
 
 	var database *gorm.DB
 	app.Invoke(func(d *gorm.DB) {
@@ -55,7 +58,16 @@ func TestSocketApi(t *testing.T) {
 	database.Create(sp)
 
 	router := gin.Default()
-	socketApi := newCacheApi(cache)
+	var socketApi app.CreateGinApi
+	app.Invoke(func(
+		pathServ *service.StorePathSrv,
+		agentServ *service.AgentSrv,
+		deploymentServ *service.DeploymentSrv,
+		storage objstor.ObjectStorage,
+		hub *service.Hub,
+	) {
+		socketApi = newCacheApi(cache, pathServ, agentServ, deploymentServ, storage, hub)
+	})
 	socketApi.NewGinApi(router)
 
 	t.Run("Get nix-cache-info", func(t *testing.T) {
@@ -158,7 +170,16 @@ func TestSocketApi(t *testing.T) {
 		database.Create(privateCache)
 
 		privateRouter := gin.Default()
-		privateApi := newCacheApi(privateCache)
+		var privateApi app.CreateGinApi
+		app.Invoke(func(
+			pathServ *service.StorePathSrv,
+			agentServ *service.AgentSrv,
+			deploymentServ *service.DeploymentSrv,
+			storage objstor.ObjectStorage,
+			hub *service.Hub,
+		) {
+			privateApi = newCacheApi(privateCache, pathServ, agentServ, deploymentServ, storage, hub)
+		})
 		privateApi.NewGinApi(privateRouter)
 
 		w := httptest.NewRecorder()

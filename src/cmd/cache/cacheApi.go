@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/killi1812/go-cache-server/app"
 	_ "github.com/killi1812/go-cache-server/docs/cache"
 	"github.com/killi1812/go-cache-server/model"
@@ -25,26 +26,60 @@ import (
 //	@description	API for nix binary cache interactions (narinfo, nar, etc).
 //	@BasePath		/
 
-type socketApi struct {
-	cache    *model.BinaryCache
-	pathServ *service.StorePathSrv
-	storage  objstor.ObjectStorage
+type SocketApi struct {
+	cache          *model.BinaryCache
+	pathServ       *service.StorePathSrv
+	agentServ      *service.AgentSrv
+	deploymentServ *service.DeploymentSrv
+	storage        objstor.ObjectStorage
+	hub            *service.Hub
 }
 
-func newCacheApi(cache *model.BinaryCache) app.CreateGinApi {
-	var resp *socketApi
-	app.Invoke(func(pathServ *service.StorePathSrv, storage objstor.ObjectStorage) {
-		resp = &socketApi{cache, pathServ, storage}
-	})
-	return resp
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true // For now
+	},
+}
+
+func newCacheApi(
+	cache *model.BinaryCache,
+	pathServ *service.StorePathSrv,
+	agentServ *service.AgentSrv,
+	deploymentServ *service.DeploymentSrv,
+	storage objstor.ObjectStorage,
+	hub *service.Hub,
+) app.CreateGinApi {
+	return &SocketApi{cache, pathServ, agentServ, deploymentServ, storage, hub}
+}
+
+func NewCacheApiStub(
+	pathServ *service.StorePathSrv,
+	agentServ *service.AgentSrv,
+	deploymentServ *service.DeploymentSrv,
+	storage objstor.ObjectStorage,
+	hub *service.Hub,
+) app.CreateGinApi {
+	return &SocketApi{
+		cache:          &model.BinaryCache{Name: "deploy-port"},
+		pathServ:       pathServ,
+		agentServ:      agentServ,
+		deploymentServ: deploymentServ,
+		storage:        storage,
+		hub:            hub,
+	}
 }
 
 // RegisterEndpoints implements app.GinApi.
-func (s *socketApi) NewGinApi(router *gin.Engine) {
+func (s *SocketApi) NewGinApi(router *gin.Engine) {
 	router.GET("/swagger/*any", ginSwagger.CustomWrapHandler(&ginSwagger.Config{
 		InstanceName: "cache",
 		URL:          "doc.json",
 	}, swaggerfiles.Handler))
+
+	// WebSocket dispatcher
+	router.GET("/ws", s.wsDispatcher)
+	router.GET("/ws-deployment", s.wsDispatcher)
+	router.GET("/api/v1/deploy/log/", s.wsDispatcher)
 
 	if s.cache.Access == "private" {
 		zap.S().Infof("Protecting cache, access is private")
@@ -61,6 +96,143 @@ func (s *socketApi) NewGinApi(router *gin.Engine) {
 	router.PUT("/:narUuid", s.uploadData)
 }
 
+func (s *SocketApi) wsDispatcher(c *gin.Context) {
+	path := c.Request.URL.Path
+	zap.S().Infof("WebSocket connection on path: %s", path)
+
+	switch path {
+	case "/ws":
+		s.agent_handler(c)
+	case "/ws-deployment":
+		s.deployment_handler(c)
+	case "/api/v1/deploy/log/":
+		s.log_handler(c)
+	}
+}
+
+func (s *SocketApi) agent_handler(c *gin.Context) {
+	name := c.GetHeader("name")
+	token := c.GetHeader("Authorization")
+	if token != "" {
+		token = strings.TrimPrefix(token, "Bearer ")
+	}
+
+	if name == "" || token == "" {
+		// Try query params if headers missing (convenience)
+		name = c.Query("name")
+		token = c.Query("token")
+	}
+
+	if name == "" || token == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, model.ErrorResponse{Error: "missing name or token"})
+		return
+	}
+
+	agent, err := s.agentServ.Read(name)
+	if err != nil || agent.Token != token {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, model.ErrorResponse{Error: "unauthorized"})
+		return
+	}
+
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		zap.S().Errorf("Failed to upgrade agent connection: %v", err)
+		return
+	}
+
+	s.hub.Register(name, conn)
+
+	// Send AgentRegistered message
+	regMsg := map[string]any{
+		"agent": agent.Uuid.String(),
+		"command": map[string]any{
+			"contents": map[string]any{
+				"cache": map[string]any{
+					"name": s.cache.Name,
+					"uri":  s.cache.URL,
+				},
+				"id": agent.Uuid.String(),
+			},
+			"tag": "AgentRegistered",
+		},
+		"id":     "00000000-0000-0000-0000-000000000000",
+		"method": "AgentRegistered",
+	}
+	conn.WriteJSON(regMsg)
+
+	// Stay open
+	go func() {
+		defer func() {
+			s.hub.Unregister(name)
+			conn.Close()
+		}()
+		for {
+			var msg map[string]any
+			if err := conn.ReadJSON(&msg); err != nil {
+				break
+			}
+			method, _ := msg["method"].(string)
+			if method == "DeploymentFinished" {
+				s.processDeploymentFinished(msg)
+			}
+		}
+	}()
+}
+
+func (s *SocketApi) deployment_handler(c *gin.Context) {
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		return
+	}
+	defer conn.Close()
+
+	for {
+		var msg map[string]any
+		if err := conn.ReadJSON(&msg); err != nil {
+			break
+		}
+		method, _ := msg["method"].(string)
+		if method == "DeploymentFinished" {
+			s.processDeploymentFinished(msg)
+			break
+		}
+	}
+}
+
+func (s *SocketApi) log_handler(c *gin.Context) {
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		return
+	}
+	defer conn.Close()
+
+	for {
+		var msg map[string]any
+		if err := conn.ReadJSON(&msg); err != nil {
+			break
+		}
+		line, _ := msg["line"].(string)
+		zap.S().Infof("Log: %s", line)
+		if line == "Successfully activated the deployment." || strings.Contains(line, "Failed to activate the deployment.") {
+			break
+		}
+	}
+}
+
+func (s *SocketApi) processDeploymentFinished(msg map[string]any) {
+	command, _ := msg["command"].(map[string]any)
+	id, _ := command["id"].(string)
+	success, _ := command["hasSucceeded"].(bool)
+
+	status := model.DeploymentSuccess
+	if !success {
+		status = model.DeploymentFailed
+	}
+
+	_ = s.deploymentServ.UpdateStatus(id, status)
+	zap.S().Infof("Deployment %s finished with status %s", id, status)
+}
+
 // downloadNar godoc
 //
 //	@Summary		Download NAR file
@@ -71,7 +243,7 @@ func (s *socketApi) NewGinApi(router *gin.Engine) {
 //	@Success		200			{file}		binary
 //	@Failure		404			{object}	model.ErrorResponse
 //	@Router			/nar/{filename} [get]
-func (s *socketApi) downloadNar(c *gin.Context) {
+func (s *SocketApi) downloadNar(c *gin.Context) {
 	filename := c.Param("filename")
 	zap.S().Infof("Downloading NAR file: %s from cache %s", filename, s.cache.Name)
 
@@ -103,7 +275,7 @@ func (s *socketApi) downloadNar(c *gin.Context) {
 //	@Success		200			{object}	map[string]string	"ls json"
 //	@Failure		404			{object}	model.ErrorResponse
 //	@Router			/{storeHash} [get]
-func (s *socketApi) storeHashCmd(c *gin.Context) {
+func (s *SocketApi) storeHashCmd(c *gin.Context) {
 	filename := c.Param("storeHash")
 
 	if before, ok := strings.CutSuffix(filename, ".narinfo"); ok {
@@ -133,12 +305,12 @@ func (s *socketApi) storeHashCmd(c *gin.Context) {
 //	@Produce		text/plain
 //	@Success		200	{string}	string	"StoreDir: /nix/store..."
 //	@Router			/nix-cache-info [get]
-func (s *socketApi) cacheInfo(c *gin.Context) {
+func (s *SocketApi) cacheInfo(c *gin.Context) {
 	resp := fmt.Sprintf("StoreDir: /nix/store\nWantMassQuery: 1\nPriority: 30\n")
 	c.Data(http.StatusOK, "text/x-nix-cache-info", []byte(resp))
 }
 
-func (s *socketApi) storeHashNarInfo(c *gin.Context, storeHash string) {
+func (s *SocketApi) storeHashNarInfo(c *gin.Context, storeHash string) {
 	path, err := s.pathServ.Read(storeHash, s.cache.Name)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -181,7 +353,7 @@ func (s *socketApi) storeHashNarInfo(c *gin.Context, storeHash string) {
 //	@Failure		400	{object}	model.ErrorResponse
 //	@Failure		500	{object}	model.ErrorResponse
 //	@Router			/{narUuid} [put]
-func (s *socketApi) uploadData(c *gin.Context) {
+func (s *SocketApi) uploadData(c *gin.Context) {
 	fileHash := c.Param("narUuid")
 	if fileHash == "" {
 		c.AbortWithStatusJSON(400, model.ErrorResponse{

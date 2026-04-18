@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/config"
 	"github.com/killi1812/go-cache-server/model"
 	"go.uber.org/zap"
@@ -21,14 +20,8 @@ type CacheSrv struct {
 	db *gorm.DB
 }
 
-func NewCacheSrv() *CacheSrv {
-	var srv *CacheSrv
-
-	app.Invoke(func(db *gorm.DB) {
-		srv = &CacheSrv{db}
-	})
-
-	return srv
+func NewCacheSrv(db *gorm.DB) *CacheSrv {
+	return &CacheSrv{db}
 }
 
 type CreateCacheArgs struct {

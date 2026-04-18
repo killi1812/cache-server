@@ -2,7 +2,6 @@ package service
 
 import (
 	"github.com/google/uuid"
-	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/model"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -12,14 +11,8 @@ type DeploymentSrv struct {
 	db *gorm.DB
 }
 
-func NewDeploymentSrv() *DeploymentSrv {
-	var srv *DeploymentSrv
-
-	app.Invoke(func(db *gorm.DB) {
-		srv = &DeploymentSrv{db}
-	})
-
-	return srv
+func NewDeploymentSrv(db *gorm.DB) *DeploymentSrv {
+	return &DeploymentSrv{db}
 }
 
 func (d *DeploymentSrv) Read(uuidStr string) (*model.Deployment, error) {

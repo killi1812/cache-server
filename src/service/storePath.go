@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/model"
 	"github.com/killi1812/go-cache-server/util/objstor"
 	"go.uber.org/zap"
@@ -18,14 +17,8 @@ type StorePathSrv struct {
 	store objstor.ObjectStorage
 }
 
-func NewStorePathSrv() *StorePathSrv {
-	var srv *StorePathSrv
-
-	app.Invoke(func(db *gorm.DB, store objstor.ObjectStorage) {
-		srv = &StorePathSrv{db, store}
-	})
-
-	return srv
+func NewStorePathSrv(db *gorm.DB, store objstor.ObjectStorage) *StorePathSrv {
+	return &StorePathSrv{db, store}
 }
 
 func (s *StorePathSrv) dbWithCache() *gorm.DB {

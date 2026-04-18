@@ -3,7 +3,6 @@ package service
 import (
 	"errors"
 
-	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/model"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -14,20 +13,14 @@ type WorkspaceSrv struct {
 	ws *gorm.DB
 }
 
-func NewWorkspaceSrv() *WorkspaceSrv {
-	var srv *WorkspaceSrv
-
-	app.Invoke(func(db *gorm.DB) {
-		srv = &WorkspaceSrv{
-			db: db,
-			ws: db.
-				Model(&model.Workspace{}).
-				Preload("BinaryCache").
-				Preload("Agents"),
-		}
-	})
-
-	return srv
+func NewWorkspaceSrv(db *gorm.DB) *WorkspaceSrv {
+	return &WorkspaceSrv{
+		db: db,
+		ws: db.
+			Model(&model.Workspace{}).
+			Preload("BinaryCache").
+			Preload("Agents"),
+	}
 }
 
 type WorkspaceCreateArgs struct {

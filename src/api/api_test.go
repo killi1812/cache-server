@@ -52,7 +52,19 @@ func (suite *ApiTestSuite) SetupTest() {
 
 	suite.router = gin.Default()
 	suite.router.RedirectTrailingSlash = false
-	managementApi := api.NewApi()
+
+	var managementApi app.CreateGinApi
+	app.Invoke(func(
+		cacheServ *service.CacheSrv,
+		pathServ *service.StorePathSrv,
+		agentServ *service.AgentSrv,
+		workspaceServ *service.WorkspaceSrv,
+		deploymentServ *service.DeploymentSrv,
+		hub *service.Hub,
+		storage objstor.ObjectStorage,
+	) {
+		managementApi = api.NewApi(cacheServ, pathServ, agentServ, workspaceServ, deploymentServ, hub, storage)
+	})
 	managementApi.NewGinApi(suite.router)
 
 	var err error

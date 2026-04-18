@@ -14,16 +14,12 @@ type cacheApi struct {
 	storage   objstor.ObjectStorage
 }
 
-func newCacheApi() app.GinApi {
-	var api *cacheApi
-	app.Invoke(func(
-		cacheServ *service.CacheSrv,
-		pathServ *service.StorePathSrv,
-		storage objstor.ObjectStorage,
-	) {
-		api = &cacheApi{cacheServ, pathServ, storage}
-	})
-	return api
+func newCacheApi(
+	cacheServ *service.CacheSrv,
+	pathServ *service.StorePathSrv,
+	storage objstor.ObjectStorage,
+) app.GinApi {
+	return &cacheApi{cacheServ, pathServ, storage}
 }
 
 // RegisterEndpoints implements app.GinApi.

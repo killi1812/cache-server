@@ -46,8 +46,16 @@ func TestDeployWebSocket(t *testing.T) {
 	database.Create(agent)
 
 	router := gin.Default()
-	// Use RegisterEndpoints as defined in deploy.go
-	deployApiInst := newDeployApi().(*deployApi)
+	// Use Invoke to get dependencies and create the API instance
+	var deployApiInst *deployApi
+	app.Invoke(func(
+		agentServ *service.AgentSrv,
+		workspaceServ *service.WorkspaceSrv,
+		deploymentServ *service.DeploymentSrv,
+		hub *service.Hub,
+	) {
+		deployApiInst = newDeployApi(agentServ, workspaceServ, deploymentServ, hub).(*deployApi)
+	})
 	deployApiInst.RegisterEndpoints(router.Group("/api/v1"))
 
 	s := httptest.NewServer(router)
@@ -66,8 +74,11 @@ func TestDeployWebSocket(t *testing.T) {
 	})
 
 	t.Run("Deployment Feedback", func(t *testing.T) {
-		dep, _ := service.NewDeploymentSrv().Create("test-agent", "/nix/store/abc")
-		
+		var dep *model.Deployment
+		app.Invoke(func(s *service.DeploymentSrv) {
+			dep, _ = s.Create("test-agent", "/nix/store/abc")
+		})
+
 		u := "ws" + strings.TrimPrefix(s.URL, "http") + "/api/v1/deploy/ws-deployment"
 		client, _, err := websocket.DefaultDialer.Dial(u, nil)
 		assert.NoError(t, err)

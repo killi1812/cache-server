@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/model"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -15,14 +14,8 @@ type AgentSrv struct {
 	db *gorm.DB
 }
 
-func NewAgentSrv() *AgentSrv {
-	var srv *AgentSrv
-
-	app.Invoke(func(db *gorm.DB) {
-		srv = &AgentSrv{db}
-	})
-
-	return srv
+func NewAgentSrv(db *gorm.DB) *AgentSrv {
+	return &AgentSrv{db}
 }
 
 type AgentCreateArgs struct {

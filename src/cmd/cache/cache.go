@@ -20,8 +20,13 @@ import (
 )
 
 var (
-	serv         *service.CacheSrv
-	stor         objstor.ObjectStorage
+	serv     *service.CacheSrv
+	pathServ *service.StorePathSrv
+	agent    *service.AgentSrv
+	dep      *service.DeploymentSrv
+	hub      *service.Hub
+	stor     objstor.ObjectStorage
+
 	ErrIsRunning = errors.New("err cache server is running")
 )
 
@@ -135,8 +140,19 @@ func setup(cmd *cobra.Command, args []string) error {
 
 	zap.S().Debug("Running workspace setup ...")
 
-	app.Invoke(func(s *service.CacheSrv, storage objstor.ObjectStorage) {
+	app.Invoke(func(
+		s *service.CacheSrv,
+		ps *service.StorePathSrv,
+		as *service.AgentSrv,
+		ds *service.DeploymentSrv,
+		h *service.Hub,
+		storage objstor.ObjectStorage,
+	) {
 		serv = s
+		pathServ = ps
+		agent = as
+		dep = ds
+		hub = h
 		stor = storage
 	})
 
@@ -292,7 +308,7 @@ func start(cmd *cobra.Command, args []string) error {
 	addr := fmt.Sprintf("%s:%d", config.Config.CacheServer.Hostname, cache.Port)
 	if foreground {
 		zap.S().Infof("Starting server in foreground")
-		app.Start(newCacheApi(cache), addr)
+		app.Start(newCacheApi(cache, pathServ, agent, dep, stor, hub), addr)
 	} else {
 		zap.S().Infof("Starting server in backgound")
 		err := proc.StartProcBackground(cache.Uuid.String() + ".pid")

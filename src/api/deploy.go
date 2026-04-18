@@ -14,17 +14,13 @@ type deployApi struct {
 	hub            *service.Hub
 }
 
-func newDeployApi() app.GinApi {
-	var api *deployApi
-	app.Invoke(func(
-		agentServ *service.AgentSrv,
-		workspaceServ *service.WorkspaceSrv,
-		deploymentServ *service.DeploymentSrv,
-		hub *service.Hub,
-	) {
-		api = &deployApi{agentServ, workspaceServ, deploymentServ, hub}
-	})
-	return respToGin(api)
+func newDeployApi(
+	agentServ *service.AgentSrv,
+	workspaceServ *service.WorkspaceSrv,
+	deploymentServ *service.DeploymentSrv,
+	hub *service.Hub,
+) app.GinApi {
+	return &deployApi{agentServ, workspaceServ, deploymentServ, hub}
 }
 
 // Convert deployApi to app.GinApi if needed, or just ensure it implements it.
