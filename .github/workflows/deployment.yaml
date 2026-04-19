@@ -18,3 +18,5 @@ jobs:
           method: "POST"
           headers: '{"X-Api-Key": "${{ secrets.WEBHOOK_SECRET }}"}'
           customHeaders: '{"Content-Type": "application/json"}'
+          retry: 3
+          retryWait: 3000
