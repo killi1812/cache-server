@@ -21,12 +21,7 @@ import (
 	"gorm.io/gorm"
 )
 
-//	@title			Binary Cache API
-//	@version		1.0
-//	@description	API for nix binary cache interactions (narinfo, nar, etc).
-//	@BasePath		/
-
-type SocketApi struct {
+type CacheApi struct {
 	cache          *model.BinaryCache
 	pathServ       *service.StorePathSrv
 	agentServ      *service.AgentSrv
@@ -44,12 +39,9 @@ var upgrader = websocket.Upgrader{
 func newCacheApi(
 	cache *model.BinaryCache,
 	pathServ *service.StorePathSrv,
-	agentServ *service.AgentSrv,
-	deploymentServ *service.DeploymentSrv,
 	storage objstor.ObjectStorage,
-	hub *service.Hub,
 ) app.CreateGinApi {
-	return &SocketApi{cache, pathServ, agentServ, deploymentServ, storage, hub}
+	return &CacheApi{cache: cache, pathServ: pathServ, storage: storage}
 }
 
 func NewCacheApiStub(
@@ -59,7 +51,7 @@ func NewCacheApiStub(
 	storage objstor.ObjectStorage,
 	hub *service.Hub,
 ) app.CreateGinApi {
-	return &SocketApi{
+	return &CacheApi{
 		cache:          &model.BinaryCache{Name: "deploy-port"},
 		pathServ:       pathServ,
 		agentServ:      agentServ,
@@ -70,16 +62,18 @@ func NewCacheApiStub(
 }
 
 // RegisterEndpoints implements app.GinApi.
-func (s *SocketApi) NewGinApi(router *gin.Engine) {
+func (s *CacheApi) NewGinApi(router *gin.Engine) {
 	router.GET("/swagger/*any", ginSwagger.CustomWrapHandler(&ginSwagger.Config{
 		InstanceName: "cache",
 		URL:          "doc.json",
 	}, swaggerfiles.Handler))
 
-	// WebSocket dispatcher
-	router.GET("/ws", s.wsDispatcher)
-	router.GET("/ws-deployment", s.wsDispatcher)
-	router.GET("/api/v1/deploy/log/", s.wsDispatcher)
+	// WebSocket dispatcher (only for stub/deploy-port)
+	if s.hub != nil {
+		router.GET("/ws", s.wsDispatcher)
+		router.GET("/ws-deployment", s.wsDispatcher)
+		router.GET("/api/v1/deploy/log/", s.wsDispatcher)
+	}
 
 	if s.cache.Access == "private" {
 		zap.S().Infof("Protecting cache, access is private")
@@ -88,7 +82,6 @@ func (s *SocketApi) NewGinApi(router *gin.Engine) {
 
 	router.GET("/nix-cache-info", s.cacheInfo)
 	router.GET("/:storeHash", s.storeHashCmd)
-	// TODO: see what to do with this
 	router.HEAD("/:storeHash", s.storeHashCmd)
 
 	router.GET("/nar/:filename", s.downloadNar)
@@ -96,7 +89,7 @@ func (s *SocketApi) NewGinApi(router *gin.Engine) {
 	router.PUT("/:narUuid", s.uploadData)
 }
 
-func (s *SocketApi) wsDispatcher(c *gin.Context) {
+func (s *CacheApi) wsDispatcher(c *gin.Context) {
 	path := c.Request.URL.Path
 	zap.S().Infof("WebSocket connection on path: %s", path)
 
@@ -110,7 +103,7 @@ func (s *SocketApi) wsDispatcher(c *gin.Context) {
 	}
 }
 
-func (s *SocketApi) agent_handler(c *gin.Context) {
+func (s *CacheApi) agent_handler(c *gin.Context) {
 	name := c.GetHeader("name")
 	token := c.GetHeader("Authorization")
 	if token != "" {
@@ -118,7 +111,6 @@ func (s *SocketApi) agent_handler(c *gin.Context) {
 	}
 
 	if name == "" || token == "" {
-		// Try query params if headers missing (convenience)
 		name = c.Query("name")
 		token = c.Query("token")
 	}
@@ -179,7 +171,7 @@ func (s *SocketApi) agent_handler(c *gin.Context) {
 	}()
 }
 
-func (s *SocketApi) deployment_handler(c *gin.Context) {
+func (s *CacheApi) deployment_handler(c *gin.Context) {
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		return
@@ -199,7 +191,7 @@ func (s *SocketApi) deployment_handler(c *gin.Context) {
 	}
 }
 
-func (s *SocketApi) log_handler(c *gin.Context) {
+func (s *CacheApi) log_handler(c *gin.Context) {
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		return
@@ -219,7 +211,7 @@ func (s *SocketApi) log_handler(c *gin.Context) {
 	}
 }
 
-func (s *SocketApi) processDeploymentFinished(msg map[string]any) {
+func (s *CacheApi) processDeploymentFinished(msg map[string]any) {
 	command, _ := msg["command"].(map[string]any)
 	id, _ := command["id"].(string)
 	success, _ := command["hasSucceeded"].(bool)
@@ -243,11 +235,10 @@ func (s *SocketApi) processDeploymentFinished(msg map[string]any) {
 //	@Success		200			{file}		binary
 //	@Failure		404			{object}	model.ErrorResponse
 //	@Router			/nar/{filename} [get]
-func (s *SocketApi) downloadNar(c *gin.Context) {
+func (s *CacheApi) downloadNar(c *gin.Context) {
 	filename := c.Param("filename")
 	zap.S().Infof("Downloading NAR file: %s from cache %s", filename, s.cache.Name)
 
-	// Strip .nar extension if present
 	fileHash := strings.TrimSuffix(filename, ".nar")
 
 	reader, err := s.storage.ReadFile(s.cache.Name, fileHash)
@@ -260,7 +251,6 @@ func (s *SocketApi) downloadNar(c *gin.Context) {
 	}
 	defer reader.Close()
 
-	// Nix usually expects application/x-nix-archive or octet-stream
 	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
 }
 
@@ -275,7 +265,7 @@ func (s *SocketApi) downloadNar(c *gin.Context) {
 //	@Success		200			{object}	map[string]string	"ls json"
 //	@Failure		404			{object}	model.ErrorResponse
 //	@Router			/{storeHash} [get]
-func (s *SocketApi) storeHashCmd(c *gin.Context) {
+func (s *CacheApi) storeHashCmd(c *gin.Context) {
 	filename := c.Param("storeHash")
 
 	if before, ok := strings.CutSuffix(filename, ".narinfo"); ok {
@@ -287,7 +277,6 @@ func (s *SocketApi) storeHashCmd(c *gin.Context) {
 	if before, ok := strings.CutSuffix(filename, ".ls"); ok {
 		storeHash := before
 		zap.S().Infof("list store hash: '%s'", storeHash)
-		// TODO: implement ls logic
 		c.JSON(200, gin.H{"type": "ls", "hash": storeHash})
 		return
 	}
@@ -305,12 +294,12 @@ func (s *SocketApi) storeHashCmd(c *gin.Context) {
 //	@Produce		text/plain
 //	@Success		200	{string}	string	"StoreDir: /nix/store..."
 //	@Router			/nix-cache-info [get]
-func (s *SocketApi) cacheInfo(c *gin.Context) {
+func (s *CacheApi) cacheInfo(c *gin.Context) {
 	resp := fmt.Sprintf("StoreDir: /nix/store\nWantMassQuery: 1\nPriority: 30\n")
 	c.Data(http.StatusOK, "text/x-nix-cache-info", []byte(resp))
 }
 
-func (s *SocketApi) storeHashNarInfo(c *gin.Context, storeHash string) {
+func (s *CacheApi) storeHashNarInfo(c *gin.Context, storeHash string) {
 	path, err := s.pathServ.Read(storeHash, s.cache.Name)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -353,7 +342,7 @@ func (s *SocketApi) storeHashNarInfo(c *gin.Context, storeHash string) {
 //	@Failure		400	{object}	model.ErrorResponse
 //	@Failure		500	{object}	model.ErrorResponse
 //	@Router			/{narUuid} [put]
-func (s *SocketApi) uploadData(c *gin.Context) {
+func (s *CacheApi) uploadData(c *gin.Context) {
 	fileHash := c.Param("narUuid")
 	if fileHash == "" {
 		c.AbortWithStatusJSON(400, model.ErrorResponse{
@@ -362,9 +351,6 @@ func (s *SocketApi) uploadData(c *gin.Context) {
 		return
 	}
 
-	// 3. Stream the body to Object Storage
-	// c.Request.Body is an io.ReadCloser. We stream it to avoid RAM spikes.
-	// We no longer check for storePath in DB here because it might not exist yet during multipart upload.
 	err := s.storage.WriteFile(s.cache.Name, fileHash, c.Request.Body)
 	if err != nil {
 		c.AbortWithStatusJSON(500, model.ErrorResponse{

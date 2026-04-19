@@ -16,13 +16,14 @@ import (
 
 var signalNotificationCh = make(chan os.Signal, 1)
 
-// Start will start the web server of the app
-// addr: in the form "host:port". If empty, ":http" (port 80) is used.
-// api: register api to server
+// Start starts a single web server
 func Start(api CreateGinApi, addr string) {
+	MultiStart(map[string]CreateGinApi{addr: api})
+}
+
+// MultiStart starts multiple web servers concurrently
+func MultiStart(apis map[string]CreateGinApi) {
 	// relay selected signals to channel
-	// - os.Interrupt, ctrl-c
-	// - syscall.SIGTERM, program termination
 	signal.Notify(signalNotificationCh, os.Interrupt, syscall.SIGTERM)
 
 	// create scheduler
@@ -35,9 +36,11 @@ func Start(api CreateGinApi, addr string) {
 	go checkInterrupt(schedulerCtx, &schedulerWg, schedulerCancel)
 	zap.S().Debugln("Started CheckInterrupt")
 
-	schedulerWg.Add(1)
-	go run(schedulerCtx, &schedulerWg, api, addr)
-	zap.S().Infoln("Started HTTP server")
+	for addr, api := range apis {
+		schedulerWg.Add(1)
+		go run(schedulerCtx, &schedulerWg, api, addr)
+	}
+	zap.S().Infoln("Started HTTP server(s)")
 
 	schedulerWg.Wait()
 
@@ -49,11 +52,9 @@ func checkInterrupt(ctx context.Context, wg *sync.WaitGroup, schedulerCancel con
 
 	for {
 		select {
-
 		case <-ctx.Done():
 			zap.S().Debugln("Terminated CheckInterrupt")
 			return
-
 		case sig := <-signalNotificationCh:
 			zap.S().Debugf("Received signal on notification channel, signal = %v", sig)
 			schedulerCancel()
@@ -76,20 +77,20 @@ func run(ctx context.Context, wg *sync.WaitGroup, api CreateGinApi, addr string)
 		zap.S().Debug("Registering Api")
 		api.NewGinApi(router)
 	} else {
-		zap.S().Warn("No Api to regeister, api is nil")
+		zap.S().Warn("No Api to register, api is nil")
 	}
 
 	srv := &http.Server{
 		Addr:         addr,
 		Handler:      router,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  10 * time.Second,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			zap.S().Panicf("Failes to start server err = %+v", err)
+			zap.S().Panicf("Failed to start server at %s, err = %+v", addr, err)
 		}
 	}()
 	zap.S().Debugf("Started HTTP listen, address = http://%v", srv.Addr)
@@ -102,7 +103,7 @@ func run(ctx context.Context, wg *sync.WaitGroup, api CreateGinApi, addr string)
 	defer timeoutCancel()
 	err := srv.Shutdown(timeoutCtx)
 	if err != nil {
-		zap.S().Errorf("Cannot shut down HTTP server, err = %v", err)
+		zap.S().Errorf("Cannot shut down HTTP server at %s, err = %v", addr, err)
 	}
-	zap.S().Infoln("HTTP server was shut down")
+	zap.S().Infof("HTTP server %s was shut down", srv.Addr)
 }

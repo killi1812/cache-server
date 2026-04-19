@@ -27,7 +27,7 @@ var upgrader = websocket.Upgrader{
 //	@Failure		400	{object}	model.ErrorResponse
 //	@Failure		401	{object}	model.ErrorResponse
 //	@Router			/deploy/ws [get]
-func (api *deployApi) wsHandler(c *gin.Context) {
+func (api *deployWsApi) wsHandler(c *gin.Context) {
 	name := c.GetHeader("name")
 	token := c.GetHeader("Authorization")
 	if token != "" {
@@ -109,7 +109,7 @@ func (api *deployApi) wsHandler(c *gin.Context) {
 //	@Tags			deployment
 //	@Success		101
 //	@Router			/deploy/ws-deployment [get]
-func (api *deployApi) deploymentHandler(c *gin.Context) {
+func (api *deployWsApi) deploymentHandler(c *gin.Context) {
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		return
@@ -136,7 +136,7 @@ func (api *deployApi) deploymentHandler(c *gin.Context) {
 //	@Tags			deployment
 //	@Success		101
 //	@Router			/deploy/log/ [get]
-func (api *deployApi) logHandler(c *gin.Context) {
+func (api *deployWsApi) logHandler(c *gin.Context) {
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		return
@@ -156,7 +156,7 @@ func (api *deployApi) logHandler(c *gin.Context) {
 	}
 }
 
-func (api *deployApi) processDeploymentFinished(msg map[string]any) {
+func (api *deployWsApi) processDeploymentFinished(msg map[string]any) {
 	command, _ := msg["command"].(map[string]any)
 	id, _ := command["id"].(string)
 	success, _ := command["hasSucceeded"].(bool)

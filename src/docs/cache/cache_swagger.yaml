@@ -1,4 +1,3 @@
-basePath: /
 definitions:
   model.ErrorResponse:
     properties:
@@ -12,9 +11,6 @@ definitions:
     type: object
 info:
   contact: {}
-  description: API for nix binary cache interactions (narinfo, nar, etc).
-  title: Binary Cache API
-  version: "1.0"
 paths:
   /{narUuid}:
     put:

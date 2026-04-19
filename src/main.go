@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 
+	"github.com/killi1812/go-cache-server/api"
 	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/cmd/agent"
 	"github.com/killi1812/go-cache-server/cmd/cache"
@@ -16,6 +17,7 @@ import (
 	"github.com/killi1812/go-cache-server/util/db"
 	"github.com/killi1812/go-cache-server/util/objstor"
 	"github.com/spf13/cobra"
+	"go.uber.org/dig"
 )
 
 var rcmd *cobra.Command
@@ -43,6 +45,11 @@ func init() {
 	app.Provide(service.NewStorePathSrv)
 	app.Provide(service.NewWorkspaceSrv)
 	app.Provide(service.NewDeploymentSrv)
+
+	// Provide APIs with names to resolve conflicts in dig
+	app.Provide(api.NewApi, dig.Name("management"))
+	app.Provide(api.NewDeployWsApi, dig.Name("deploy"))
+	app.Provide(cache.NewCacheApiStub)
 }
 
 //	@securityDefinitions.apikey	BearerAuth

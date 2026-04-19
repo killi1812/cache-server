@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// deployApi handles RESTful management.
 type deployApi struct {
 	agentServ      *service.AgentSrv
 	workspaceServ  *service.WorkspaceSrv
@@ -23,24 +24,12 @@ func newDeployApi(
 	return &deployApi{agentServ, workspaceServ, deploymentServ, hub}
 }
 
-// Convert deployApi to app.GinApi if needed, or just ensure it implements it.
-// Looking at api.go, it expects app.GinApi.
-func respToGin(api *deployApi) app.GinApi {
-	return api
-}
-
 func (api *deployApi) RegisterEndpoints(routerGroupByVersion ...*gin.RouterGroup) {
 	if len(routerGroupByVersion) == 0 {
-		zap.S().Warn("Did not register any endpoints")
 		return
 	}
 	v1 := routerGroupByVersion[0]
 	deploy := v1.Group("/deploy")
-
-	// websocket endpoints
-	deploy.GET("/ws", api.wsHandler)
-	deploy.GET("/ws-deployment", api.deploymentHandler)
-	deploy.GET("/log/", api.logHandler)
 
 	// deployment endpoints
 	deploy.GET("/deployment/:workspace", api.getDeployment)
@@ -60,9 +49,26 @@ func (api *deployApi) RegisterEndpoints(routerGroupByVersion ...*gin.RouterGroup
 	deploy.GET("/workspace/:workspace", api.getWorkspace)
 
 	deploy.POST("/activate", api.activateDeployment)
+}
 
-	if len(routerGroupByVersion) == 1 {
-		zap.S().Infof("Regester v1 apis")
-		return
-	}
+// deployWsApi handles WebSockets on deploy port.
+type deployWsApi struct {
+	agentServ      *service.AgentSrv
+	deploymentServ *service.DeploymentSrv
+	hub            *service.Hub
+}
+
+func NewDeployWsApi(
+	agentServ *service.AgentSrv,
+	deploymentServ *service.DeploymentSrv,
+	hub *service.Hub,
+) app.CreateGinApi {
+	return &deployWsApi{agentServ, deploymentServ, hub}
+}
+
+func (api *deployWsApi) NewGinApi(router *gin.Engine) {
+	zap.S().Info("Registering WebSocket Deploy API")
+	router.GET("/ws", api.wsHandler)
+	router.GET("/ws-deployment", api.deploymentHandler)
+	router.GET("/api/v1/deploy/log/", api.logHandler)
 }

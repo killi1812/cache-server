@@ -169,12 +169,12 @@ const docTemplatecache = `{
 
 // SwaggerInfocache holds exported Swagger Info so clients can modify it
 var SwaggerInfocache = &swag.Spec{
-	Version:          "1.0",
+	Version:          "",
 	Host:             "",
-	BasePath:         "/",
+	BasePath:         "",
 	Schemes:          []string{},
-	Title:            "Binary Cache API",
-	Description:      "API for nix binary cache interactions (narinfo, nar, etc).",
+	Title:            "",
+	Description:      "",
 	InfoInstanceName: "cache",
 	SwaggerTemplate:  docTemplatecache,
 	LeftDelim:        "{{",

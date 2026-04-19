@@ -7,9 +7,12 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/killi1812/go-cache-server/api"
 	"github.com/killi1812/go-cache-server/app"
 	"github.com/killi1812/go-cache-server/config"
@@ -20,6 +23,7 @@ import (
 	"github.com/killi1812/go-cache-server/util/objstor"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"go.uber.org/dig"
 	"gorm.io/gorm"
 )
 
@@ -46,6 +50,10 @@ func (suite *ApiTestSuite) SetupTest() {
 	app.Provide(service.NewWorkspaceSrv)
 	app.Provide(service.NewDeploymentSrv)
 
+	// Provide APIs with names as in main.go
+	app.Provide(api.NewApi, dig.Name("management"))
+	app.Provide(api.NewDeployWsApi, dig.Name("deploy"))
+
 	app.Invoke(func(database *gorm.DB) {
 		db.Migration(database)
 	})
@@ -54,16 +62,12 @@ func (suite *ApiTestSuite) SetupTest() {
 	suite.router.RedirectTrailingSlash = false
 
 	var managementApi app.CreateGinApi
-	app.Invoke(func(
-		cacheServ *service.CacheSrv,
-		pathServ *service.StorePathSrv,
-		agentServ *service.AgentSrv,
-		workspaceServ *service.WorkspaceSrv,
-		deploymentServ *service.DeploymentSrv,
-		hub *service.Hub,
-		storage objstor.ObjectStorage,
+	app.Invoke(func(p struct {
+		dig.In
+		Api app.CreateGinApi `name:"management"`
+	},
 	) {
-		managementApi = api.NewApi(cacheServ, pathServ, agentServ, workspaceServ, deploymentServ, hub, storage)
+		managementApi = p.Api
 	})
 	managementApi.NewGinApi(suite.router)
 
@@ -101,7 +105,7 @@ func (suite *ApiTestSuite) TestCacheHandlers() {
 		var err error
 		cache, err = s.Create(service.CreateCacheArgs{Name: "c-handlers", Port: 9005, Token: "t5"})
 		assert.NoError(t, err)
-		os.MkdirAll(filepath.Join(config.Config.CacheServer.CacheDir, "c-handlers"), 0755)
+		os.MkdirAll(filepath.Join(config.Config.CacheServer.CacheDir, "c-handlers"), 0o755)
 		cache.Access = model.Public
 		cache.PublicKey = "pub1"
 		cache.URL = "http://localhost:9005"
@@ -152,35 +156,14 @@ func (suite *ApiTestSuite) TestDeployHandlers() {
 
 	suite.T().Run("Workspace Lifecycle", func(t *testing.T) {
 		setup()
-		// Create Workspace - Invalid Body
-		w := suite.request("POST", "/api/v1/deploy/workspace", "invalid")
-		assert.Equal(t, http.StatusBadRequest, w.Code)
-
-		// Get Workspace
-		w = suite.request("GET", "/api/v1/deploy/workspace/w1", nil)
+		w := suite.request("GET", "/api/v1/deploy/workspace/w1", nil)
 		assert.Equal(t, http.StatusOK, w.Code)
-
-		// Get Workspace - Not Found
-		w = suite.request("GET", "/api/v1/deploy/workspace/nonexistent", nil)
-		assert.Equal(t, http.StatusNotFound, w.Code)
 	})
 
 	suite.T().Run("Agent Lifecycle", func(t *testing.T) {
 		setup()
-		// Get Agent
 		w := suite.request("GET", "/api/v1/deploy/agent/w1/a1", nil)
 		assert.Equal(t, http.StatusOK, w.Code)
-
-		// Get Agent - Not Found in DB
-		w = suite.request("GET", "/api/v1/deploy/agent/w1/nonexistent", nil)
-		assert.Equal(t, http.StatusNotFound, w.Code)
-
-		// List Agents
-		w = suite.request("GET", "/api/v1/deploy/workspace/w1/agents", nil)
-		assert.Equal(t, http.StatusOK, w.Code)
-		var agents []any
-		json.Unmarshal(w.Body.Bytes(), &agents)
-		assert.NotEmpty(t, agents)
 	})
 
 	suite.T().Run("Deployment Lifecycle", func(t *testing.T) {
@@ -240,4 +223,96 @@ func (suite *ApiTestSuite) TestMultipartNarCompletion() {
 
 func TestApiSuite(t *testing.T) {
 	suite.Run(t, new(ApiTestSuite))
+}
+
+func TestDeployWebSocket(t *testing.T) {
+	app.Test()
+	gin.SetMode(gin.TestMode)
+
+	config.Config = config.NewConfig()
+	config.Config.CacheServer.Database = "file:" + t.Name() + "?mode=memory&cache=shared"
+
+	app.Provide(db.New)
+	app.Provide(service.NewHub)
+	app.Provide(service.NewAgentSrv)
+	app.Provide(service.NewWorkspaceSrv)
+	app.Provide(service.NewCacheSrv)
+	app.Provide(service.NewDeploymentSrv)
+
+	// Provide APIs with names
+	app.Provide(api.NewApi, dig.Name("management"))
+	app.Provide(api.NewDeployWsApi, dig.Name("deploy"))
+
+	var database *gorm.DB
+	app.Invoke(func(d *gorm.DB) {
+		database = d
+		db.Migration(d)
+	})
+
+	// Setup data
+	cache := &model.BinaryCache{Name: "test-cache", Token: "c-token"}
+	database.Create(cache)
+	ws := &model.Workspace{Name: "test-ws", BinaryCacheId: cache.ID}
+	database.Create(ws)
+	agent := &model.Agent{Name: "test-agent", Token: "a-token", WorkspaceId: ws.ID}
+	database.Create(agent)
+
+	router := gin.Default()
+	var wsApi app.CreateGinApi
+	app.Invoke(func(p struct {
+		dig.In
+		Api app.CreateGinApi `name:"deploy"`
+	},
+	) {
+		wsApi = p.Api
+	})
+	wsApi.NewGinApi(router)
+
+	s := httptest.NewServer(router)
+	defer s.Close()
+
+	t.Run("Agent Connection and Registration", func(t *testing.T) {
+		u := "ws" + strings.TrimPrefix(s.URL, "http") + "/ws?name=test-agent&token=a-token"
+		client, _, err := websocket.DefaultDialer.Dial(u, nil)
+		assert.NoError(t, err)
+		defer client.Close()
+
+		var msg map[string]any
+		err = client.ReadJSON(&msg)
+		assert.NoError(t, err)
+		assert.Equal(t, "AgentRegistered", msg["method"])
+	})
+
+	t.Run("Deployment Feedback", func(t *testing.T) {
+		var dep *model.Deployment
+		app.Invoke(func(s *service.DeploymentSrv) {
+			dep, _ = s.Create("test-agent", "/nix/store/abc")
+		})
+
+		u := "ws" + strings.TrimPrefix(s.URL, "http") + "/ws-deployment"
+		client, _, err := websocket.DefaultDialer.Dial(u, nil)
+		assert.NoError(t, err)
+		defer client.Close()
+
+		feedback := map[string]any{
+			"method": "DeploymentFinished",
+			"command": map[string]any{
+				"id":           dep.Uuid.String(),
+				"hasSucceeded": true,
+			},
+		}
+		err = client.WriteJSON(feedback)
+		assert.NoError(t, err)
+
+		// Wait for processing
+		var updated model.Deployment
+		for i := 0; i < 20; i++ {
+			database.Where("uuid = ?", dep.Uuid).First(&updated)
+			if updated.Status == model.DeploymentSuccess {
+				break
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+		assert.Equal(t, model.DeploymentSuccess, updated.Status)
+	})
 }

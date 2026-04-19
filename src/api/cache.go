@@ -14,8 +14,7 @@ type cacheApi struct {
 	storage   objstor.ObjectStorage
 }
 
-func newCacheApi(
-	cacheServ *service.CacheSrv,
+func newCacheApi(cacheServ *service.CacheSrv,
 	pathServ *service.StorePathSrv,
 	storage objstor.ObjectStorage,
 ) app.GinApi {
@@ -37,8 +36,8 @@ func (api *cacheApi) RegisterEndpoints(routerGroupByVersion ...*gin.RouterGroup)
 
 	cache.POST("/:name/multipart-nar", api.createNar)
 	cache.POST("/:name/multipart-nar/:narUuid", api.redirect)
-	cache.POST("/:name/multipart-nar/:narUuid/complete", api.completeNar)
-	cache.POST("/:name/multipart-nar/:narUuid/abort", api.abortNar)
+	cache.POST("/:name/multipart-nar/:narUuid/complete")
+	cache.POST("/:name/multipart-nar/:narUuid/abort")
 
 	if len(routerGroupByVersion) == 1 {
 		zap.S().Infof("Regester v1 apis")

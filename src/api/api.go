@@ -20,8 +20,8 @@ import (
 //	@name						Authorization
 
 type Api struct {
-	deployApi app.GinApi
-	cacheApi  app.GinApi
+	deployMgmtApi app.GinApi
+	cacheMgmtApi  app.GinApi
 }
 
 func NewApi(
@@ -33,9 +33,9 @@ func NewApi(
 	hub *service.Hub,
 	storage objstor.ObjectStorage,
 ) app.CreateGinApi {
-	cacheApi := newCacheApi(cacheServ, pathServ, storage)
-	deployApi := newDeployApi(agentServ, workspaceServ, deploymentServ, hub)
-	return &Api{cacheApi: cacheApi, deployApi: deployApi}
+	cacheMgmtApi := newCacheApi(cacheServ, pathServ, storage)
+	deployMgmtApi := newDeployApi(agentServ, workspaceServ, deploymentServ, hub)
+	return &Api{cacheMgmtApi: cacheMgmtApi, deployMgmtApi: deployMgmtApi}
 }
 
 // RegisterEndpoints implements app.GinApi.
@@ -53,8 +53,8 @@ func (api *Api) NewGinApi(router *gin.Engine) {
 	v2 := apiGroup.Group("/v2")
 
 	// cache group
-	api.cacheApi.RegisterEndpoints(v1, v2)
+	api.cacheMgmtApi.RegisterEndpoints(v1, v2)
 
 	// deploy group
-	api.deployApi.RegisterEndpoints(v1)
+	api.deployMgmtApi.RegisterEndpoints(v1)
 }

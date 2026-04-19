@@ -1,12 +1,8 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "API for nix binary cache interactions (narinfo, nar, etc).",
-        "title": "Binary Cache API",
-        "contact": {},
-        "version": "1.0"
+        "contact": {}
     },
-    "basePath": "/",
     "paths": {
         "/nar/{filename}": {
             "get": {

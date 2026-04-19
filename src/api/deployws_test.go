@@ -46,23 +46,22 @@ func TestDeployWebSocket(t *testing.T) {
 	database.Create(agent)
 
 	router := gin.Default()
-	// Use Invoke to get dependencies and create the API instance
-	var deployApiInst *deployApi
+	// Use NewDeployWsApi for testing the WebSocket port
+	var wsApi app.CreateGinApi
 	app.Invoke(func(
 		agentServ *service.AgentSrv,
-		workspaceServ *service.WorkspaceSrv,
 		deploymentServ *service.DeploymentSrv,
 		hub *service.Hub,
 	) {
-		deployApiInst = newDeployApi(agentServ, workspaceServ, deploymentServ, hub).(*deployApi)
+		wsApi = NewDeployWsApi(agentServ, deploymentServ, hub)
 	})
-	deployApiInst.RegisterEndpoints(router.Group("/api/v1"))
+	wsApi.NewGinApi(router)
 
 	s := httptest.NewServer(router)
 	defer s.Close()
 
 	t.Run("Agent Connection and Registration", func(t *testing.T) {
-		u := "ws" + strings.TrimPrefix(s.URL, "http") + "/api/v1/deploy/ws?name=test-agent&token=a-token"
+		u := "ws" + strings.TrimPrefix(s.URL, "http") + "/ws?name=test-agent&token=a-token"
 		client, _, err := websocket.DefaultDialer.Dial(u, nil)
 		assert.NoError(t, err)
 		defer client.Close()
@@ -79,7 +78,7 @@ func TestDeployWebSocket(t *testing.T) {
 			dep, _ = s.Create("test-agent", "/nix/store/abc")
 		})
 
-		u := "ws" + strings.TrimPrefix(s.URL, "http") + "/api/v1/deploy/ws-deployment"
+		u := "ws" + strings.TrimPrefix(s.URL, "http") + "/ws-deployment"
 		client, _, err := websocket.DefaultDialer.Dial(u, nil)
 		assert.NoError(t, err)
 		defer client.Close()
