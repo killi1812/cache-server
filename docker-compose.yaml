@@ -12,7 +12,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["cmd", "pg_isready", "-u", "postgres", "-d", "cachesrv"]
+      test: ["CMD", "pg_isready", "-u", "postgres", "-d", "cachesrv"]
       start_period: 1s
       interval: 0.5s
       retries: 5
