@@ -14,4 +14,4 @@ jobs:
       - name: Trigger Deploy Webhook
         env:
           WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
-        run: 'curl -v -X POST -H "X-Api-Key: $WEBHOOK_SECRET" https://webhook.francvok.from.hr/hooks/cache-server'
+        run: 'curl -vL -X POST -H "X-Api-Key: $WEBHOOK_SECRET" https://webhook.francvok.from.hr/hooks/cache-server'
