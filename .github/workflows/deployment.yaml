@@ -12,9 +12,10 @@ jobs:
     environment: homelab
     steps:
       - name: Trigger Deploy Webhook
-        env:
-          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
-        run: |
-          curl -v -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0" \
-               -X POST -H "X-Api-Key: $WEBHOOK_SECRET" \
-               https://webhook.francvok.from.hr/hooks/cache-server
+        uses: fjogeleit/http-webhook-action@v1.6.5
+        with:
+          url: "https://webhook.francvok.from.hr/hooks/cache-server"
+          method: "POST"
+          headers: '{"X-Api-Key": "${{ secrets.WEBHOOK_SECRET }}"}'
+          # Using a real user agent in the action too
+          customHeaders: '{"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"}'
