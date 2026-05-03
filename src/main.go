@@ -45,6 +45,7 @@ func init() {
 	app.Provide(service.NewStorePathSrv)
 	app.Provide(service.NewWorkspaceSrv)
 	app.Provide(service.NewDeploymentSrv)
+	app.Provide(service.NewGCSrv)
 
 	// Provide APIs with names to resolve conflicts in dig
 	app.Provide(api.NewApi, dig.Name("management"))

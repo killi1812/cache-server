@@ -947,6 +947,18 @@ const docTemplatemanagement = `{
                 }
             }
         },
+        "gorm.DeletedAt": {
+            "type": "object",
+            "properties": {
+                "time": {
+                    "type": "string"
+                },
+                "valid": {
+                    "description": "Valid is true if Time is not NULL",
+                    "type": "boolean"
+                }
+            }
+        },
         "model.Agent": {
             "type": "object",
             "properties": {
@@ -970,6 +982,12 @@ const docTemplatemanagement = `{
                 "access": {
                     "$ref": "#/definitions/model.BinaryCacheAccess"
                 },
+                "createdAt": {
+                    "type": "string"
+                },
+                "deletedAt": {
+                    "$ref": "#/definitions/gorm.DeletedAt"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -990,6 +1008,9 @@ const docTemplatemanagement = `{
                     "items": {
                         "$ref": "#/definitions/model.StorePath"
                     }
+                },
+                "updatedAt": {
+                    "type": "string"
                 },
                 "url": {
                     "type": "string"
@@ -1076,6 +1097,12 @@ const docTemplatemanagement = `{
                     "description": "BinaryCacheId uint         ` + "`" + `json:\"binarycacheId\"` + "`" + `\nBinaryCache   *BinaryCache ` + "`" + `json:\"-\"` + "`" + `",
                     "type": "integer"
                 },
+                "createdAt": {
+                    "type": "string"
+                },
+                "deletedAt": {
+                    "$ref": "#/definitions/gorm.DeletedAt"
+                },
                 "deriver": {
                     "type": "string"
                 },
@@ -1102,6 +1129,9 @@ const docTemplatemanagement = `{
                     "type": "string"
                 },
                 "storeSuffix": {
+                    "type": "string"
+                },
+                "updatedAt": {
                     "type": "string"
                 }
             }

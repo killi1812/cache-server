@@ -45,6 +45,14 @@ definitions:
     - cacheName
     - name
     type: object
+  gorm.DeletedAt:
+    properties:
+      time:
+        type: string
+      valid:
+        description: Valid is true if Time is not NULL
+        type: boolean
+    type: object
   model.Agent:
     properties:
       id:
@@ -60,6 +68,10 @@ definitions:
     properties:
       access:
         $ref: '#/definitions/model.BinaryCacheAccess'
+      createdAt:
+        type: string
+      deletedAt:
+        $ref: '#/definitions/gorm.DeletedAt'
       id:
         type: integer
       name:
@@ -74,6 +86,8 @@ definitions:
         items:
           $ref: '#/definitions/model.StorePath'
         type: array
+      updatedAt:
+        type: string
       url:
         type: string
       uuid:
@@ -135,6 +149,10 @@ definitions:
           BinaryCacheId uint         `json:"binarycacheId"`
           BinaryCache   *BinaryCache `json:"-"`
         type: integer
+      createdAt:
+        type: string
+      deletedAt:
+        $ref: '#/definitions/gorm.DeletedAt'
       deriver:
         type: string
       fileHash:
@@ -153,6 +171,8 @@ definitions:
       storeHash:
         type: string
       storeSuffix:
+        type: string
+      updatedAt:
         type: string
     type: object
   model.Workspace:

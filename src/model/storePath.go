@@ -1,8 +1,10 @@
 package model
 
+import "gorm.io/gorm"
+
 // StorePath represents a specific store path entry inside a binary cache.
 type StorePath struct {
-	ID          uint   `gorm:"primarykey"`
+	gorm.Model
 	StoreHash   string `gorm:"type:varchar(255);not null" json:"storeHash"`
 	StoreSuffix string `gorm:"type:varchar(255);not null" json:"storeSuffix"`
 	FileHash    string `gorm:"type:varchar(255)" json:"fileHash"`

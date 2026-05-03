@@ -1,6 +1,9 @@
 package model
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 type BinaryCacheAccess string
 
@@ -27,7 +30,7 @@ func ParseBinaryCacheAccess(str string) BinaryCacheAccess {
 
 // BinaryCache represents a cache that stores multiple paths and belongs to multiple workspaces.
 type BinaryCache struct {
-	ID        uint              `gorm:"primarykey"`
+	gorm.Model
 	Uuid      uuid.UUID         `gorm:"type:uuid;unique;not null"`
 	Name      string            `gorm:"type:varchar(100);unique;not null" json:"name"`
 	URL       string            `gorm:"type:varchar(255);not null" json:"url"`

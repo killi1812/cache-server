@@ -90,9 +90,9 @@ tasks:
     cmds:
       - cmd: go vet
       - cmd: go fmt
-      - cmd: swag fmt
-      - cmd: swag init -g api.go --instanceName management -o docs/management -d api,model
-      - cmd: swag init -g cacheApi.go --instanceName cache -o docs/cache -d cmd/cache,model
+      - cmd: go run github.com/swaggo/swag/cmd/swag fmt
+      - cmd: go run github.com/swaggo/swag/cmd/swag init -g api.go --instanceName management -o docs/management -d api,model --parseDependency
+      - cmd: go run github.com/swaggo/swag/cmd/swag init -g cacheApi.go --instanceName cache -o docs/cache -d cmd/cache,model --parseDependency
     silent: false
 
   list-tools:
