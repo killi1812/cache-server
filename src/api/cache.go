@@ -34,10 +34,12 @@ func (api *cacheApi) RegisterEndpoints(routerGroupByVersion ...*gin.RouterGroup)
 	cache.GET("/:name", api.name)
 	cache.POST("/:name/narinfo", api.narinfo)
 
+	// Multipart upload logic (Cachix compatible)
 	cache.POST("/:name/multipart-nar", api.createNar)
 	cache.POST("/:name/multipart-nar/:narUuid", api.redirect)
-	cache.POST("/:name/multipart-nar/:narUuid/complete")
-	cache.POST("/:name/multipart-nar/:narUuid/abort")
+	cache.PUT("/:name/multipart-nar/:narUuid", api.uploadNarData)
+	cache.POST("/:name/multipart-nar/:narUuid/complete", api.completeNar)
+	cache.POST("/:name/multipart-nar/:narUuid/abort", api.abortNar)
 
 	if len(routerGroupByVersion) == 1 {
 		zap.S().Infof("Regester v1 apis")

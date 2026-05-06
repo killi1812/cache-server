@@ -15,6 +15,41 @@ const docTemplatecache = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/log/{deriver}": {
+            "get": {
+                "description": "Get the build logs for a particular deriver.",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "binary-cache"
+                ],
+                "summary": "Get build logs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Full name of the deriver",
+                        "name": "deriver",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "log content",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/nar/{filename}": {
             "get": {
                 "description": "Download a NAR file from the cache.",
@@ -28,7 +63,7 @@ const docTemplatecache = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "NAR filename (with or without .nar extension)",
+                        "description": "NAR filename (e.g. hash.nar.xz)",
                         "name": "filename",
                         "in": "path",
                         "required": true
@@ -70,21 +105,21 @@ const docTemplatecache = `{
                 }
             }
         },
-        "/{narUuid}": {
+        "/{filename}": {
             "put": {
-                "description": "Upload raw NAR data for a given UUID.",
+                "description": "Upload raw NAR data for a given filename (usually hash).",
                 "consumes": [
                     "application/octet-stream"
                 ],
                 "tags": [
                     "binary-cache"
                 ],
-                "summary": "Upload NAR data",
+                "summary": "Upload NAR data (Direct)",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "NAR UUID",
-                        "name": "narUuid",
+                        "description": "Filename or Hash",
+                        "name": "filename",
                         "in": "path",
                         "required": true
                     }
@@ -110,7 +145,7 @@ const docTemplatecache = `{
         },
         "/{storeHash}": {
             "get": {
-                "description": "Get metadata (.narinfo) or file listing (.ls) for a store hash.",
+                "description": "Get metadata (.narinfo) or file listing (.ls) for a store hash.\n- .narinfo: Text file containing store path metadata (NAR hash, size, references, signature).\n- .ls: JSON file containing the internal file listing of the NAR.",
                 "produces": [
                     "text/plain",
                     "application/json"
@@ -130,16 +165,14 @@ const docTemplatecache = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "ls json",
+                        "description": "File listing JSON",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Metadata or listing not found",
                         "schema": {
                             "$ref": "#/definitions/model.ErrorResponse"
                         }

@@ -1,10 +1,13 @@
 package model
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 // Agent represents a deployment agent belonging to a workspace.
 type Agent struct {
-	ID    uint      `gorm:"primarykey"`
+	gorm.Model
 	Uuid  uuid.UUID `gorm:"type:uuid;unique;not null"`
 	Name  string    `gorm:"type:varchar(100);unique;not null" json:"name"`
 	Token string    `gorm:"type:varchar(255);not null" json:"-"` // not serialized agent token

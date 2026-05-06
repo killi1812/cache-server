@@ -1,9 +1,8 @@
 package model
 
 import (
-	"time"
-
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type DeploymentStatus string
@@ -16,9 +15,8 @@ const (
 )
 
 type Deployment struct {
-	ID        uint             `gorm:"primarykey"`
+	gorm.Model
 	Uuid      uuid.UUID        `gorm:"type:uuid;unique;not null" json:"id"`
-	CreatedAt time.Time        `json:"createdAt"`
 	Status    DeploymentStatus `gorm:"type:varchar(50);default:'pending'" json:"status"`
 	StorePath string           `gorm:"type:varchar(255);not null" json:"storePath"`
 

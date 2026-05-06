@@ -102,12 +102,13 @@ func TestSocketApi(t *testing.T) {
 		defer os.Remove(filepath.Join(storageDir, cache.Name, fileName))
 
 		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/nar/"+fileName+".nar", nil)
+		// New path format requires .nar.<extension>
+		req, _ := http.NewRequest("GET", "/nar/"+fileName+".nar.xz", nil)
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.Equal(t, content, w.Body.Bytes())
-		assert.Equal(t, "application/octet-stream", w.Header().Get("Content-Type"))
+		assert.Equal(t, "application/x-nix-nar", w.Header().Get("Content-Type"))
 	})
 
 	t.Run("HEAD .narinfo", func(t *testing.T) {
@@ -119,6 +120,13 @@ func TestSocketApi(t *testing.T) {
 	})
 
 	t.Run("Get .ls", func(t *testing.T) {
+		// Create dummy .ls file in storage
+		storageDir := config.Config.CacheServer.CacheDir
+		lsContent := `{"type":"ls"}`
+		os.MkdirAll(filepath.Join(storageDir, cache.Name), 0755)
+		os.WriteFile(filepath.Join(storageDir, cache.Name, "hash1.ls"), []byte(lsContent), 0644)
+		defer os.Remove(filepath.Join(storageDir, cache.Name, "hash1.ls"))
+
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/hash1.ls", nil)
 		router.ServeHTTP(w, req)
@@ -137,7 +145,7 @@ func TestSocketApi(t *testing.T) {
 
 	t.Run("Download non-existent NAR", func(t *testing.T) {
 		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/nar/nonexistent.nar", nil)
+		req, _ := http.NewRequest("GET", "/nar/nonexistent.nar.xz", nil)
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusNotFound, w.Code)

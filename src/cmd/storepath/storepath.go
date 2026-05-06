@@ -124,7 +124,7 @@ func remove(cmd *cobra.Command, args []string) error {
 func setup(cmd *cobra.Command, args []string) error {
 	// run parent setup
 
-	parent := cmd.Parent().Parent()
+	parent := cmd.Parent()
 	if parent != nil && parent.PersistentPreRun != nil {
 		zap.S().Debugf("Running parent setup %d ...", parent.Use)
 		parent.PersistentPreRun(parent, args)

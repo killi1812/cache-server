@@ -21,7 +21,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type CacheApi struct {
+type SocketApi struct {
 	cache          *model.BinaryCache
 	pathServ       *service.StorePathSrv
 	agentServ      *service.AgentSrv
@@ -41,7 +41,7 @@ func newCacheApi(
 	pathServ *service.StorePathSrv,
 	storage objstor.ObjectStorage,
 ) app.CreateGinApi {
-	return &CacheApi{cache: cache, pathServ: pathServ, storage: storage}
+	return &SocketApi{cache: cache, pathServ: pathServ, storage: storage}
 }
 
 func NewCacheApiStub(
@@ -51,7 +51,7 @@ func NewCacheApiStub(
 	storage objstor.ObjectStorage,
 	hub *service.Hub,
 ) app.CreateGinApi {
-	return &CacheApi{
+	return &SocketApi{
 		cache:          &model.BinaryCache{Name: "deploy-port"},
 		pathServ:       pathServ,
 		agentServ:      agentServ,
@@ -62,7 +62,7 @@ func NewCacheApiStub(
 }
 
 // RegisterEndpoints implements app.GinApi.
-func (s *CacheApi) NewGinApi(router *gin.Engine) {
+func (s *SocketApi) NewGinApi(router *gin.Engine) {
 	router.GET("/swagger/*any", ginSwagger.CustomWrapHandler(&ginSwagger.Config{
 		InstanceName: "cache",
 		URL:          "doc.json",
@@ -81,15 +81,18 @@ func (s *CacheApi) NewGinApi(router *gin.Engine) {
 	}
 
 	router.GET("/nix-cache-info", s.cacheInfo)
+	router.GET("/log/:deriver", s.getLog)
 	router.GET("/:storeHash", s.storeHashCmd)
 	router.HEAD("/:storeHash", s.storeHashCmd)
 
+	// Nix requests /nar/<hash>.nar.<compression>
 	router.GET("/nar/:filename", s.downloadNar)
 
-	router.PUT("/:narUuid", s.uploadData)
+	// Direct upload support
+	router.PUT("/:filename", s.uploadData)
 }
 
-func (s *CacheApi) wsDispatcher(c *gin.Context) {
+func (s *SocketApi) wsDispatcher(c *gin.Context) {
 	path := c.Request.URL.Path
 	zap.S().Infof("WebSocket connection on path: %s", path)
 
@@ -103,7 +106,7 @@ func (s *CacheApi) wsDispatcher(c *gin.Context) {
 	}
 }
 
-func (s *CacheApi) agent_handler(c *gin.Context) {
+func (s *SocketApi) agent_handler(c *gin.Context) {
 	name := c.GetHeader("name")
 	token := c.GetHeader("Authorization")
 	if token != "" {
@@ -171,7 +174,7 @@ func (s *CacheApi) agent_handler(c *gin.Context) {
 	}()
 }
 
-func (s *CacheApi) deployment_handler(c *gin.Context) {
+func (s *SocketApi) deployment_handler(c *gin.Context) {
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		return
@@ -191,7 +194,7 @@ func (s *CacheApi) deployment_handler(c *gin.Context) {
 	}
 }
 
-func (s *CacheApi) log_handler(c *gin.Context) {
+func (s *SocketApi) log_handler(c *gin.Context) {
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		return
@@ -211,7 +214,7 @@ func (s *CacheApi) log_handler(c *gin.Context) {
 	}
 }
 
-func (s *CacheApi) processDeploymentFinished(msg map[string]any) {
+func (s *SocketApi) processDeploymentFinished(msg map[string]any) {
 	command, _ := msg["command"].(map[string]any)
 	id, _ := command["id"].(string)
 	success, _ := command["hasSucceeded"].(bool)
@@ -231,15 +234,21 @@ func (s *CacheApi) processDeploymentFinished(msg map[string]any) {
 //	@Description	Download a NAR file from the cache.
 //	@Tags			binary-cache
 //	@Produce		octet-stream
-//	@Param			filename	path		string	true	"NAR filename (with or without .nar extension)"
+//	@Param			filename	path		string	true	"NAR filename (e.g. hash.nar.xz)"
 //	@Success		200			{file}		binary
 //	@Failure		404			{object}	model.ErrorResponse
 //	@Router			/nar/{filename} [get]
-func (s *CacheApi) downloadNar(c *gin.Context) {
+func (s *SocketApi) downloadNar(c *gin.Context) {
 	filename := c.Param("filename")
 	zap.S().Infof("Downloading NAR file: %s from cache %s", filename, s.cache.Name)
 
-	fileHash := strings.TrimSuffix(filename, ".nar")
+	// filename format: <fileHash>.nar.<compression>
+	parts := strings.Split(filename, ".nar.")
+	if len(parts) < 1 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid nar filename"})
+		return
+	}
+	fileHash := parts[0]
 
 	reader, err := s.storage.ReadFile(s.cache.Name, fileHash)
 	if err != nil {
@@ -251,21 +260,47 @@ func (s *CacheApi) downloadNar(c *gin.Context) {
 	}
 	defer reader.Close()
 
-	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
+	c.DataFromReader(http.StatusOK, -1, "application/x-nix-nar", reader, nil)
+}
+
+// getLog godoc
+//
+//	@Summary		Get build logs
+//	@Description	Get the build logs for a particular deriver.
+//	@Tags			binary-cache
+//	@Produce		text/plain
+//	@Param			deriver	path		string	true	"Full name of the deriver"
+//	@Success		200		{string}	string	"log content"
+//	@Failure		404		{object}	model.ErrorResponse
+//	@Router			/log/{deriver} [get]
+func (s *SocketApi) getLog(c *gin.Context) {
+	deriver := c.Param("deriver")
+	zap.S().Infof("Reading log for deriver: %s", deriver)
+
+	reader, err := s.storage.ReadFile(s.cache.Name, "log/"+deriver)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, model.ErrorResponse{Error: "log not found"})
+		return
+	}
+	defer reader.Close()
+
+	c.DataFromReader(http.StatusOK, -1, "text/plain", reader, nil)
 }
 
 // storeHashCmd godoc
 //
 //	@Summary		Get .narinfo or .ls
 //	@Description	Get metadata (.narinfo) or file listing (.ls) for a store hash.
+//	@Description	- .narinfo: Text file containing store path metadata (NAR hash, size, references, signature).
+//	@Description	- .ls: JSON file containing the internal file listing of the NAR.
 //	@Tags			binary-cache
 //	@Produce		text/plain,json
 //	@Param			storeHash	path		string				true	"Store hash with extension (.narinfo or .ls)"
-//	@Success		200			{string}	string				"narinfo content"
-//	@Success		200			{object}	map[string]string	"ls json"
-//	@Failure		404			{object}	model.ErrorResponse
+//	@Success		200			{string}	string				"narinfo metadata content"
+//	@Success		200			{object}	map[string]any		"File listing JSON"
+//	@Failure		404			{object}	model.ErrorResponse	"Metadata or listing not found"
 //	@Router			/{storeHash} [get]
-func (s *CacheApi) storeHashCmd(c *gin.Context) {
+func (s *SocketApi) storeHashCmd(c *gin.Context) {
 	filename := c.Param("storeHash")
 
 	if before, ok := strings.CutSuffix(filename, ".narinfo"); ok {
@@ -277,7 +312,16 @@ func (s *CacheApi) storeHashCmd(c *gin.Context) {
 	if before, ok := strings.CutSuffix(filename, ".ls"); ok {
 		storeHash := before
 		zap.S().Infof("list store hash: '%s'", storeHash)
-		c.JSON(200, gin.H{"type": "ls", "hash": storeHash})
+
+		// Attempt to read .ls file from storage
+		reader, err := s.storage.ReadFile(s.cache.Name, storeHash+".ls")
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusNotFound, model.ErrorResponse{Error: "ls not found"})
+			return
+		}
+		defer reader.Close()
+
+		c.DataFromReader(http.StatusOK, -1, "application/json", reader, nil)
 		return
 	}
 
@@ -294,24 +338,20 @@ func (s *CacheApi) storeHashCmd(c *gin.Context) {
 //	@Produce		text/plain
 //	@Success		200	{string}	string	"StoreDir: /nix/store..."
 //	@Router			/nix-cache-info [get]
-func (s *CacheApi) cacheInfo(c *gin.Context) {
+func (s *SocketApi) cacheInfo(c *gin.Context) {
 	resp := fmt.Sprintf("StoreDir: /nix/store\nWantMassQuery: 1\nPriority: 30\n")
 	c.Data(http.StatusOK, "text/x-nix-cache-info", []byte(resp))
 }
 
-func (s *CacheApi) storeHashNarInfo(c *gin.Context, storeHash string) {
+func (s *SocketApi) storeHashNarInfo(c *gin.Context, storeHash string) {
 	path, err := s.pathServ.Read(storeHash, s.cache.Name)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			zap.S().Errorf("Store path not found hash '%s', err: %v ", storeHash, err)
-			c.AbortWithStatusJSON(http.StatusNotFound, model.ErrorResponse{
-				Error: "store path not found",
-			})
+			c.AbortWithStatus(http.StatusNotFound)
 		} else {
 			zap.S().Errorf("Error reading store path for hash '%s', err: %v ", storeHash, err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, model.ErrorResponse{
-				Error: "internal server error",
-			})
+			c.AbortWithStatus(http.StatusInternalServerError)
 		}
 		return
 	}
@@ -333,25 +373,25 @@ func (s *CacheApi) storeHashNarInfo(c *gin.Context, storeHash string) {
 
 // uploadData godoc
 //
-//	@Summary		Upload NAR data
-//	@Description	Upload raw NAR data for a given UUID.
+//	@Summary		Upload NAR data (Direct)
+//	@Description	Upload raw NAR data for a given filename (usually hash).
 //	@Tags			binary-cache
 //	@Accept			octet-stream
-//	@Param			narUuid	path	string	true	"NAR UUID"
+//	@Param			filename	path	string	true	"Filename or Hash"
 //	@Success		201
 //	@Failure		400	{object}	model.ErrorResponse
 //	@Failure		500	{object}	model.ErrorResponse
-//	@Router			/{narUuid} [put]
-func (s *CacheApi) uploadData(c *gin.Context) {
-	fileHash := c.Param("narUuid")
-	if fileHash == "" {
+//	@Router			/{filename} [put]
+func (s *SocketApi) uploadData(c *gin.Context) {
+	filename := c.Param("filename")
+	if filename == "" {
 		c.AbortWithStatusJSON(400, model.ErrorResponse{
-			Error: "missing file hash",
+			Error: "missing filename",
 		})
 		return
 	}
 
-	err := s.storage.WriteFile(s.cache.Name, fileHash, c.Request.Body)
+	err := s.storage.WriteFile(s.cache.Name, filename, c.Request.Body)
 	if err != nil {
 		c.AbortWithStatusJSON(500, model.ErrorResponse{
 			Error: "failed to save to storage",

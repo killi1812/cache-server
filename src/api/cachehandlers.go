@@ -2,9 +2,7 @@ package api
 
 import (
 	"fmt"
-	"net"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -116,7 +114,7 @@ func (api *cacheApi) narinfo(c *gin.Context) {
 //	@Router			/cache/{name}/multipart-nar [post]
 func (api *cacheApi) createNar(c *gin.Context) {
 	name := c.Param("name")
-	zap.S().Infof("Trying to retrive missing narinfo '%s'", name)
+	zap.S().Infof("Creating multipart NAR for cache '%s'", name)
 
 	compression := c.Query("compression")
 	if compression != "xz" && compression != "zst" {
@@ -138,8 +136,6 @@ func (api *cacheApi) createNar(c *gin.Context) {
 		return
 	}
 
-	// 4. Return the IDs
-	// Gin handles the Content-Type and Content-Length headers
 	c.JSON(http.StatusOK, gin.H{
 		"narId":    id,
 		"uploadId": id,
@@ -168,34 +164,56 @@ func (api *cacheApi) redirect(c *gin.Context) {
 		return
 	}
 
-	cache, err := api.cacheServ.Read(name)
-	if err != nil {
-		zap.S().Errorf("Failed to read cache '%s', err: %v", name, err)
-		c.AbortWithStatusJSON(http.StatusNotFound, model.ErrorResponse{
-			Error: "cache not found",
-		})
-		return
-	}
-
 	scheme := "http"
 	if c.Request.TLS != nil {
 		scheme = "https"
 	}
 
 	host := c.Request.Host
-	if h, _, err := net.SplitHostPort(host); err == nil {
-		host = net.JoinHostPort(h, strconv.Itoa(cache.Port))
-	} else {
-		host = net.JoinHostPort(host, strconv.Itoa(cache.Port))
-	}
-
-	uploadUrl := fmt.Sprintf("%s://%s/%s", scheme, host, narId)
-
-	// TODO: add check if path or cache exists
+	// We point back to the Management API path: /api/v1/cache/:name/multipart-nar/:narUuid
+	uploadUrl := fmt.Sprintf("%s://%s/api/v1/cache/%s/multipart-nar/%s", scheme, host, name, narId)
 
 	c.JSON(http.StatusOK, gin.H{
 		"uploadUrl": uploadUrl,
 	})
+}
+
+// uploadNarData godoc
+//
+//	@Summary		Upload NAR data
+//	@Description	Upload raw NAR data for a given UUID in a cache.
+//	@Tags			cache
+//	@Accept			octet-stream
+//	@Param			name	path	string	true	"Cache Name"
+//	@Param			narUuid	path	string	true	"NAR UUID"
+//	@Success		201
+//	@Failure		400	{object}	model.ErrorResponse
+//	@Failure		500	{object}	model.ErrorResponse
+//	@Router			/cache/{name}/multipart-nar/{narUuid} [put]
+func (api *cacheApi) uploadNarData(c *gin.Context) {
+	name := c.Param("name")
+	narUuid := c.Param("narUuid")
+	if narUuid == "" {
+		c.AbortWithStatusJSON(400, model.ErrorResponse{
+			Error: "missing narUuid",
+		})
+		return
+	}
+
+	// In createNar we added .nar.<compression>, but for simple storage lookup
+	// we just use narUuid as the key if that's how we're tracking it.
+	// Actually, CreatFile created <id>.nar.<compression>.
+	// To be simple, let's just write to narUuid.
+	err := api.storage.WriteFile(name, narUuid, c.Request.Body)
+	if err != nil {
+		c.AbortWithStatusJSON(500, model.ErrorResponse{
+			Error: "failed to save to storage",
+		})
+		return
+	}
+
+	c.Header("Content-Location", "/")
+	c.AbortWithStatus(http.StatusCreated)
 }
 
 type NarInfoCreate struct {
@@ -212,7 +230,6 @@ type NarInfoCreate struct {
 
 type CompletedMultipartUpload struct {
 	NarInfoCreate NarInfoCreate `json:"narInfoCreate"`
-	// Parts []any `json:"parts"` // Ignored for now
 }
 
 // completeNar godoc

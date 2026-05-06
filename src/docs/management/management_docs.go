@@ -103,6 +103,49 @@ const docTemplatemanagement = `{
             }
         },
         "/cache/{name}/multipart-nar/{narUuid}": {
+            "put": {
+                "description": "Upload raw NAR data for a given UUID in a cache.",
+                "consumes": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "cache"
+                ],
+                "summary": "Upload NAR data",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Cache Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "NAR UUID",
+                        "name": "narUuid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    }
+                }
+            },
             "post": {
                 "description": "Get the direct upload URL for a multipart NAR upload.",
                 "produces": [
@@ -962,10 +1005,19 @@ const docTemplatemanagement = `{
         "model.Agent": {
             "type": "object",
             "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "deletedAt": {
+                    "$ref": "#/definitions/gorm.DeletedAt"
+                },
                 "id": {
                     "type": "integer"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "updatedAt": {
                     "type": "string"
                 },
                 "uuid": {
@@ -1049,6 +1101,9 @@ const docTemplatemanagement = `{
                 "createdAt": {
                     "type": "string"
                 },
+                "deletedAt": {
+                    "$ref": "#/definitions/gorm.DeletedAt"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -1056,6 +1111,9 @@ const docTemplatemanagement = `{
                     "$ref": "#/definitions/model.DeploymentStatus"
                 },
                 "storePath": {
+                    "type": "string"
+                },
+                "updatedAt": {
                     "type": "string"
                 }
             }
@@ -1151,10 +1209,19 @@ const docTemplatemanagement = `{
                 "binary_cache_id": {
                     "type": "integer"
                 },
+                "createdAt": {
+                    "type": "string"
+                },
+                "deletedAt": {
+                    "$ref": "#/definitions/gorm.DeletedAt"
+                },
                 "id": {
                     "type": "integer"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "updatedAt": {
                     "type": "string"
                 }
             }

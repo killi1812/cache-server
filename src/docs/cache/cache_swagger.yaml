@@ -12,15 +12,15 @@ definitions:
 info:
   contact: {}
 paths:
-  /{narUuid}:
+  /{filename}:
     put:
       consumes:
       - application/octet-stream
-      description: Upload raw NAR data for a given UUID.
+      description: Upload raw NAR data for a given filename (usually hash).
       parameters:
-      - description: NAR UUID
+      - description: Filename or Hash
         in: path
-        name: narUuid
+        name: filename
         required: true
         type: string
       responses:
@@ -34,12 +34,15 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/model.ErrorResponse'
-      summary: Upload NAR data
+      summary: Upload NAR data (Direct)
       tags:
       - binary-cache
   /{storeHash}:
     get:
-      description: Get metadata (.narinfo) or file listing (.ls) for a store hash.
+      description: |-
+        Get metadata (.narinfo) or file listing (.ls) for a store hash.
+        - .narinfo: Text file containing store path metadata (NAR hash, size, references, signature).
+        - .ls: JSON file containing the internal file listing of the NAR.
       parameters:
       - description: Store hash with extension (.narinfo or .ls)
         in: path
@@ -51,23 +54,45 @@ paths:
       - application/json
       responses:
         "200":
-          description: ls json
+          description: File listing JSON
           schema:
-            additionalProperties:
-              type: string
+            additionalProperties: true
             type: object
+        "404":
+          description: Metadata or listing not found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Get .narinfo or .ls
+      tags:
+      - binary-cache
+  /log/{deriver}:
+    get:
+      description: Get the build logs for a particular deriver.
+      parameters:
+      - description: Full name of the deriver
+        in: path
+        name: deriver
+        required: true
+        type: string
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: log content
+          schema:
+            type: string
         "404":
           description: Not Found
           schema:
             $ref: '#/definitions/model.ErrorResponse'
-      summary: Get .narinfo or .ls
+      summary: Get build logs
       tags:
       - binary-cache
   /nar/{filename}:
     get:
       description: Download a NAR file from the cache.
       parameters:
-      - description: NAR filename (with or without .nar extension)
+      - description: NAR filename (e.g. hash.nar.xz)
         in: path
         name: filename
         required: true

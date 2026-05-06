@@ -1,8 +1,10 @@
 package model
 
+import "gorm.io/gorm"
+
 // Workspace represents a deployment environment linked to a specific binary cache.
 type Workspace struct {
-	ID    uint   `gorm:"primarykey"`
+	gorm.Model
 	Name  string `gorm:"type:varchar(100);unique;not null" json:"name"`
 	Token string `gorm:"type:varchar(255);not null" json:"-"` // not serialized deploy token
 

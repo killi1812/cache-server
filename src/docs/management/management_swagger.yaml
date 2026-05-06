@@ -55,9 +55,15 @@ definitions:
     type: object
   model.Agent:
     properties:
+      createdAt:
+        type: string
+      deletedAt:
+        $ref: '#/definitions/gorm.DeletedAt'
       id:
         type: integer
       name:
+        type: string
+      updatedAt:
         type: string
       uuid:
         type: string
@@ -113,11 +119,15 @@ definitions:
         type: integer
       createdAt:
         type: string
+      deletedAt:
+        $ref: '#/definitions/gorm.DeletedAt'
       id:
         type: string
       status:
         $ref: '#/definitions/model.DeploymentStatus'
       storePath:
+        type: string
+      updatedAt:
         type: string
     type: object
   model.DeploymentStatus:
@@ -185,9 +195,15 @@ definitions:
         $ref: '#/definitions/model.BinaryCache'
       binary_cache_id:
         type: integer
+      createdAt:
+        type: string
+      deletedAt:
+        $ref: '#/definitions/gorm.DeletedAt'
       id:
         type: integer
       name:
+        type: string
+      updatedAt:
         type: string
     type: object
 info:
@@ -286,6 +302,35 @@ paths:
           schema:
             $ref: '#/definitions/model.ErrorResponse'
       summary: Redirect to upload URL
+      tags:
+      - cache
+    put:
+      consumes:
+      - application/octet-stream
+      description: Upload raw NAR data for a given UUID in a cache.
+      parameters:
+      - description: Cache Name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: NAR UUID
+        in: path
+        name: narUuid
+        required: true
+        type: string
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Upload NAR data
       tags:
       - cache
   /cache/{name}/multipart-nar/{narUuid}/abort:
