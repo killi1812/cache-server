@@ -32,6 +32,10 @@ func (api *cacheApi) RegisterEndpoints(routerGroupByVersion ...*gin.RouterGroup)
 	// cache group
 	cache := v1.Group("/cache")
 	cache.GET("/:name", api.name)
+
+	// TODO: add full curd for cache
+	cache.POST("/", api.create)
+
 	cache.POST("/:name/narinfo", api.narinfo)
 
 	// Multipart upload logic (Cachix compatible)

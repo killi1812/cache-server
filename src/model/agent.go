@@ -10,7 +10,7 @@ type Agent struct {
 	gorm.Model
 	Uuid  uuid.UUID `gorm:"type:uuid;unique;not null"`
 	Name  string    `gorm:"type:varchar(100);unique;not null" json:"name"`
-	Token string    `gorm:"type:varchar(255);not null" json:"-"` // not serialized agent token
+	Token string    `gorm:"type:varchar(255);not null" json:"token,omitempty"`
 
 	WorkspaceId uint       `json:"workspace_id"`
 	Workspace   *Workspace `gorm:"foreignKey:WorkspaceId;constraint:OnUpdate:CASCADE;" json:"-"`

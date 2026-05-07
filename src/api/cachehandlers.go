@@ -8,9 +8,79 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/killi1812/go-cache-server/model"
+	"github.com/killi1812/go-cache-server/service"
 	"github.com/killi1812/go-cache-server/util/auth"
 	"go.uber.org/zap"
 )
+
+type CacheCreateRequest struct {
+	Name      string `json:"name" binding:"required"`
+	Port      int    `json:"port" binding:"required"`
+	Retention int    `json:"retention"`
+	Token     string `json:"token"`
+}
+
+// create godoc
+//
+//	@Summary		Create binary cache
+//	@Description	Create a new binary cache.
+//	@Tags			cache
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		CacheCreateRequest	true	"Cache details"
+//	@Success		201		{object}	model.BinaryCache
+//	@Failure		400		{object}	model.ErrorResponse
+//	@Failure		500		{object}	model.ErrorResponse
+//	@Router			/cache [post]
+func (api *cacheApi) create(c *gin.Context) {
+	var req CacheCreateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, model.ErrorResponse{
+			Error: "invalid request body",
+		})
+		return
+	}
+
+	zap.S().Infof("Trying to create cache '%s' on port %d", req.Name, req.Port)
+
+	token := req.Token
+	if token == "" {
+		var err error
+		token, err = auth.GenerateJwt(req.Name)
+		if err != nil {
+			zap.S().Errorf("Failed to generate token, err: %v", err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, model.ErrorResponse{
+				Error: "failed to generate token",
+			})
+			return
+		}
+	}
+
+	args := service.CreateCacheArgs{
+		Name:      req.Name,
+		Port:      req.Port,
+		Retention: req.Retention,
+		Token:     token,
+	}
+
+	cache, err := api.cacheServ.Create(args)
+	if err != nil {
+		zap.S().Errorf("Failed to create cache: %v", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, model.ErrorResponse{
+			Error: "failed to create cache",
+		})
+		return
+	}
+
+	// Create storage directory
+	_, err = api.storage.CreateDir(req.Name)
+	if err != nil {
+		zap.S().Errorf("Failed to create storage for cache '%s': %v", req.Name, err)
+		// TODO: rollback DB create
+	}
+
+	c.JSON(http.StatusCreated, cache)
+}
 
 // name godoc
 //
@@ -36,8 +106,7 @@ func (api *cacheApi) name(c *gin.Context) {
 	}
 
 	if cache.Access == model.Private {
-		// TODO: protect
-		// not like this this is middleware only
+		// Not exactly middleware but manual check for now
 		auth.Protect(cache.Token)(c)
 		if c.IsAborted() {
 			return
@@ -200,10 +269,6 @@ func (api *cacheApi) uploadNarData(c *gin.Context) {
 		return
 	}
 
-	// In createNar we added .nar.<compression>, but for simple storage lookup
-	// we just use narUuid as the key if that's how we're tracking it.
-	// Actually, CreatFile created <id>.nar.<compression>.
-	// To be simple, let's just write to narUuid.
 	err := api.storage.WriteFile(name, narUuid, c.Request.Body)
 	if err != nil {
 		c.AbortWithStatusJSON(500, model.ErrorResponse{

@@ -34,7 +34,7 @@ type BinaryCache struct {
 	Uuid      uuid.UUID         `gorm:"type:uuid;unique;not null"`
 	Name      string            `gorm:"type:varchar(100);unique;not null" json:"name"`
 	URL       string            `gorm:"type:varchar(255);not null" json:"url"`
-	Token     string            `gorm:"type:varchar(255);not null" json:"-"` // not serialized
+	Token     string            `gorm:"type:varchar(255);not null" json:"token,omitempty"`
 	Access    BinaryCacheAccess `gorm:"type:varchar(50)" json:"access"`
 	Port      int               `gorm:"unique" json:"port"`
 	Retention int               `json:"retention"`

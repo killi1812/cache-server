@@ -6,7 +6,7 @@ import "gorm.io/gorm"
 type Workspace struct {
 	gorm.Model
 	Name  string `gorm:"type:varchar(100);unique;not null" json:"name"`
-	Token string `gorm:"type:varchar(255);not null" json:"-"` // not serialized deploy token
+	Token string `gorm:"type:varchar(255);not null" json:"token,omitempty"`
 
 	BinaryCacheId uint         `json:"binary_cache_id"`
 	BinaryCache   *BinaryCache `gorm:"foreignKey:BinaryCacheId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"binary_cache,omitempty"`
