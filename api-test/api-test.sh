@@ -13,9 +13,13 @@ fi
 hostname="${HOSTNAME:-localhost}"
 cache="${CACHE:-test}"
 agent="${AGENT:-a1}"
-cachetoken="${CACHETOKEN:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijg3M2VmMzcwLWFmNGYtNDQyZS05ZDU1LWIxNzYwYzI2MTc2ZiIsIm5hbWUiOiJ0ZXN0IiwiZXhwaXJlc09uIjoxODA5NzY2NzIxLCJjcmVhdGVkT24iOjE3NzgyMzA3MjEsImxhc3RVc2VkT24iOm51bGwsInBlcm1pc3Npb24iOiIiLCJpc1Jldm9rZWQiOmZhbHNlLCJkZXNjcmlwdGlvbiI6IiJ9.fUg78Q0Ak56d-Coav0FhAXjy2Iu9HPYDhJ0Ejfn0UD8}"
-agenttoken="${AGENTTOKEN:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiYTEifQ.2p06M28roru68alrtS67xqdTSz0q1IJngc9sEUU24X0}"
-deploytoken="${DEPLOYTOKEN:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoidzEifQ.H1mchyERzmGyHopJ5MhdEQkQcAtXSwJQCHP6wm9zkEA}"
+cachetoken="${CACHETOKEN}"
+agenttoken="${AGENTTOKEN}"
+deploytoken="${DEPLOYTOKEN}"
+
+echo $cachetoken
+echo $agenttoken
+echo $deploytoken
 
 export CACHIX_AUTH_TOKEN=$cachetoken
 export CACHIX_AGENT_TOKEN=$agenttoken

@@ -78,6 +78,7 @@ func (api *deployWsApi) wsHandler(c *gin.Context) {
 			},
 			"tag": "AgentRegistered",
 		},
+		// TODO: add propper id ??
 		"id":     "00000000-0000-0000-0000-000000000000",
 		"method": "AgentRegistered",
 	}
@@ -145,8 +146,12 @@ func (api *deployWsApi) deploymentHandler(c *gin.Context) {
 //	@Success		101
 //	@Router			/deploy/log/ [get]
 func (api *deployWsApi) logHandler(c *gin.Context) {
+	id := c.Param("id")
+	zap.S().Infof("New log streaming connection for deployment %s", id)
+
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
+		zap.S().Errorf("Failed to upgrade log websocket for %s: %v", id, err)
 		return
 	}
 	defer conn.Close()
@@ -154,14 +159,19 @@ func (api *deployWsApi) logHandler(c *gin.Context) {
 	for {
 		var msg map[string]any
 		if err := conn.ReadJSON(&msg); err != nil {
+			zap.S().Debugf("Log WebSocket read error for %s: %v", id, err)
 			break
 		}
-		line, _ := msg["line"].(string)
-		zap.S().Infof("Agent Log: %s", line)
-		if line == "Successfully activated the deployment." || strings.Contains(line, "Failed to activate the deployment.") {
-			break
+		zap.S().Debugf("Raw log message for %s: %+v", id, msg)
+
+		if line, ok := msg["line"].(string); ok {
+			zap.S().Infof("Agent Log [%s]: %s", id, line)
+			if line == "Successfully activated the deployment." || strings.Contains(line, "Failed to activate the deployment.") {
+				break
+			}
 		}
 	}
+	zap.S().Infof("Log streaming finished for deployment %s", id)
 }
 
 func (api *deployWsApi) processDeploymentFinished(msg map[string]any) {

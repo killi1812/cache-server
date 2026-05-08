@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 	"github.com/killi1812/go-cache-server/app"
 	_ "github.com/killi1812/go-cache-server/docs/cache"
 	"github.com/killi1812/go-cache-server/model"
@@ -28,13 +27,6 @@ type SocketApi struct {
 	deploymentServ *service.DeploymentSrv
 	storage        objstor.ObjectStorage
 	hub            *service.Hub
-	wsHandler      app.GinApi
-}
-
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return true // For now
-	},
 }
 
 func newCacheApi(
@@ -43,7 +35,7 @@ func newCacheApi(
 	storage objstor.ObjectStorage,
 	wsHandler app.GinApi,
 ) app.CreateGinApi {
-	return &SocketApi{cache: cache, pathServ: pathServ, storage: storage, wsHandler: wsHandler}
+	return &SocketApi{cache: cache, pathServ: pathServ, storage: storage}
 }
 
 // RegisterEndpoints implements app.GinApi.
@@ -52,19 +44,6 @@ func (s *SocketApi) NewGinApi(router *gin.Engine) {
 		InstanceName: "cache",
 		URL:          "doc.json",
 	}, swaggerfiles.Handler))
-
-	// WebSocket dispatcher (only for stub/deploy-port)
-	// TODO: remove
-	if s.hub != nil {
-		router.GET("/ws", s.wsDispatcher)
-		router.GET("/ws-deployment", s.wsDispatcher)
-		router.GET("/api/v1/deploy/log/", s.wsDispatcher)
-	}
-
-	if s.wsHandler != nil {
-		s.wsHandler.RegisterEndpoints(router.Group("/"))
-		// router.GET("/ws", s.wsDispatcher)
-	}
 
 	if s.cache.Access == "private" {
 		zap.S().Infof("Protecting cache, access is private")
@@ -81,157 +60,6 @@ func (s *SocketApi) NewGinApi(router *gin.Engine) {
 
 	// Direct upload support
 	router.PUT("/:filename", s.uploadData)
-}
-
-func (s *SocketApi) wsDispatcher(c *gin.Context) {
-	path := c.Request.URL.Path
-	zap.S().Infof("WebSocket connection on path: %s", path)
-
-	switch path {
-	case "/ws":
-		s.agent_handler(c)
-	case "/ws-deployment":
-		s.deployment_handler(c)
-	case "/api/v1/deploy/log/":
-		s.log_handler(c)
-	}
-}
-
-func (s *SocketApi) agent_handler(c *gin.Context) {
-	name := c.GetHeader("name")
-	token := c.GetHeader("Authorization")
-	if token != "" {
-		token = strings.TrimPrefix(token, "Bearer ")
-	}
-
-	if name == "" || token == "" {
-		name = c.Query("name")
-		token = c.Query("token")
-	}
-
-	if name == "" || token == "" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, model.ErrorResponse{Error: "missing name or token"})
-		return
-	}
-
-	agent, err := s.agentServ.Read(name)
-	if err != nil || agent.Token != token {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, model.ErrorResponse{Error: "unauthorized"})
-		return
-	}
-
-	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-	if err != nil {
-		zap.S().Errorf("Failed to upgrade agent connection: %v", err)
-		return
-	}
-
-	s.hub.Register(name, conn)
-
-	// Send AgentRegistered message
-	regMsg := map[string]any{
-		"agent": agent.Uuid.String(),
-		"command": map[string]any{
-			"contents": map[string]any{
-				"id":             agent.Uuid.String(),
-				"agentId":        agent.Uuid.String(),
-				"agentName":      name,
-				"agentVersion":   "1.9.1",
-				"agentPublicKey": "",
-			},
-			"tag": "AgentRegistered",
-		},
-		"id":     "00000000-0000-0000-0000-000000000000",
-		"method": "AgentRegistered",
-	}
-	zap.S().Infof("Sending AgentRegistered (Cache API) to agent '%s': %+v", name, regMsg)
-	conn.WriteJSON(regMsg)
-
-	// Stay open
-	go func() {
-		defer func() {
-			zap.S().Infof("Closing Cache WebSocket connection for agent '%s'", name)
-			s.hub.Unregister(name)
-			conn.Close()
-		}()
-		for {
-			var msg map[string]any
-			if err := conn.ReadJSON(&msg); err != nil {
-				zap.S().Debugf("Cache WebSocket read error for agent '%s': %v", name, err)
-				break
-			}
-			zap.S().Infof("Received Cache WebSocket message from agent '%s': %+v", name, msg)
-			method, _ := msg["method"].(string)
-			if method == "DeploymentFinished" {
-				s.processDeploymentFinished(msg)
-			}
-		}
-	}()
-}
-
-func (s *SocketApi) deployment_handler(c *gin.Context) {
-	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-	if err != nil {
-		zap.S().Errorf("Failed to upgrade Cache deployment websocket: %v", err)
-		return
-	}
-	defer conn.Close()
-
-	zap.S().Info("New Cache deployment status WebSocket connection")
-
-	for {
-		var msg map[string]any
-		if err := conn.ReadJSON(&msg); err != nil {
-			break
-		}
-		zap.S().Infof("Received Cache deployment status message: %+v", msg)
-		method, _ := msg["method"].(string)
-		if method == "DeploymentFinished" {
-			s.processDeploymentFinished(msg)
-			break
-		}
-	}
-}
-
-func (s *SocketApi) log_handler(c *gin.Context) {
-	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-	if err != nil {
-		return
-	}
-	defer conn.Close()
-
-	for {
-		var msg map[string]any
-		if err := conn.ReadJSON(&msg); err != nil {
-			break
-		}
-		line, _ := msg["line"].(string)
-		zap.S().Infof("Log: %s", line)
-		if line == "Successfully activated the deployment." || strings.Contains(line, "Failed to activate the deployment.") {
-			break
-		}
-	}
-}
-
-func (s *SocketApi) processDeploymentFinished(msg map[string]any) {
-	zap.S().Debugf("Incoming Message: %+v", msg)
-	command, _ := msg["command"].(map[string]any)
-	id, _ := command["id"].(string)
-	success, _ := command["hasSucceeded"].(bool)
-
-	zap.S().Infof("Agent reported deployment %s finished (Success: %v)", id, success)
-
-	status := model.DeploymentSuccess
-	if !success {
-		status = model.DeploymentFailed
-	}
-
-	err := s.deploymentServ.UpdateStatus(id, status)
-	if err != nil {
-		zap.S().Errorf("Failed to update deployment %s status: %v", id, err)
-	} else {
-		zap.S().Infof("Database updated: Deployment %s is now %s", id, status)
-	}
 }
 
 // downloadNar godoc

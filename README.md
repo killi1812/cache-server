@@ -43,5 +43,15 @@ compatible with cachix client
   - [x] nar
 - [x] websockets
 
-- [ ] Garbage collector that removes old caches
-- [ ] Redo tokens on agent and workspace
+- [x] Garbage collector that removes old caches
+- [x] Redo tokens on agent and workspace
+
+
+## BUGs
+
+* there is a wrong endpoint hit
+
+> [GIN] 2026/05/08 - 17:23:58 | 404 |       1.181µs |             ::1 | GET      "/nix-cache-info"
+> [GIN] 2026/05/08 - 17:23:58 | 404 |       1.178µs |             ::1 | PUT      "/nix-cache-info"
+
+Why is it hitting the enpint 12345 when it needs to hit cache endpoint

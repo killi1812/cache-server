@@ -11,6 +11,8 @@ localhost {
     reverse_proxy @special_paths 127.0.0.1:54321 {
         header_up Host {host}
         header_up X-Real-IP {remote_host}
+        header_up Connection "Upgrade"
+        header_up Upgrade "websocket"
         
         transport http {
             read_timeout 3600s

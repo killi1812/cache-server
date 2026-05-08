@@ -144,13 +144,12 @@ func setup(cmd *cobra.Command, args []string) error {
 
 	type deps struct {
 		dig.In
-		S        *service.CacheSrv
-		Ps       *service.StorePathSrv
-		As       *service.AgentSrv
-		Ds       *service.DeploymentSrv
-		H        *service.Hub
-		Storage  objstor.ObjectStorage
-		DeployWs app.CreateGinApi `name:"deploy"`
+		S       *service.CacheSrv
+		Ps      *service.StorePathSrv
+		As      *service.AgentSrv
+		Ds      *service.DeploymentSrv
+		H       *service.Hub
+		Storage objstor.ObjectStorage
 	}
 
 	app.Invoke(func(p deps) {
@@ -160,7 +159,6 @@ func setup(cmd *cobra.Command, args []string) error {
 		dep = p.Ds
 		hub = p.H
 		stor = p.Storage
-		deployWs = p.DeployWs.(app.GinApi)
 	})
 
 	return nil

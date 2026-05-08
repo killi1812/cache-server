@@ -135,6 +135,7 @@ func info(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Name:       %s\n", agent.Name)
 	if agent.Workspace != nil {
 		fmt.Printf("Workspace:  %s\n", agent.Workspace.Name)
+		fmt.Printf("Token:  %s\n", agent.Token)
 	} else {
 		fmt.Printf("Workspace:null\n")
 	}

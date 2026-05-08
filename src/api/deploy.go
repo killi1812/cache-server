@@ -92,5 +92,5 @@ func (api *deployWsApi) RegisterEndpoints(routerGroupByVersion ...*gin.RouterGro
 	router := routerGroupByVersion[0]
 	router.GET("/ws", api.wsHandler)
 	router.GET("/ws-deployment", api.deploymentHandler)
-	router.GET("/api/v1/deploy/log/", api.logHandler)
+	router.GET("/api/v1/deploy/log/:id", api.logHandler)
 }
