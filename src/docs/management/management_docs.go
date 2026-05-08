@@ -1072,29 +1072,11 @@ const docTemplatemanagement = `{
         "model.Agent": {
             "type": "object",
             "properties": {
-                "createdAt": {
-                    "type": "string"
-                },
-                "deletedAt": {
-                    "$ref": "#/definitions/gorm.DeletedAt"
-                },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "name": {
                     "type": "string"
-                },
-                "token": {
-                    "type": "string"
-                },
-                "updatedAt": {
-                    "type": "string"
-                },
-                "uuid": {
-                    "type": "string"
-                },
-                "workspace_id": {
-                    "type": "integer"
                 }
             }
         },
@@ -1168,25 +1150,19 @@ const docTemplatemanagement = `{
                 "agent": {
                     "$ref": "#/definitions/model.Agent"
                 },
-                "agentId": {
-                    "type": "integer"
-                },
-                "createdAt": {
+                "createdOn": {
                     "type": "string"
-                },
-                "deletedAt": {
-                    "$ref": "#/definitions/gorm.DeletedAt"
                 },
                 "id": {
                     "type": "string"
+                },
+                "index": {
+                    "type": "integer"
                 },
                 "status": {
                     "$ref": "#/definitions/model.DeploymentStatus"
                 },
                 "storePath": {
-                    "type": "string"
-                },
-                "updatedAt": {
                     "type": "string"
                 }
             }
@@ -1194,10 +1170,10 @@ const docTemplatemanagement = `{
         "model.DeploymentStatus": {
             "type": "string",
             "enum": [
-                "pending",
-                "in_progress",
-                "success",
-                "failed"
+                "Pending",
+                "InProgress",
+                "Success",
+                "Failed"
             ],
             "x-enum-varnames": [
                 "DeploymentPending",

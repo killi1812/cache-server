@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -429,10 +430,15 @@ func (api *deployApi) activateDeployment(c *gin.Context) {
 		}
 
 		// Cachix expects an object with id and url for each agent
+		scheme := "http"
+		if c.Request.TLS != nil {
+			scheme = "https"
+		}
+		localURL := fmt.Sprintf("%s://%s/api/v1/deploy/deployment/%s", scheme, c.Request.Host, deployment.Uuid.String())
+
 		agentDeployments[agentName] = gin.H{
-			"id": deployment.Uuid.String(),
-			// TODO: change the url to local
-			"url": "https://app.cachix.org/deploy/" + deployment.StorePath,
+			"id":  deployment.Uuid.String(),
+			"url": localURL,
 		}
 
 		// Notify agent via Hub

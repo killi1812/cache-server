@@ -69,22 +69,10 @@ definitions:
     type: object
   model.Agent:
     properties:
-      createdAt:
-        type: string
-      deletedAt:
-        $ref: '#/definitions/gorm.DeletedAt'
       id:
-        type: integer
+        type: string
       name:
         type: string
-      token:
-        type: string
-      updatedAt:
-        type: string
-      uuid:
-        type: string
-      workspace_id:
-        type: integer
     type: object
   model.BinaryCache:
     properties:
@@ -133,27 +121,23 @@ definitions:
     properties:
       agent:
         $ref: '#/definitions/model.Agent'
-      agentId:
-        type: integer
-      createdAt:
+      createdOn:
         type: string
-      deletedAt:
-        $ref: '#/definitions/gorm.DeletedAt'
       id:
         type: string
+      index:
+        type: integer
       status:
         $ref: '#/definitions/model.DeploymentStatus'
       storePath:
         type: string
-      updatedAt:
-        type: string
     type: object
   model.DeploymentStatus:
     enum:
-    - pending
-    - in_progress
-    - success
-    - failed
+    - Pending
+    - InProgress
+    - Success
+    - Failed
     type: string
     x-enum-varnames:
     - DeploymentPending
