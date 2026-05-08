@@ -15,6 +15,52 @@ const docTemplatemanagement = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/cache": {
+            "post": {
+                "description": "Create a new binary cache.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cache"
+                ],
+                "summary": "Create binary cache",
+                "parameters": [
+                    {
+                        "description": "Cache details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.CacheCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.BinaryCache"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/cache/{name}": {
             "get": {
                 "description": "Get detailed information about a binary cache.",
@@ -932,6 +978,27 @@ const docTemplatemanagement = `{
                 }
             }
         },
+        "api.CacheCreateRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "port"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "retention": {
+                    "type": "integer"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
         "api.CompletedMultipartUpload": {
             "type": "object",
             "properties": {
@@ -1017,6 +1084,9 @@ const docTemplatemanagement = `{
                 "name": {
                     "type": "string"
                 },
+                "token": {
+                    "type": "string"
+                },
                 "updatedAt": {
                     "type": "string"
                 },
@@ -1060,6 +1130,9 @@ const docTemplatemanagement = `{
                     "items": {
                         "$ref": "#/definitions/model.StorePath"
                     }
+                },
+                "token": {
+                    "type": "string"
                 },
                 "updatedAt": {
                     "type": "string"
@@ -1219,6 +1292,9 @@ const docTemplatemanagement = `{
                     "type": "integer"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "token": {
                     "type": "string"
                 },
                 "updatedAt": {

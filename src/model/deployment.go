@@ -15,11 +15,12 @@ const (
 )
 
 type Deployment struct {
-	gorm.Model
-	Uuid      uuid.UUID        `gorm:"type:uuid;unique;not null" json:"id"`
-	Status    DeploymentStatus `gorm:"type:varchar(50);default:'pending'" json:"status"`
-	StorePath string           `gorm:"type:varchar(255);not null" json:"storePath"`
+	gorm.Model `json:"-"`
+	Uuid       uuid.UUID        `gorm:"type:uuid;unique;not null" json:"id"`
+	Index      int              `json:"index"`
+	Status     DeploymentStatus `gorm:"type:varchar(50);default:'pending'" json:"status"`
+	StorePath  string           `gorm:"type:varchar(255);not null" json:"storePath"`
 
-	AgentID uint   `json:"agentId"`
+	AgentID uint   `json:"-"`
 	Agent   *Agent `gorm:"foreignKey:AgentID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"agent,omitempty"`
 }

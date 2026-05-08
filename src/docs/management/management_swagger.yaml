@@ -7,6 +7,20 @@ definitions:
           type: string
         type: object
     type: object
+  api.CacheCreateRequest:
+    properties:
+      name:
+        type: string
+      port:
+        type: integer
+      retention:
+        type: integer
+      token:
+        type: string
+    required:
+    - name
+    - port
+    type: object
   api.CompletedMultipartUpload:
     properties:
       narInfoCreate:
@@ -63,6 +77,8 @@ definitions:
         type: integer
       name:
         type: string
+      token:
+        type: string
       updatedAt:
         type: string
       uuid:
@@ -92,6 +108,8 @@ definitions:
         items:
           $ref: '#/definitions/model.StorePath'
         type: array
+      token:
+        type: string
       updatedAt:
         type: string
       url:
@@ -203,6 +221,8 @@ definitions:
         type: integer
       name:
         type: string
+      token:
+        type: string
       updatedAt:
         type: string
     type: object
@@ -212,6 +232,36 @@ info:
   title: Management API
   version: "1.0"
 paths:
+  /cache:
+    post:
+      consumes:
+      - application/json
+      description: Create a new binary cache.
+      parameters:
+      - description: Cache details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.CacheCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.BinaryCache'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Create binary cache
+      tags:
+      - cache
   /cache/{name}:
     get:
       description: Get detailed information about a binary cache.

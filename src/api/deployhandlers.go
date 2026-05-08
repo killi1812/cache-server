@@ -418,7 +418,7 @@ func (api *deployApi) activateDeployment(c *gin.Context) {
 
 	zap.S().Infof("Activating deployment for agents: %v", req.Agents)
 
-	var deployments []*model.Deployment
+	agentDeployments := make(map[string]any)
 	errs := make([]string, 0)
 	for agentName, storePath := range req.Agents {
 		deployment, err := api.deploymentServ.Create(agentName, storePath)
@@ -426,6 +426,13 @@ func (api *deployApi) activateDeployment(c *gin.Context) {
 			zap.S().Errorf("Failed to create deployment for agent %s: %v", agentName, err)
 			errs = append(errs, err.Error())
 			continue
+		}
+
+		// Cachix expects an object with id and url for each agent
+		agentDeployments[agentName] = gin.H{
+			"id": deployment.Uuid.String(),
+			// TODO: change the url to local
+			"url": "https://app.cachix.org/deploy/" + deployment.StorePath,
 		}
 
 		// Notify agent via Hub
@@ -439,12 +446,10 @@ func (api *deployApi) activateDeployment(c *gin.Context) {
 					"index":     0,
 				},
 			},
-			"agent": deployment.Uuid.String(), // Using UUID as agent identifier in message
+			"agent": agentName,
 			"id":    "00000000-0000-0000-0000-000000000000",
 		}
 		_ = api.hub.NotifyAgent(agentName, msg)
-
-		deployments = append(deployments, deployment)
 	}
 
 	if len(errs) != 0 {
@@ -455,5 +460,5 @@ func (api *deployApi) activateDeployment(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, deployments)
+	c.JSON(http.StatusOK, gin.H{"agents": agentDeployments})
 }

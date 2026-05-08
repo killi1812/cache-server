@@ -26,6 +26,7 @@ func newDeployApi(
 
 func (api *deployApi) RegisterEndpoints(routerGroupByVersion ...*gin.RouterGroup) {
 	if len(routerGroupByVersion) == 0 {
+		zap.S().DPanic("No endpoints provided")
 		return
 	}
 	v1 := routerGroupByVersion[0]
@@ -49,6 +50,20 @@ func (api *deployApi) RegisterEndpoints(routerGroupByVersion ...*gin.RouterGroup
 	deploy.GET("/workspace/:workspace", api.getWorkspace)
 
 	deploy.POST("/activate", api.activateDeployment)
+
+	if len(routerGroupByVersion) == 1 {
+		zap.S().Infof("Regester v1 apis")
+		return
+	}
+
+	v2 := routerGroupByVersion[1]
+	deployV2 := v2.Group("/deploy")
+	deployV2.POST("/activate", api.activateDeployment)
+
+	if len(routerGroupByVersion) == 1 {
+		zap.S().Infof("Regester v2 apis")
+		return
+	}
 }
 
 // deployWsApi handles WebSockets on deploy port.
@@ -56,6 +71,11 @@ type deployWsApi struct {
 	agentServ      *service.AgentSrv
 	deploymentServ *service.DeploymentSrv
 	hub            *service.Hub
+}
+
+// NewGinApi implements app.CreateGinApi.
+func (api *deployWsApi) NewGinApi(router *gin.Engine) {
+	api.RegisterEndpoints(router.Group("/"))
 }
 
 func NewDeployWsApi(
@@ -66,8 +86,10 @@ func NewDeployWsApi(
 	return &deployWsApi{agentServ, deploymentServ, hub}
 }
 
-func (api *deployWsApi) NewGinApi(router *gin.Engine) {
+// RegisterEndpoints implements app.GinApi.
+func (api *deployWsApi) RegisterEndpoints(routerGroupByVersion ...*gin.RouterGroup) {
 	zap.S().Info("Registering WebSocket Deploy API")
+	router := routerGroupByVersion[0]
 	router.GET("/ws", api.wsHandler)
 	router.GET("/ws-deployment", api.deploymentHandler)
 	router.GET("/api/v1/deploy/log/", api.logHandler)

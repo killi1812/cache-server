@@ -66,7 +66,7 @@ func TestSocketApi(t *testing.T) {
 		storage objstor.ObjectStorage,
 		hub *service.Hub,
 	) {
-		socketApi = newCacheApi(cache, pathServ, storage)
+		socketApi = newCacheApi(cache, pathServ, storage, nil)
 	})
 	socketApi.NewGinApi(router)
 
@@ -95,10 +95,10 @@ func TestSocketApi(t *testing.T) {
 		storageDir := config.Config.CacheServer.CacheDir
 		fileName := "dummyhash"
 		content := []byte("dummy nar content")
-		
+
 		// Ensure directory exists
-		os.MkdirAll(filepath.Join(storageDir, cache.Name), 0755)
-		os.WriteFile(filepath.Join(storageDir, cache.Name, fileName), content, 0644)
+		os.MkdirAll(filepath.Join(storageDir, cache.Name), 0o755)
+		os.WriteFile(filepath.Join(storageDir, cache.Name, fileName), content, 0o644)
 		defer os.Remove(filepath.Join(storageDir, cache.Name, fileName))
 
 		w := httptest.NewRecorder()
@@ -123,8 +123,8 @@ func TestSocketApi(t *testing.T) {
 		// Create dummy .ls file in storage
 		storageDir := config.Config.CacheServer.CacheDir
 		lsContent := `{"type":"ls"}`
-		os.MkdirAll(filepath.Join(storageDir, cache.Name), 0755)
-		os.WriteFile(filepath.Join(storageDir, cache.Name, "hash1.ls"), []byte(lsContent), 0644)
+		os.MkdirAll(filepath.Join(storageDir, cache.Name), 0o755)
+		os.WriteFile(filepath.Join(storageDir, cache.Name, "hash1.ls"), []byte(lsContent), 0o644)
 		defer os.Remove(filepath.Join(storageDir, cache.Name, "hash1.ls"))
 
 		w := httptest.NewRecorder()
@@ -158,12 +158,12 @@ func TestSocketApi(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusCreated, w.Code)
-		
+
 		// Verify file exists in storage
 		storagePath := filepath.Join(config.Config.CacheServer.CacheDir, cache.Name, "uploadhash")
 		_, err := os.Stat(storagePath)
 		assert.NoError(t, err)
-		
+
 		savedContent, _ := os.ReadFile(storagePath)
 		assert.Equal(t, content, savedContent)
 	})
@@ -186,7 +186,7 @@ func TestSocketApi(t *testing.T) {
 			storage objstor.ObjectStorage,
 			hub *service.Hub,
 		) {
-			privateApi = newCacheApi(privateCache, pathServ, storage)
+			privateApi = newCacheApi(privateCache, pathServ, storage, nil)
 		})
 		privateApi.NewGinApi(privateRouter)
 

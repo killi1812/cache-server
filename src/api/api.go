@@ -30,11 +30,12 @@ func NewApi(
 	agentServ *service.AgentSrv,
 	workspaceServ *service.WorkspaceSrv,
 	deploymentServ *service.DeploymentSrv,
-	hub *service.Hub,
 	storage objstor.ObjectStorage,
+	hub *service.Hub,
 ) app.CreateGinApi {
 	cacheMgmtApi := newCacheApi(cacheServ, pathServ, storage)
 	deployMgmtApi := newDeployApi(agentServ, workspaceServ, deploymentServ, hub)
+
 	return &Api{cacheMgmtApi: cacheMgmtApi, deployMgmtApi: deployMgmtApi}
 }
 
@@ -53,8 +54,8 @@ func (api *Api) NewGinApi(router *gin.Engine) {
 	v2 := apiGroup.Group("/v2")
 
 	// cache group
-	api.cacheMgmtApi.RegisterEndpoints(v1, v2)
+	api.cacheMgmtApi.RegisterEndpoints(v1)
 
 	// deploy group
-	api.deployMgmtApi.RegisterEndpoints(v1)
+	api.deployMgmtApi.RegisterEndpoints(v1, v2)
 }

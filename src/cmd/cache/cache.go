@@ -16,6 +16,7 @@ import (
 	"github.com/killi1812/go-cache-server/util/objstor"
 	"github.com/killi1812/go-cache-server/util/proc"
 	"github.com/spf13/cobra"
+	"go.uber.org/dig"
 	"go.uber.org/zap"
 )
 
@@ -26,6 +27,7 @@ var (
 	dep      *service.DeploymentSrv
 	hub      *service.Hub
 	stor     objstor.ObjectStorage
+	deployWs app.GinApi
 
 	ErrIsRunning = errors.New("err cache server is running")
 )
@@ -140,20 +142,25 @@ func setup(cmd *cobra.Command, args []string) error {
 
 	zap.S().Debug("Running workspace setup ...")
 
-	app.Invoke(func(
-		s *service.CacheSrv,
-		ps *service.StorePathSrv,
-		as *service.AgentSrv,
-		ds *service.DeploymentSrv,
-		h *service.Hub,
-		storage objstor.ObjectStorage,
-	) {
-		serv = s
-		pathServ = ps
-		agent = as
-		dep = ds
-		hub = h
-		stor = storage
+	type deps struct {
+		dig.In
+		S        *service.CacheSrv
+		Ps       *service.StorePathSrv
+		As       *service.AgentSrv
+		Ds       *service.DeploymentSrv
+		H        *service.Hub
+		Storage  objstor.ObjectStorage
+		DeployWs app.CreateGinApi `name:"deploy"`
+	}
+
+	app.Invoke(func(p deps) {
+		serv = p.S
+		pathServ = p.Ps
+		agent = p.As
+		dep = p.Ds
+		hub = p.H
+		stor = p.Storage
+		deployWs = p.DeployWs.(app.GinApi)
 	})
 
 	return nil
@@ -308,7 +315,8 @@ func start(cmd *cobra.Command, args []string) error {
 	addr := fmt.Sprintf("%s:%d", config.Config.CacheServer.Hostname, cache.Port)
 	if foreground {
 		zap.S().Infof("Starting server in foreground")
-		app.Start(newCacheApi(cache, pathServ, stor), addr)
+
+		app.Start(newCacheApi(cache, pathServ, stor, deployWs), addr)
 	} else {
 		zap.S().Infof("Starting server in backgound")
 		err := proc.StartProcBackground(cache.Uuid.String() + ".pid")

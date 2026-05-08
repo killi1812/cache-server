@@ -49,13 +49,4 @@ func (api *cacheApi) RegisterEndpoints(routerGroupByVersion ...*gin.RouterGroup)
 		zap.S().Infof("Regester v1 apis")
 		return
 	}
-	v2 := routerGroupByVersion[1]
-	// deploy group
-	deployV2 := v2.Group("/deploy")
-	deployV2.POST("activate")
-
-	if len(routerGroupByVersion) == 2 {
-		zap.S().Infof("Regester v2 apis")
-		return
-	}
 }

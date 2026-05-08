@@ -28,6 +28,7 @@ type SocketApi struct {
 	deploymentServ *service.DeploymentSrv
 	storage        objstor.ObjectStorage
 	hub            *service.Hub
+	wsHandler      app.GinApi
 }
 
 var upgrader = websocket.Upgrader{
@@ -40,25 +41,9 @@ func newCacheApi(
 	cache *model.BinaryCache,
 	pathServ *service.StorePathSrv,
 	storage objstor.ObjectStorage,
+	wsHandler app.GinApi,
 ) app.CreateGinApi {
-	return &SocketApi{cache: cache, pathServ: pathServ, storage: storage}
-}
-
-func NewCacheApiStub(
-	pathServ *service.StorePathSrv,
-	agentServ *service.AgentSrv,
-	deploymentServ *service.DeploymentSrv,
-	storage objstor.ObjectStorage,
-	hub *service.Hub,
-) app.CreateGinApi {
-	return &SocketApi{
-		cache:          &model.BinaryCache{Name: "deploy-port"},
-		pathServ:       pathServ,
-		agentServ:      agentServ,
-		deploymentServ: deploymentServ,
-		storage:        storage,
-		hub:            hub,
-	}
+	return &SocketApi{cache: cache, pathServ: pathServ, storage: storage, wsHandler: wsHandler}
 }
 
 // RegisterEndpoints implements app.GinApi.
@@ -69,10 +54,16 @@ func (s *SocketApi) NewGinApi(router *gin.Engine) {
 	}, swaggerfiles.Handler))
 
 	// WebSocket dispatcher (only for stub/deploy-port)
+	// TODO: remove
 	if s.hub != nil {
 		router.GET("/ws", s.wsDispatcher)
 		router.GET("/ws-deployment", s.wsDispatcher)
 		router.GET("/api/v1/deploy/log/", s.wsDispatcher)
+	}
+
+	if s.wsHandler != nil {
+		s.wsHandler.RegisterEndpoints(router.Group("/"))
+		// router.GET("/ws", s.wsDispatcher)
 	}
 
 	if s.cache.Access == "private" {

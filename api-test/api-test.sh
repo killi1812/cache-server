@@ -13,7 +13,7 @@ fi
 hostname="${HOSTNAME:-localhost}"
 cache="${CACHE:-test}"
 agent="${AGENT:-a1}"
-cachetoken="${CACHETOKEN:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoidGVzdCJ9.QlmOBM7imQkVauXII7Hd9rYAFgW6NKMuvZ4GmVSTgpM}"
+cachetoken="${CACHETOKEN:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijg3M2VmMzcwLWFmNGYtNDQyZS05ZDU1LWIxNzYwYzI2MTc2ZiIsIm5hbWUiOiJ0ZXN0IiwiZXhwaXJlc09uIjoxODA5NzY2NzIxLCJjcmVhdGVkT24iOjE3NzgyMzA3MjEsImxhc3RVc2VkT24iOm51bGwsInBlcm1pc3Npb24iOiIiLCJpc1Jldm9rZWQiOmZhbHNlLCJkZXNjcmlwdGlvbiI6IiJ9.fUg78Q0Ak56d-Coav0FhAXjy2Iu9HPYDhJ0Ejfn0UD8}"
 agenttoken="${AGENTTOKEN:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiYTEifQ.2p06M28roru68alrtS67xqdTSz0q1IJngc9sEUU24X0}"
 deploytoken="${DEPLOYTOKEN:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoidzEifQ.H1mchyERzmGyHopJ5MhdEQkQcAtXSwJQCHP6wm9zkEA}"
 
@@ -46,12 +46,12 @@ assert [ $? -eq 0 ]
 echo "RESULT: Success"
 echo ""
 
-echo "---Rebuilding the configuration for nix.conf changes to take effect"
-nixos-rebuild switch
-assert [ $? -eq 0 ]
-echo "RESULT: Success"
-echo ""
-
+# echo "---Rebuilding the configuration for nix.conf changes to take effect"
+# nixos-rebuild switch
+# assert [ $? -eq 0 ]
+# echo "RESULT: Success"
+# echo ""
+#
 echo "---Pushing testhello path to cachix---"
 echo $path | cachix push $cache
 assert [ $? -eq 0 ]
@@ -66,8 +66,13 @@ echo "$out"
 echo "RESULT: Success"
 echo ""
 
+# Extract the last line (the JSON) and parse the 'uri' key
+uri=$(echo "$out" | tail -n 1 | jq -r '.uri')
+
+echo "Extracted URI: $uri"
+
 echo "---Get binary cache info from binary cache---"
-out=$(curl -i http://$cache.$hostname/nix-cache-info)
+out=$(curl -i $uri/nix-cache-info)
 responsecode=$(echo $out | head -n 1 | awk '{print $2}')
 assert [ "$responsecode" = "200" ]
 echo "$out"
@@ -76,7 +81,7 @@ echo ""
 
 echo "---Get narinfo from binary cache (HEAD)---"
 storehash=$(echo $path | cut -d '-' -f 1 | cut -d '/' -f 4)
-out=$(curl --head -i http://$cache.$hostname/$storehash.narinfo)
+out=$(curl --head -i $uri/$storehash.narinfo)
 responsecode=$(echo $out | head -n 1 | awk '{print $2}')
 assert [ "$responsecode" = "200" ]
 echo "$out"
@@ -85,7 +90,7 @@ echo ""
 
 echo "---Get narinfo from binary cache (GET)---"
 storehash=$(echo $path | cut -d '-' -f 1 | cut -d '/' -f 4)
-out=$(curl -i http://$cache.$hostname/$storehash.narinfo)
+out=$(curl -i $uri/$storehash.narinfo)
 responsecode=$(echo $out | head -n 1 | awk '{print $2}')
 assert [ "$responsecode" = "200" ]
 echo "$out"

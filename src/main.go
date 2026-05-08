@@ -50,7 +50,6 @@ func init() {
 	// Provide APIs with names to resolve conflicts in dig
 	app.Provide(api.NewApi, dig.Name("management"))
 	app.Provide(api.NewDeployWsApi, dig.Name("deploy"))
-	app.Provide(cache.NewCacheApiStub)
 }
 
 //	@securityDefinitions.apikey	BearerAuth
