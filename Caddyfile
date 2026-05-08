@@ -1,0 +1,22 @@
+# --- Virtual Host 1: localhost ---
+localhost {
+    @special_paths {
+        path /ws* /api/v1/deploy/log/*
+    }
+
+    # Proxy for the special paths
+    reverse_proxy @special_paths 127.0.0.1:54321 {
+        transport http {
+            read_timeout 3600s
+            write_timeout 3600s
+        }
+    }
+
+    # Proxy everything else to the main app
+    reverse_proxy 127.0.0.1:12345
+}
+
+# --- Virtual Host 2: test.localhost ---
+test.localhost {
+	reverse_proxy 127.0.0.1:23455
+}

@@ -136,13 +136,15 @@ definitions:
     enum:
     - Pending
     - InProgress
-    - Success
+    - Succeeded
+    - Canceled
     - Failed
     type: string
     x-enum-varnames:
     - DeploymentPending
     - DeploymentInProgress
     - DeploymentSuccess
+    - DeploymentCancled
     - DeploymentFailed
   model.ErrorResponse:
     properties:

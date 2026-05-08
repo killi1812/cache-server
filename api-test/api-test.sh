@@ -35,7 +35,7 @@ echo "RESULT: Success"
 echo ""
 
 echo "---Setting cache-server hostname to cachix config---"
-cachix config set hostname http://$hostname
+cachix config set hostname https://$hostname
 assert [ $? -eq 0 ]
 echo "RESULT: Success"
 echo ""
@@ -59,20 +59,15 @@ echo "RESULT: Success"
 echo ""
 
 echo "---Get binary cache info from cache-server---"
-out=$(curl -i http://$hostname/api/v1/cache/$cache?)
+out=$(curl -i https://$hostname/api/v1/cache/$cache?)
 responsecode=$(echo $out | head -n 1 | awk '{print $2}')
 assert [ "$responsecode" = "200" ]
 echo "$out"
 echo "RESULT: Success"
 echo ""
 
-# Extract the last line (the JSON) and parse the 'uri' key
-uri=$(echo "$out" | tail -n 1 | jq -r '.uri')
-
-echo "Extracted URI: $uri"
-
 echo "---Get binary cache info from binary cache---"
-out=$(curl -i $uri/nix-cache-info)
+out=$(curl -i https://$cache.$hostname/nix-cache-info)
 responsecode=$(echo $out | head -n 1 | awk '{print $2}')
 assert [ "$responsecode" = "200" ]
 echo "$out"
@@ -81,7 +76,7 @@ echo ""
 
 echo "---Get narinfo from binary cache (HEAD)---"
 storehash=$(echo $path | cut -d '-' -f 1 | cut -d '/' -f 4)
-out=$(curl --head -i $uri/$storehash.narinfo)
+out=$(curl --head -i https://$cache.$hostname/$storehash.narinfo)
 responsecode=$(echo $out | head -n 1 | awk '{print $2}')
 assert [ "$responsecode" = "200" ]
 echo "$out"
@@ -90,7 +85,7 @@ echo ""
 
 echo "---Get narinfo from binary cache (GET)---"
 storehash=$(echo $path | cut -d '-' -f 1 | cut -d '/' -f 4)
-out=$(curl -i $uri/$storehash.narinfo)
+out=$(curl -i https://$cache.$hostname/$storehash.narinfo)
 responsecode=$(echo $out | head -n 1 | awk '{print $2}')
 assert [ "$responsecode" = "200" ]
 echo "$out"

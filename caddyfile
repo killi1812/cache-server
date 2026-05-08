@@ -1,4 +1,0 @@
-:80 {
-    # This proxies any request starting with /ws to your backend
-    reverse_proxy /ws* localhost:54321
-}

@@ -12,7 +12,8 @@ type DeploymentStatus string
 const (
 	DeploymentPending    DeploymentStatus = "Pending"
 	DeploymentInProgress DeploymentStatus = "InProgress"
-	DeploymentSuccess    DeploymentStatus = "Success"
+	DeploymentSuccess    DeploymentStatus = "Succeeded"
+	DeploymentCancled    DeploymentStatus = "Canceled"
 	DeploymentFailed     DeploymentStatus = "Failed"
 )
 
@@ -23,7 +24,7 @@ type Deployment struct {
 	DeletedAt gorm.DeletedAt   `gorm:"index" json:"-"`
 	Uuid      uuid.UUID        `gorm:"type:uuid;unique;not null" json:"id"`
 	Index     int              `json:"index"`
-	Status    DeploymentStatus `gorm:"type:varchar(50);default:'pending'" json:"status"`
+	Status    DeploymentStatus `gorm:"type:varchar(50);default:'Pending'" json:"status"`
 	StorePath string           `gorm:"type:varchar(255);not null" json:"storePath"`
 
 	AgentID uint   `json:"-"`

@@ -1172,13 +1172,15 @@ const docTemplatemanagement = `{
             "enum": [
                 "Pending",
                 "InProgress",
-                "Success",
+                "Succeeded",
+                "Canceled",
                 "Failed"
             ],
             "x-enum-varnames": [
                 "DeploymentPending",
                 "DeploymentInProgress",
                 "DeploymentSuccess",
+                "DeploymentCancled",
                 "DeploymentFailed"
             ]
         },
