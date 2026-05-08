@@ -54,7 +54,12 @@ func (h *Hub) NotifyAgent(name string, msg any) error {
 		return ErrAgentNotConnected
 	}
 
-	return conn.WriteJSON(msg)
+	zap.S().Infof("Sending message to agent '%s': %+v", name, msg)
+	err := conn.WriteJSON(msg)
+	if err != nil {
+		zap.S().Errorf("Failed to send message to agent '%s': %v", name, err)
+	}
+	return err
 }
 
 var ErrAgentNotConnected = errors.New("agent is not connected")

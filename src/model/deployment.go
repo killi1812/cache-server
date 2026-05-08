@@ -13,7 +13,7 @@ const (
 	DeploymentPending    DeploymentStatus = "Pending"
 	DeploymentInProgress DeploymentStatus = "InProgress"
 	DeploymentSuccess    DeploymentStatus = "Succeeded"
-	DeploymentCancled    DeploymentStatus = "Canceled"
+	DeploymentCancelled  DeploymentStatus = "Cancelled"
 	DeploymentFailed     DeploymentStatus = "Failed"
 )
 

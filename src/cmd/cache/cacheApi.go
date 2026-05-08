@@ -133,30 +133,34 @@ func (s *SocketApi) agent_handler(c *gin.Context) {
 		"agent": agent.Uuid.String(),
 		"command": map[string]any{
 			"contents": map[string]any{
-				"cache": map[string]any{
-					"name": s.cache.Name,
-					"uri":  s.cache.URL,
-				},
-				"id": agent.Uuid.String(),
+				"id":             agent.Uuid.String(),
+				"agentId":        agent.Uuid.String(),
+				"agentName":      name,
+				"agentVersion":   "1.9.1",
+				"agentPublicKey": "",
 			},
 			"tag": "AgentRegistered",
 		},
 		"id":     "00000000-0000-0000-0000-000000000000",
 		"method": "AgentRegistered",
 	}
+	zap.S().Infof("Sending AgentRegistered (Cache API) to agent '%s': %+v", name, regMsg)
 	conn.WriteJSON(regMsg)
 
 	// Stay open
 	go func() {
 		defer func() {
+			zap.S().Infof("Closing Cache WebSocket connection for agent '%s'", name)
 			s.hub.Unregister(name)
 			conn.Close()
 		}()
 		for {
 			var msg map[string]any
 			if err := conn.ReadJSON(&msg); err != nil {
+				zap.S().Debugf("Cache WebSocket read error for agent '%s': %v", name, err)
 				break
 			}
+			zap.S().Infof("Received Cache WebSocket message from agent '%s': %+v", name, msg)
 			method, _ := msg["method"].(string)
 			if method == "DeploymentFinished" {
 				s.processDeploymentFinished(msg)
@@ -168,15 +172,19 @@ func (s *SocketApi) agent_handler(c *gin.Context) {
 func (s *SocketApi) deployment_handler(c *gin.Context) {
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
+		zap.S().Errorf("Failed to upgrade Cache deployment websocket: %v", err)
 		return
 	}
 	defer conn.Close()
+
+	zap.S().Info("New Cache deployment status WebSocket connection")
 
 	for {
 		var msg map[string]any
 		if err := conn.ReadJSON(&msg); err != nil {
 			break
 		}
+		zap.S().Infof("Received Cache deployment status message: %+v", msg)
 		method, _ := msg["method"].(string)
 		if method == "DeploymentFinished" {
 			s.processDeploymentFinished(msg)
@@ -206,17 +214,24 @@ func (s *SocketApi) log_handler(c *gin.Context) {
 }
 
 func (s *SocketApi) processDeploymentFinished(msg map[string]any) {
+	zap.S().Debugf("Incoming Message: %+v", msg)
 	command, _ := msg["command"].(map[string]any)
 	id, _ := command["id"].(string)
 	success, _ := command["hasSucceeded"].(bool)
+
+	zap.S().Infof("Agent reported deployment %s finished (Success: %v)", id, success)
 
 	status := model.DeploymentSuccess
 	if !success {
 		status = model.DeploymentFailed
 	}
 
-	_ = s.deploymentServ.UpdateStatus(id, status)
-	zap.S().Infof("Deployment %s finished with status %s", id, status)
+	err := s.deploymentServ.UpdateStatus(id, status)
+	if err != nil {
+		zap.S().Errorf("Failed to update deployment %s status: %v", id, err)
+	} else {
+		zap.S().Infof("Database updated: Deployment %s is now %s", id, status)
+	}
 }
 
 // downloadNar godoc

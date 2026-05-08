@@ -1,11 +1,17 @@
 # --- Virtual Host 1: localhost ---
 localhost {
+    # Caddy automatically redirects HTTP (80) to HTTPS (443) 
+    # and manages local certificates for localhost.
+
     @special_paths {
         path /ws* /api/v1/deploy/log/*
     }
 
-    # Proxy for the special paths
+    # Proxy for the special paths (WebSockets & Logs)
     reverse_proxy @special_paths 127.0.0.1:54321 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        
         transport http {
             read_timeout 3600s
             write_timeout 3600s
@@ -13,10 +19,17 @@ localhost {
     }
 
     # Proxy everything else to the main app
-    reverse_proxy 127.0.0.1:12345
+    reverse_proxy 127.0.0.1:12345 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+    }
 }
 
 # --- Virtual Host 2: test.localhost ---
 test.localhost {
-	reverse_proxy 127.0.0.1:23455
+    # Also handles automatic HTTPS via internal CA
+    reverse_proxy 127.0.0.1:23455 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+    }
 }

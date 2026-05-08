@@ -429,6 +429,12 @@ func (api *deployApi) activateDeployment(c *gin.Context) {
 			continue
 		}
 
+		agent, err := api.agentServ.Read(agentName)
+		if err != nil {
+			zap.S().Errorf("Failed to read agent %s for UUID retrieval: %v", agentName, err)
+			continue
+		}
+
 		// Cachix expects an object with id and url for each agent
 		scheme := "http"
 		if c.Request.TLS != nil {
@@ -447,14 +453,21 @@ func (api *deployApi) activateDeployment(c *gin.Context) {
 			"command": map[string]any{
 				"tag": "Deployment",
 				"contents": map[string]any{
-					"id":        deployment.Uuid.String(),
-					"storePath": storePath,
-					"index":     0,
+					"id":         deployment.Uuid.String(),
+					"storePath":  storePath,
+					"index":      deployment.Index,
+					"isRollback": false,
+					"cache": map[string]any{
+						"name": agent.Workspace.BinaryCache.Name,
+						"uri":  agent.Workspace.BinaryCache.URL,
+					},
+					"rollbackScript": nil,
 				},
 			},
-			"agent": agentName,
+			"agent": agent.Uuid.String(),
 			"id":    "00000000-0000-0000-0000-000000000000",
 		}
+
 		_ = api.hub.NotifyAgent(agentName, msg)
 	}
 
