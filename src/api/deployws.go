@@ -88,6 +88,12 @@ func (api *deployWsApi) wsHandler(c *gin.Context) {
 		cacheURI = fmt.Sprintf("%s://%s.%s", scheme, agent.Workspace.BinaryCache.Name, domain)
 	}
 
+	// Strip prefix from public key for WebSocket (agent adds its own)
+	pubKeyParts := strings.Split(agent.Workspace.BinaryCache.PublicKey, ":")
+	rawPubKey := pubKeyParts[len(pubKeyParts)-1]
+	keyName := agent.Workspace.BinaryCache.Name + ".localhost-1"
+	fullKey := keyName + ":" + rawPubKey
+
 	regMsg := map[string]any{
 		"agent": agent.Uuid.String(),
 		"command": map[string]any{
@@ -98,8 +104,14 @@ func (api *deployWsApi) wsHandler(c *gin.Context) {
 				"agentVersion":   "1.9.1", // Match agent version
 				"agentPublicKey": "",      // Placeholder
 				"cache": map[string]any{
-					"name": agent.Workspace.BinaryCache.Name,
-					"uri":  cacheURI,
+					"name":              agent.Workspace.BinaryCache.Name,
+					"cacheName":         agent.Workspace.BinaryCache.Name,
+					"uri":               cacheURI,
+					"cacheUri":          cacheURI,
+					"publicKey":         rawPubKey,
+					"publicSigningKeys": []string{fullKey},
+					"isPublic":          agent.Workspace.BinaryCache.Access == "public",
+					"githubUsername":    "",
 				},
 			},
 			"tag": "AgentRegistered",
@@ -110,7 +122,6 @@ func (api *deployWsApi) wsHandler(c *gin.Context) {
 	zap.S().Infof("Sending AgentRegistered to agent '%s': %+v", name, regMsg)
 	conn.WriteJSON(regMsg)
 
-	// Keep connection alive - BLOCKING HANDLER
 	defer func() {
 		zap.S().Infof("Closing WebSocket connection for agent '%s'", name)
 		api.hub.Unregister(name)
@@ -158,6 +169,7 @@ func (api *deployWsApi) deploymentHandler(c *gin.Context) {
 		method, _ := msg["method"].(string)
 		if method == "DeploymentFinished" {
 			api.processDeploymentFinished(msg)
+			conn.Close() // Match Python await websocket.close()
 			break
 		}
 	}
@@ -187,7 +199,7 @@ func (api *deployWsApi) logHandler(c *gin.Context) {
 			zap.S().Debugf("Log WebSocket read error for %s: %v", id, err)
 			break
 		}
-		zap.S().Debugf("Raw log message for %s: %+v", id, msg)
+		zap.S().Infof("Raw log message for %s: %+v", id, msg)
 
 		if line, ok := msg["line"].(string); ok {
 			zap.S().Infof("Agent Log [%s]: %s", id, line)

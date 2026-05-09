@@ -29,7 +29,7 @@ assert() {
 }
 
 echo "---Building test.nix---"
-path=$(nix-build --substituters https://$cache.$hostname --no-out-link test.nix)
+path=$(nix-build --no-out-link test.nix)
 assert [ $? -eq 0 ]
 echo "RESULT: Success"
 echo ""
@@ -100,7 +100,7 @@ spec="{
 }"
 echo "$spec" > deploy.json
 nix-store --delete $path
-cachix deploy agent $agent &
+cachix deploy agent $agent -v &
 pid=$!
 sleep 2
 cachix deploy activate deploy.json

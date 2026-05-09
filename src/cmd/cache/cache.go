@@ -314,7 +314,7 @@ func start(cmd *cobra.Command, args []string) error {
 	if foreground {
 		zap.S().Infof("Starting server in foreground")
 
-		app.Start(newCacheApi(cache, pathServ, stor, deployWs), addr)
+		app.Start(newCacheApi(cache, pathServ, stor), addr)
 	} else {
 		zap.S().Infof("Starting server in backgound")
 		err := proc.StartProcBackground(cache.Uuid.String() + ".pid")

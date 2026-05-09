@@ -21,19 +21,15 @@ import (
 )
 
 type SocketApi struct {
-	cache          *model.BinaryCache
-	pathServ       *service.StorePathSrv
-	agentServ      *service.AgentSrv
-	deploymentServ *service.DeploymentSrv
-	storage        objstor.ObjectStorage
-	hub            *service.Hub
+	cache    *model.BinaryCache
+	pathServ *service.StorePathSrv
+	storage  objstor.ObjectStorage
 }
 
 func newCacheApi(
 	cache *model.BinaryCache,
 	pathServ *service.StorePathSrv,
 	storage objstor.ObjectStorage,
-	wsHandler app.GinApi,
 ) app.CreateGinApi {
 	return &SocketApi{cache: cache, pathServ: pathServ, storage: storage}
 }

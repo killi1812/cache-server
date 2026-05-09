@@ -436,26 +436,32 @@ func (api *deployApi) activateDeployment(c *gin.Context) {
 			continue
 		}
 
-		// Cachix expects an object with id and url for each agent
+		// Robust scheme and domain detection for proxy compatibility
 		scheme := "http"
-		if c.Request.TLS != nil {
+		if c.GetHeader("X-Forwarded-Proto") == "https" || c.Request.TLS != nil {
 			scheme = "https"
 		}
+		hostDomain := strings.Split(c.Request.Host, ":")[0]
+
+		if agent.Workspace == nil || agent.Workspace.BinaryCache == nil {
+			zap.S().Errorf("Agent %s missing workspace/cache relations", agentName)
+			errs = append(errs, fmt.Sprintf("agent %s misconfigured", agentName))
+			continue
+		}
+
 		localURL := fmt.Sprintf("%s://%s/api/v1/deploy/deployment/%s", scheme, c.Request.Host, deployment.Uuid.String())
+		cacheURI := fmt.Sprintf("%s://%s.%s", scheme, agent.Workspace.BinaryCache.Name, hostDomain)
 
 		agentDeployments[agentName] = gin.H{
 			"id":  deployment.Uuid.String(),
 			"url": localURL,
 		}
 
-		// Use the request host to build a cache URI that works with the current proxy (Caddy/Nginx)
-		// This prevents "wrong version number" SSL errors.
-		cacheURI := agent.Workspace.BinaryCache.URL
-		if strings.Contains(cacheURI, "localhost") {
-			// Strip port from c.Request.Host (e.g. "localhost:12345" -> "localhost")
-			domain := strings.Split(c.Request.Host, ":")[0]
-			cacheURI = fmt.Sprintf("%s://%s.%s", scheme, agent.Workspace.BinaryCache.Name, domain)
-		}
+		// Strip prefix from public key for WebSocket
+		pubKeyParts := strings.Split(agent.Workspace.BinaryCache.PublicKey, ":")
+		rawPubKey := pubKeyParts[len(pubKeyParts)-1]
+		keyName := agent.Workspace.BinaryCache.Name + ".localhost-1"
+		fullKey := keyName + ":" + rawPubKey
 
 		// Notify agent via Hub
 		msg := map[string]any{
@@ -468,8 +474,14 @@ func (api *deployApi) activateDeployment(c *gin.Context) {
 					"index":      deployment.Index,
 					"isRollback": false,
 					"cache": map[string]any{
-						"name": agent.Workspace.BinaryCache.Name,
-						"uri":  cacheURI,
+						"name":              agent.Workspace.BinaryCache.Name,
+						"cacheName":         agent.Workspace.BinaryCache.Name,
+						"uri":               cacheURI,
+						"cacheUri":          cacheURI,
+						"publicKey":         rawPubKey,
+						"publicSigningKeys": []string{fullKey},
+						"isPublic":          agent.Workspace.BinaryCache.Access == "public",
+						"githubUsername":    "",
 					},
 					"rollbackScript": nil,
 				},
@@ -477,7 +489,7 @@ func (api *deployApi) activateDeployment(c *gin.Context) {
 			"agent": agent.Uuid.String(),
 			"id":    "00000000-0000-0000-0000-000000000000",
 		}
-
+		zap.S().Infof("Triggering deployment for agent '%s' with cache URI: %s", agentName, cacheURI)
 		_ = api.hub.NotifyAgent(agentName, msg)
 	}
 

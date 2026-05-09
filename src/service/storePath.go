@@ -4,6 +4,7 @@ import (
 	"crypto/ed25519"
 	"encoding/base64"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/killi1812/go-cache-server/model"
@@ -86,13 +87,18 @@ func (s *StorePathSrv) GenerateNarInfo(p *model.StorePath, privateKey string) (s
 	privKey := ed25519.NewKeyFromSeed(seed)
 	sig := ed25519.Sign(privKey, []byte(fingerprint))
 
-	sigString := fmt.Sprintf("%s:%s", parts[0], base64.StdEncoding.EncodeToString(sig))
+	sigString := fmt.Sprintf("%s.localhost-1:%s", parts[0], base64.StdEncoding.EncodeToString(sig))
 
-	// TODO: implement compression
-	// Compression: {os.path.splitext(file_name)[1][1:]}
+	// Dynamic compression detection based on file extension
+	compression := "none"
+	ext := filepath.Ext(p.FileHash)
+	if ext != "" && ext != ".nar" {
+		compression = strings.TrimPrefix(ext, ".")
+	}
+
 	res := fmt.Sprintf(`StorePath: /nix/store/%s-%s
 URL: nar/%s.nar
-Compression: xz
+Compression: %s
 FileHash: %s
 FileSize: %d
 NarHash: %s
@@ -101,7 +107,7 @@ Deriver: %s
 System: x86_64-linux
 References: %s
 Sig: %s
-`, p.StoreHash, p.StoreSuffix, p.FileHash, p.NarHash, p.FileSize, p.NarHash, p.NarSize, p.Deriver, p.References, sigString)
+`, p.StoreHash, p.StoreSuffix, p.FileHash, compression, p.FileHash, p.FileSize, p.NarHash, p.NarSize, p.Deriver, p.References, sigString)
 
 	zap.S().Debugf("Generated NarInfo for %s:\n%s", p.StoreHash, res)
 	return res, nil

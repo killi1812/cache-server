@@ -66,7 +66,7 @@ func TestSocketApi(t *testing.T) {
 		storage objstor.ObjectStorage,
 		hub *service.Hub,
 	) {
-		socketApi = newCacheApi(cache, pathServ, storage, nil)
+		socketApi = newCacheApi(cache, pathServ, storage)
 	})
 	socketApi.NewGinApi(router)
 
@@ -186,7 +186,7 @@ func TestSocketApi(t *testing.T) {
 			storage objstor.ObjectStorage,
 			hub *service.Hub,
 		) {
-			privateApi = newCacheApi(privateCache, pathServ, storage, nil)
+			privateApi = newCacheApi(privateCache, pathServ, storage)
 		})
 		privateApi.NewGinApi(privateRouter)
 

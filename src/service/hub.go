@@ -50,16 +50,29 @@ func (h *Hub) NotifyAgent(name string, msg any) error {
 	h.mu.RUnlock()
 
 	if !ok {
-		zap.S().Errorf("agent '%s' is not connected", name)
+		zap.S().Errorf("Agent '%s' NOT FOUND in Hub. Active agents: %v", name, h.GetActiveAgents())
 		return ErrAgentNotConnected
 	}
 
-	zap.S().Infof("Sending message to agent '%s': %+v", name, msg)
+	zap.S().Infof("Sending message to agent '%s' (Type: %T): %+v", name, msg, msg)
 	err := conn.WriteJSON(msg)
 	if err != nil {
-		zap.S().Errorf("Failed to send message to agent '%s': %v", name, err)
+		zap.S().Errorf("Failed to write JSON to agent '%s': %v", name, err)
+	} else {
+		zap.S().Debugf("Successfully wrote message to agent '%s'", name)
 	}
 	return err
+}
+
+// GetActiveAgents returns a list of currently connected agent names.
+func (h *Hub) GetActiveAgents() []string {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	agents := make([]string, 0, len(h.agents))
+	for name := range h.agents {
+		agents = append(agents, name)
+	}
+	return agents
 }
 
 var ErrAgentNotConnected = errors.New("agent is not connected")
