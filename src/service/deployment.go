@@ -1,6 +1,8 @@
 package service
 
 import (
+	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/killi1812/go-cache-server/model"
 	"go.uber.org/zap"
@@ -57,5 +59,16 @@ func (d *DeploymentSrv) Create(agentName, storePath string) (*model.Deployment, 
 }
 
 func (d *DeploymentSrv) UpdateStatus(uuidStr string, status model.DeploymentStatus) error {
-	return d.db.Model(&model.Deployment{}).Where("uuid = ?", uuidStr).Update("status", status).Error
+	u, err := uuid.Parse(uuidStr)
+	if err != nil {
+		return fmt.Errorf("invalid uuid format: %w", err)
+	}
+	result := d.db.Model(&model.Deployment{}).Where("uuid = ?", u).Update("status", status)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("no deployment found with uuid %s", uuidStr)
+	}
+	return nil
 }

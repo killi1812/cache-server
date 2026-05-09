@@ -93,7 +93,7 @@ func (s *StorePathSrv) GenerateNarInfo(p *model.StorePath, privateKey string) (s
 	res := fmt.Sprintf(`StorePath: /nix/store/%s-%s
 URL: nar/%s.nar
 Compression: xz
-FileHash: sha256:%s
+FileHash: %s
 FileSize: %d
 NarHash: %s
 NarSize: %d
@@ -101,7 +101,7 @@ Deriver: %s
 System: x86_64-linux
 References: %s
 Sig: %s
-`, p.StoreHash, p.StoreSuffix, p.FileHash, p.FileHash, p.FileSize, p.NarHash, p.NarSize, p.Deriver, p.References, sigString)
+`, p.StoreHash, p.StoreSuffix, p.FileHash, p.NarHash, p.FileSize, p.NarHash, p.NarSize, p.Deriver, p.References, sigString)
 
 	zap.S().Debugf("Generated NarInfo for %s:\n%s", p.StoreHash, res)
 	return res, nil

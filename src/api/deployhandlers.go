@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/killi1812/go-cache-server/model"
@@ -447,6 +448,15 @@ func (api *deployApi) activateDeployment(c *gin.Context) {
 			"url": localURL,
 		}
 
+		// Use the request host to build a cache URI that works with the current proxy (Caddy/Nginx)
+		// This prevents "wrong version number" SSL errors.
+		cacheURI := agent.Workspace.BinaryCache.URL
+		if strings.Contains(cacheURI, "localhost") {
+			// Strip port from c.Request.Host (e.g. "localhost:12345" -> "localhost")
+			domain := strings.Split(c.Request.Host, ":")[0]
+			cacheURI = fmt.Sprintf("%s://%s.%s", scheme, agent.Workspace.BinaryCache.Name, domain)
+		}
+
 		// Notify agent via Hub
 		msg := map[string]any{
 			"method": "Deployment",
@@ -459,7 +469,7 @@ func (api *deployApi) activateDeployment(c *gin.Context) {
 					"isRollback": false,
 					"cache": map[string]any{
 						"name": agent.Workspace.BinaryCache.Name,
-						"uri":  agent.Workspace.BinaryCache.URL,
+						"uri":  cacheURI,
 					},
 					"rollbackScript": nil,
 				},

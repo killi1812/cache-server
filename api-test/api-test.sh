@@ -17,10 +17,6 @@ cachetoken="${CACHETOKEN}"
 agenttoken="${AGENTTOKEN}"
 deploytoken="${DEPLOYTOKEN}"
 
-echo $cachetoken
-echo $agenttoken
-echo $deploytoken
-
 export CACHIX_AUTH_TOKEN=$cachetoken
 export CACHIX_AGENT_TOKEN=$agenttoken
 export CACHIX_ACTIVATE_TOKEN=$deploytoken
@@ -33,7 +29,7 @@ assert() {
 }
 
 echo "---Building test.nix---"
-path=$(nix-build --no-out-link test.nix)
+path=$(nix-build --substituters https://$cache.$hostname --no-out-link test.nix)
 assert [ $? -eq 0 ]
 echo "RESULT: Success"
 echo ""

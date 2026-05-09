@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -34,9 +35,12 @@ func (api *deployWsApi) wsHandler(c *gin.Context) {
 		token = strings.TrimPrefix(token, "Bearer ")
 	}
 
+	zap.S().Debugf("Name: %s, Token: %s", name, token)
+
 	if name == "" || token == "" {
 		name = c.Query("name")
 		token = c.Query("token")
+		zap.S().Debugf("Name: %s, Token: %s", name, token)
 	}
 
 	if name == "" || token == "" {
@@ -45,7 +49,14 @@ func (api *deployWsApi) wsHandler(c *gin.Context) {
 	}
 
 	agent, err := api.agentServ.Read(name)
-	if err != nil || agent.Token != token {
+	if err != nil {
+		zap.S().Errorf("Failed to read agent '%s': %v", name, err)
+		c.JSON(http.StatusUnauthorized, model.ErrorResponse{Error: "unauthorized"})
+		return
+	}
+
+	if agent.Token != token {
+		zap.S().Errorf("Token mismatch for agent '%s'", name)
 		c.JSON(http.StatusUnauthorized, model.ErrorResponse{Error: "unauthorized"})
 		return
 	}
@@ -61,11 +72,22 @@ func (api *deployWsApi) wsHandler(c *gin.Context) {
 	// Verify relations exist
 	if agent.Workspace == nil || agent.Workspace.BinaryCache == nil {
 		zap.S().Errorf("Agent '%s' missing workspace or binary cache relations", name)
-		c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: "misconfigured agent relations"})
+		conn.WriteJSON(model.ErrorResponse{Error: "misconfigured agent relations"})
+		conn.Close()
 		return
 	}
 
 	// Send AgentRegistered message
+	cacheURI := agent.Workspace.BinaryCache.URL
+	if strings.Contains(cacheURI, "localhost") {
+		domain := strings.Split(c.Request.Host, ":")[0]
+		scheme := "http"
+		if c.Request.TLS != nil {
+			scheme = "https"
+		}
+		cacheURI = fmt.Sprintf("%s://%s.%s", scheme, agent.Workspace.BinaryCache.Name, domain)
+	}
+
 	regMsg := map[string]any{
 		"agent": agent.Uuid.String(),
 		"command": map[string]any{
@@ -75,36 +97,38 @@ func (api *deployWsApi) wsHandler(c *gin.Context) {
 				"agentName":      name,
 				"agentVersion":   "1.9.1", // Match agent version
 				"agentPublicKey": "",      // Placeholder
+				"cache": map[string]any{
+					"name": agent.Workspace.BinaryCache.Name,
+					"uri":  cacheURI,
+				},
 			},
 			"tag": "AgentRegistered",
 		},
-		// TODO: add propper id ??
 		"id":     "00000000-0000-0000-0000-000000000000",
 		"method": "AgentRegistered",
 	}
 	zap.S().Infof("Sending AgentRegistered to agent '%s': %+v", name, regMsg)
 	conn.WriteJSON(regMsg)
 
-	// Keep connection alive
-	go func() {
-		defer func() {
-			zap.S().Infof("Closing WebSocket connection for agent '%s'", name)
-			api.hub.Unregister(name)
-			conn.Close()
-		}()
-		for {
-			var msg map[string]any
-			if err := conn.ReadJSON(&msg); err != nil {
-				zap.S().Debugf("WebSocket read error for agent '%s': %v", name, err)
-				break
-			}
-			zap.S().Infof("Received WebSocket message from agent '%s': %+v", name, msg)
-			method, _ := msg["method"].(string)
-			if method == "DeploymentFinished" {
-				api.processDeploymentFinished(msg)
-			}
-		}
+	// Keep connection alive - BLOCKING HANDLER
+	defer func() {
+		zap.S().Infof("Closing WebSocket connection for agent '%s'", name)
+		api.hub.Unregister(name)
+		conn.Close()
 	}()
+
+	for {
+		var msg map[string]any
+		if err := conn.ReadJSON(&msg); err != nil {
+			zap.S().Debugf("WebSocket read error for agent '%s': %v", name, err)
+			break
+		}
+		zap.S().Infof("Received WebSocket message from agent '%s': %+v", name, msg)
+		method, _ := msg["method"].(string)
+		if method == "DeploymentFinished" {
+			api.processDeploymentFinished(msg)
+		}
+	}
 }
 
 // deploymentHandler godoc
@@ -127,6 +151,7 @@ func (api *deployWsApi) deploymentHandler(c *gin.Context) {
 	for {
 		var msg map[string]any
 		if err := conn.ReadJSON(&msg); err != nil {
+			zap.S().Debugf("Deployment status WebSocket read error: %v", err)
 			break
 		}
 		zap.S().Infof("Received deployment status message: %+v", msg)
