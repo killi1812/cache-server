@@ -71,7 +71,6 @@ func (s *StorePathSrv) Delete(storeHash string, cache string) error {
 	return s.store.DeleteFile(cache, path.FileHash)
 }
 
-// TODO: check wtf is this needed for
 func (s *StorePathSrv) GenerateNarInfo(p *model.StorePath, privateKey string) (string, error) {
 	// Fingerprint: 1;/nix/store/hash-suffix;narhash;narsize;refs
 	refs := strings.Split(p.References, " ")
@@ -87,17 +86,24 @@ func (s *StorePathSrv) GenerateNarInfo(p *model.StorePath, privateKey string) (s
 	privKey := ed25519.NewKeyFromSeed(seed)
 	sig := ed25519.Sign(privKey, []byte(fingerprint))
 
-	sigString := fmt.Sprintf("%s.localhost-1:%s", parts[0], base64.StdEncoding.EncodeToString(sig))
+	keyName := parts[0]
+	// Match agent's expected trust domain
+	keyName += ".localhost-1"
+	sigString := fmt.Sprintf("%s:%s", keyName, base64.StdEncoding.EncodeToString(sig))
 
-	// Dynamic compression detection based on file extension
+	// Compression detection and URL suffix
 	compression := "none"
-	ext := filepath.Ext(p.FileHash)
-	if ext != "" && ext != ".nar" {
+	urlSuffix := ""
+	if ext := filepath.Ext(p.FileHash); ext != "" && ext != ".nar" {
 		compression = strings.TrimPrefix(ext, ".")
+		urlSuffix = ext
+	} else if p.FileSize < p.NarSize {
+		compression = "xz"
+		urlSuffix = ".xz"
 	}
 
 	res := fmt.Sprintf(`StorePath: /nix/store/%s-%s
-URL: nar/%s.nar
+URL: nar/%s.nar%s
 Compression: %s
 FileHash: %s
 FileSize: %d
@@ -107,7 +113,7 @@ Deriver: %s
 System: x86_64-linux
 References: %s
 Sig: %s
-`, p.StoreHash, p.StoreSuffix, p.FileHash, compression, p.FileHash, p.FileSize, p.NarHash, p.NarSize, p.Deriver, p.References, sigString)
+`, p.StoreHash, p.StoreSuffix, p.FileHash, urlSuffix, compression, p.FileHash, p.FileSize, p.NarHash, p.NarSize, p.Deriver, p.References, sigString)
 
 	zap.S().Debugf("Generated NarInfo for %s:\n%s", p.StoreHash, res)
 	return res, nil
