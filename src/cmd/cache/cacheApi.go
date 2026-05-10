@@ -51,6 +51,8 @@ func (s *SocketApi) NewGinApi(router *gin.Engine) {
 	router.GET("/:storeHash", s.storeHashCmd)
 	router.HEAD("/:storeHash", s.storeHashCmd)
 
+	router.GET("/version", app.VersionHandler)
+
 	// Nix requests /nar/<hash>.nar.<compression>
 	router.GET("/nar/:filename", s.downloadNar)
 

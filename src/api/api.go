@@ -53,6 +53,8 @@ func (api *Api) NewGinApi(router *gin.Engine) {
 	// v2 group
 	v2 := apiGroup.Group("/v2")
 
+	v1.GET("/version", app.VersionHandler)
+
 	// cache group
 	api.cacheMgmtApi.RegisterEndpoints(v1)
 

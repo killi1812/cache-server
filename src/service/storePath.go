@@ -78,6 +78,13 @@ func (s *StorePathSrv) GenerateNarInfo(p *model.StorePath, privateKey string) (s
 		refsList = strings.Split(p.References, " ")
 	}
 
+	// Nix NarInfo text output requires space-separated relative hashes for References
+	// We must strip any suffixes from the references for the text output
+	textRefs := make([]string, len(refsList))
+	for i, r := range refsList {
+		textRefs[i] = strings.Split(r, "-")[0]
+	}
+
 	fullPaths := make([]string, len(refsList))
 	for i, r := range refsList {
 		fullPaths[i] = "/nix/store/" + r
@@ -107,7 +114,6 @@ func (s *StorePathSrv) GenerateNarInfo(p *model.StorePath, privateKey string) (s
 		urlSuffix = ".xz"
 	}
 
-	// Nix NarInfo text output requires space-separated relative hashes for References
 	res := fmt.Sprintf(`StorePath: /nix/store/%s-%s
 URL: nar/%s.nar%s
 Compression: %s
@@ -119,7 +125,7 @@ Deriver: %s
 System: x86_64-linux
 References: %s
 Sig: %s
-`, p.StoreHash, p.StoreSuffix, p.FileHash, urlSuffix, compression, p.FileHash, p.FileSize, p.NarHash, p.NarSize, p.Deriver, strings.Join(refsList, " "), sigString)
+`, p.StoreHash, p.StoreSuffix, p.FileHash, urlSuffix, compression, p.FileHash, p.FileSize, p.NarHash, p.NarSize, p.Deriver, strings.Join(textRefs, " "), sigString)
 
 	zap.S().Debugf("Generated NarInfo for %s:\n%s", p.StoreHash, res)
 	return res, nil
