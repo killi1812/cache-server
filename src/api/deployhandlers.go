@@ -460,7 +460,7 @@ func (api *deployApi) activateDeployment(c *gin.Context) {
 		// Strip prefix from public key for WebSocket
 		pubKeyParts := strings.Split(agent.Workspace.BinaryCache.PublicKey, ":")
 		rawPubKey := pubKeyParts[len(pubKeyParts)-1]
-		keyName := agent.Workspace.BinaryCache.Name + ".localhost-1"
+		keyName := agent.Workspace.BinaryCache.Name
 		fullKey := keyName + ":" + rawPubKey
 
 		// Notify agent via Hub

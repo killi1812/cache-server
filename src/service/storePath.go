@@ -72,13 +72,20 @@ func (s *StorePathSrv) Delete(storeHash string, cache string) error {
 }
 
 func (s *StorePathSrv) GenerateNarInfo(p *model.StorePath, privateKey string) (string, error) {
-	// Fingerprint: 1;/nix/store/hash-suffix;narhash;narsize;refs
-	refs := strings.Split(p.References, " ")
-	for i, r := range refs {
-		refs[i] = "/nix/store/" + r
+	// Fingerprint: 1;StorePath;NarHash;NarSize;References
+	var refsList []string
+	if p.References != "" {
+		refsList = strings.Split(p.References, " ")
 	}
+
+	fullPaths := make([]string, len(refsList))
+	for i, r := range refsList {
+		fullPaths[i] = "/nix/store/" + r
+	}
+
+	// Nix Fingerprint format requires comma-separated full store paths
 	fingerprint := fmt.Sprintf("1;/nix/store/%s-%s;%s;%d;%s",
-		p.StoreHash, p.StoreSuffix, p.NarHash, p.NarSize, strings.Join(refs, ","))
+		p.StoreHash, p.StoreSuffix, p.NarHash, p.NarSize, strings.Join(fullPaths, ","))
 
 	// Signing logic
 	parts := strings.Split(privateKey, ":")
@@ -87,8 +94,6 @@ func (s *StorePathSrv) GenerateNarInfo(p *model.StorePath, privateKey string) (s
 	sig := ed25519.Sign(privKey, []byte(fingerprint))
 
 	keyName := parts[0]
-	// Match agent's expected trust domain
-	keyName += ".localhost-1"
 	sigString := fmt.Sprintf("%s:%s", keyName, base64.StdEncoding.EncodeToString(sig))
 
 	// Compression detection and URL suffix
@@ -102,10 +107,11 @@ func (s *StorePathSrv) GenerateNarInfo(p *model.StorePath, privateKey string) (s
 		urlSuffix = ".xz"
 	}
 
+	// Nix NarInfo text output requires space-separated relative hashes for References
 	res := fmt.Sprintf(`StorePath: /nix/store/%s-%s
 URL: nar/%s.nar%s
 Compression: %s
-FileHash: %s
+FileHash: sha256:%s
 FileSize: %d
 NarHash: %s
 NarSize: %d
@@ -113,7 +119,7 @@ Deriver: %s
 System: x86_64-linux
 References: %s
 Sig: %s
-`, p.StoreHash, p.StoreSuffix, p.FileHash, urlSuffix, compression, p.FileHash, p.FileSize, p.NarHash, p.NarSize, p.Deriver, p.References, sigString)
+`, p.StoreHash, p.StoreSuffix, p.FileHash, urlSuffix, compression, p.FileHash, p.FileSize, p.NarHash, p.NarSize, p.Deriver, strings.Join(refsList, " "), sigString)
 
 	zap.S().Debugf("Generated NarInfo for %s:\n%s", p.StoreHash, res)
 	return res, nil

@@ -91,7 +91,7 @@ func (api *deployWsApi) wsHandler(c *gin.Context) {
 	// Strip prefix from public key for WebSocket (agent adds its own)
 	pubKeyParts := strings.Split(agent.Workspace.BinaryCache.PublicKey, ":")
 	rawPubKey := pubKeyParts[len(pubKeyParts)-1]
-	keyName := agent.Workspace.BinaryCache.Name + ".localhost-1"
+	keyName := agent.Workspace.BinaryCache.Name
 	fullKey := keyName + ":" + rawPubKey
 
 	regMsg := map[string]any{
