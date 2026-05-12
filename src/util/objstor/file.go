@@ -114,6 +114,13 @@ func (f fileStorage) CreatFile(cachename, filename string) error {
 	return nil
 }
 
+func (f fileStorage) RenameFile(cachename, oldName, newName string) error {
+	oldPath := filepath.Join(f.rootDir, cachename, oldName)
+	newPath := filepath.Join(f.rootDir, cachename, newName)
+	zap.S().Infof("Renaming file from %s to %s", oldPath, newPath)
+	return os.Rename(oldPath, newPath)
+}
+
 func newFileStorage(rootDir string) ObjectStorage {
 	return fileStorage{rootDir}
 }

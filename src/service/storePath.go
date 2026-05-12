@@ -90,8 +90,7 @@ func (s *StorePathSrv) GenerateNarInfo(p *model.StorePath, privateKey string) (s
 		fullPaths[i] = "/nix/store/" + r
 	}
 
-	// Nix Fingerprint format requires comma-separated full store paths
-	fingerprint := fmt.Sprintf("1;/nix/store/%s-%s;%s;%d;%s",
+	fingerprint := fmt.Sprintf("1;/nix/store/%s-%s;sha256:%s;%d;%s",
 		p.StoreHash, p.StoreSuffix, p.NarHash, p.NarSize, strings.Join(fullPaths, ","))
 
 	// Signing logic
@@ -119,13 +118,12 @@ URL: nar/%s.nar%s
 Compression: %s
 FileHash: sha256:%s
 FileSize: %d
-NarHash: %s
+NarHash: sha256:%s
 NarSize: %d
-Deriver: %s
-System: x86_64-linux
 References: %s
+Deriver: %s
 Sig: %s
-`, p.StoreHash, p.StoreSuffix, p.FileHash, urlSuffix, compression, p.FileHash, p.FileSize, p.NarHash, p.NarSize, p.Deriver, strings.Join(textRefs, " "), sigString)
+`, p.StoreHash, p.StoreSuffix, p.FileHash, urlSuffix, compression, p.FileHash, p.FileSize, p.NarHash, p.NarSize, strings.Join(textRefs, " "), p.Deriver, sigString)
 
 	zap.S().Debugf("Generated NarInfo for %s:\n%s", p.StoreHash, res)
 	return res, nil

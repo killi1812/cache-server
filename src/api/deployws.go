@@ -99,17 +99,20 @@ func (api *deployWsApi) wsHandler(c *gin.Context) {
 	defer func() {
 		zap.S().Infof("Closing WebSocket connection for agent '%s'", name)
 		api.hub.Unregister(name)
+		conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 		conn.Close()
 	}()
 
 	for {
 		var msg map[string]any
 		if err := conn.ReadJSON(&msg); err != nil {
-			zap.S().Debugf("WebSocket read error for agent '%s': %v", name, err)
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				zap.S().Errorf("WebSocket error for agent '%s': %v", name, err)
+				conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseUnsupportedData, "Invalid JSON or protocol violation"))
+			}
 			break
 		}
 		zap.S().Infof("Received WebSocket message from agent '%s': %+v", name, msg)
-		// Agent WebSocket handles commands from server, doesn't expect status back here per spec.
 	}
 }
 
@@ -126,14 +129,19 @@ func (api *deployWsApi) deploymentHandler(c *gin.Context) {
 		zap.S().Errorf("Failed to upgrade deployment websocket: %v", err)
 		return
 	}
-	defer conn.Close()
+	defer func() {
+		conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+		conn.Close()
+	}()
 
 	zap.S().Info("New deployment status WebSocket connection")
 
 	for {
 		var msg map[string]any
 		if err := conn.ReadJSON(&msg); err != nil {
-			zap.S().Debugf("Deployment status WebSocket read error: %v", err)
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				zap.S().Errorf("Deployment status WebSocket error: %v", err)
+			}
 			break
 		}
 		zap.S().Infof("Received deployment status message: %+v", msg)
@@ -162,18 +170,26 @@ func (api *deployWsApi) logHandler(c *gin.Context) {
 		zap.S().Errorf("Failed to upgrade log websocket for %s: %v", id, err)
 		return
 	}
-	defer conn.Close()
+	defer func() {
+		conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+		conn.Close()
+	}()
 
 	for {
 		var msg map[string]any
 		if err := conn.ReadJSON(&msg); err != nil {
-			zap.S().Debugf("Log WebSocket read error for %s: %v", id, err)
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				zap.S().Errorf("Log WebSocket error for %s: %v", id, err)
+			}
 			break
 		}
 
 		if line, ok := msg["line"].(string); ok {
 			zap.S().Infof("Agent Log [%s]: %s", id, line)
-			if line == "Successfully activated the deployment." || strings.Contains(line, "Failed to activate the deployment.") {
+			if line == "Successfully activated the deployment." ||
+				strings.Contains(line, "Failed to activate the deployment.") ||
+				strings.Contains(line, "The deployment failed with an unexpected error:") {
+				zap.S().Infof("Terminal log string detected for %s, closing connection", id)
 				break
 			}
 		}
