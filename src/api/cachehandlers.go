@@ -112,7 +112,6 @@ func (api *cacheApi) name(c *gin.Context) {
 		}
 	}
 
-	// Cachix-compliant response
 	response := gin.H{
 		"githubUsername":             "",
 		"isPublic":                   cache.Access == model.Public,

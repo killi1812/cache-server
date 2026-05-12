@@ -46,13 +46,12 @@ assert [ $? -eq 0 ]
 echo "RESULT: Success"
 echo ""
 
-# echo "---Rebuilding the configuration for nix.conf changes to take effect"
 echo "---Restarting nix deamon"
 # nixos-rebuild switch
 sudo systemctl restart nix-daemon
- assert [ $? -eq 0 ]
- echo "RESULT: Success"
- echo ""
+assert [ $? -eq 0 ]
+echo "RESULT: Success"
+echo ""
 #
 echo "---Pushing testhello path to cachix---"
 echo $path | cachix push $cache
@@ -102,10 +101,10 @@ spec="{
 }"
 echo "$spec" > deploy.json
 nix-store --delete $path
-cachix deploy agent $agent -v &
+cachix -v deploy agent $agent &
 pid=$!
 sleep 2
-cachix deploy activate deploy.json
+cachix -v deploy activate deploy.json
 res=$?
 kill $pid
 rm deploy.json

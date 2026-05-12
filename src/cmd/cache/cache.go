@@ -223,7 +223,7 @@ func remove(cmd *cobra.Command, args []string) error {
 	zap.S().Debugf("Parsed args: %v", name)
 
 	err := serv.Delete(name)
-	err2 := stor.DeleteFile(name, name) // Passing name as cachename and name as objectname (representing the dir or main entry)
+	err2 := stor.DeleteFile(name, "") // Passing name as cachename and name as objectname (representing the dir or main entry)
 
 	if err != nil {
 		zap.S().Errorf("Failed to delete cache, err: %+v", err)
@@ -233,7 +233,7 @@ func remove(cmd *cobra.Command, args []string) error {
 		zap.S().Errorf("Failed to delete cache store, err: %+v", err2)
 	}
 
-	if err != nil && err2 != nil {
+	if err != nil || err2 != nil {
 		return errors.Join(err, err2)
 	}
 

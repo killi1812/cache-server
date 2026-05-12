@@ -64,9 +64,6 @@ func (s *StorePathSrv) Delete(storeHash string, cache string) error {
 		return err
 	}
 
-	// 3. Delete the actual NAR file from Object Storage (S3/Local)
-	// Note: You'll need to determine the extension (e.g., .nar.xz)
-	// based on your storage logic.
 	return s.store.DeleteFile(cache, path.FileHash)
 }
 
@@ -93,8 +90,11 @@ func (s *StorePathSrv) GenerateNarInfo(p *model.StorePath, privateKey string) (s
 
 	// Signing logic
 	parts := strings.Split(privateKey, ":")
-	seed, _ := base64.StdEncoding.DecodeString(parts[1])
-	privKey := ed25519.NewKeyFromSeed(seed)
+	keyString, err := base64.StdEncoding.DecodeString(parts[1])
+	if err != nil {
+		zap.S().Errorf("Failed to decode string")
+	}
+	privKey := ed25519.PrivateKey(keyString)
 	sig := ed25519.Sign(privKey, []byte(fingerprint))
 
 	keyName := parts[0]

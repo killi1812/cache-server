@@ -55,7 +55,7 @@ func (c *CacheSrv) Create(args CreateCacheArgs) (*model.BinaryCache, error) {
 
 	// Format: name:base64
 	pubStr := args.Name + "." + config.Config.CacheServer.Hostname + "-1:" + base64.StdEncoding.EncodeToString(pub)
-	privStr := args.Name + "." + config.Config.CacheServer.Hostname + "-1:" + base64.StdEncoding.EncodeToString(priv.Seed())
+	privStr := args.Name + "." + config.Config.CacheServer.Hostname + "-1:" + base64.StdEncoding.EncodeToString(priv)
 
 	cache := model.BinaryCache{
 		Name:      args.Name,

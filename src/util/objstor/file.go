@@ -61,7 +61,7 @@ func (f fileStorage) DeleteFile(cachename, name string) error {
 		zap.S().Infof("File info %+v", info)
 	}
 
-	err = os.Remove(cachePath)
+	err = os.RemoveAll(cachePath)
 	if err != nil {
 		pErr, ok := err.(*os.PathError)
 		if ok {
