@@ -47,10 +47,12 @@ echo "RESULT: Success"
 echo ""
 
 # echo "---Rebuilding the configuration for nix.conf changes to take effect"
+echo "---Restarting nix deamon"
 # nixos-rebuild switch
-# assert [ $? -eq 0 ]
-# echo "RESULT: Success"
-# echo ""
+sudo systemctl restart nix-daemon
+ assert [ $? -eq 0 ]
+ echo "RESULT: Success"
+ echo ""
 #
 echo "---Pushing testhello path to cachix---"
 echo $path | cachix push $cache

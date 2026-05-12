@@ -101,6 +101,10 @@ func (s *StorePathSrv) GenerateNarInfo(p *model.StorePath, privateKey string) (s
 	sig := ed25519.Sign(privKey, []byte(fingerprint))
 
 	keyName := parts[0]
+	// Match agent's auto-generated trust domain for localhost
+	if !strings.HasSuffix(keyName, ".localhost-1") {
+		keyName += ".localhost-1"
+	}
 	sigString := fmt.Sprintf("%s:%s", keyName, base64.StdEncoding.EncodeToString(sig))
 
 	// Compression detection and URL suffix

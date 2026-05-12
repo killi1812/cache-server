@@ -114,13 +114,21 @@ func (api *cacheApi) name(c *gin.Context) {
 	}
 
 	// Cachix-compliant response
+	pubKey := cache.PublicKey
+	if strings.Contains(cache.URL, "localhost") {
+		parts := strings.Split(pubKey, ":")
+		if len(parts) == 2 && !strings.HasSuffix(parts[0], ".localhost-1") {
+			pubKey = parts[0] + ".localhost-1:" + parts[1]
+		}
+	}
+
 	response := gin.H{
 		"githubUsername":             "",
 		"isPublic":                   cache.Access == model.Public,
 		"name":                       cache.Name,
 		"permission":                 "Admin", // Default for now
 		"preferredCompressionMethod": "XZ",
-		"publicSigningKeys":          []string{cache.PublicKey},
+		"publicSigningKeys":          []string{pubKey},
 		"uri":                        cache.URL,
 	}
 

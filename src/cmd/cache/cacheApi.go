@@ -74,12 +74,12 @@ func (s *SocketApi) downloadNar(c *gin.Context) {
 	filename := c.Param("filename")
 	zap.S().Infof("Downloading NAR file: %s from cache %s", filename, s.cache.Name)
 
-	// TODO: this is a temporary fix
-	filename, _ = strings.CutSuffix(filename, ".nar")
+	// Robustly parse hash from filename (e.g. HASH.nar.xz -> HASH)
+	fileHash := strings.Split(filename, ".nar")[0]
 
-	reader, err := s.storage.ReadFile(s.cache.Name, filename)
+	reader, err := s.storage.ReadFile(s.cache.Name, fileHash)
 	if err != nil {
-		zap.S().Errorf("Failed to read NAR file %s, err: %v", filename, err)
+		zap.S().Errorf("Failed to read NAR file %s (parsed as %s), err: %v", filename, fileHash, err)
 		c.AbortWithStatusJSON(http.StatusNotFound, model.ErrorResponse{
 			Error: "NAR file not found",
 		})
@@ -87,7 +87,6 @@ func (s *SocketApi) downloadNar(c *gin.Context) {
 	}
 	defer reader.Close()
 
-	// TODO: set content Content-Length
 	c.DataFromReader(http.StatusOK, -1, "application/x-nix-nar", reader, nil)
 }
 
