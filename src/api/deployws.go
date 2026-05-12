@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -35,12 +34,9 @@ func (api *deployWsApi) wsHandler(c *gin.Context) {
 		token = strings.TrimPrefix(token, "Bearer ")
 	}
 
-	zap.S().Debugf("Name: %s, Token: %s", name, token)
-
 	if name == "" || token == "" {
 		name = c.Query("name")
 		token = c.Query("token")
-		zap.S().Debugf("Name: %s, Token: %s", name, token)
 	}
 
 	if name == "" || token == "" {
@@ -77,42 +73,20 @@ func (api *deployWsApi) wsHandler(c *gin.Context) {
 		return
 	}
 
-	// Send AgentRegistered message
-	cacheURI := agent.Workspace.BinaryCache.URL
-	if strings.Contains(cacheURI, "localhost") {
-		domain := strings.Split(c.Request.Host, ":")[0]
-		scheme := "http"
-		if c.Request.TLS != nil {
-			scheme = "https"
-		}
-		cacheURI = fmt.Sprintf("%s://%s.%s", scheme, agent.Workspace.BinaryCache.Name, domain)
-	}
-
-	// Strip prefix from public key for WebSocket (agent adds its own)
+	// Strip prefix from public key for WebSocket
 	pubKeyParts := strings.Split(agent.Workspace.BinaryCache.PublicKey, ":")
 	rawPubKey := pubKeyParts[len(pubKeyParts)-1]
-	keyName := agent.Workspace.BinaryCache.Name
-	fullKey := keyName + ":" + rawPubKey
 
 	regMsg := map[string]any{
 		"agent": agent.Uuid.String(),
 		"command": map[string]any{
 			"contents": map[string]any{
-				"id":             agent.Uuid.String(),
-				"agentId":        agent.Uuid.String(),
-				"agentName":      name,
-				"agentVersion":   "1.9.1", // Match agent version
-				"agentPublicKey": "",      // Placeholder
 				"cache": map[string]any{
-					"name":              agent.Workspace.BinaryCache.Name,
-					"cacheName":         agent.Workspace.BinaryCache.Name,
-					"uri":               cacheURI,
-					"cacheUri":          cacheURI,
-					"publicKey":         rawPubKey,
-					"publicSigningKeys": []string{fullKey},
-					"isPublic":          agent.Workspace.BinaryCache.Access == "public",
-					"githubUsername":    "",
+					"cacheName": agent.Workspace.BinaryCache.Name,
+					"isPublic":  agent.Workspace.BinaryCache.Access == "public",
+					"publicKey": rawPubKey,
 				},
+				"id": agent.Uuid.String(),
 			},
 			"tag": "AgentRegistered",
 		},
@@ -135,10 +109,7 @@ func (api *deployWsApi) wsHandler(c *gin.Context) {
 			break
 		}
 		zap.S().Infof("Received WebSocket message from agent '%s': %+v", name, msg)
-		method, _ := msg["method"].(string)
-		if method == "DeploymentFinished" {
-			api.processDeploymentFinished(msg)
-		}
+		// Agent WebSocket handles commands from server, doesn't expect status back here per spec.
 	}
 }
 
@@ -169,7 +140,7 @@ func (api *deployWsApi) deploymentHandler(c *gin.Context) {
 		method, _ := msg["method"].(string)
 		if method == "DeploymentFinished" {
 			api.processDeploymentFinished(msg)
-			conn.Close() // Match Python await websocket.close()
+			zap.S().Info("DeploymentFinished received, closing connection")
 			break
 		}
 	}
@@ -199,7 +170,6 @@ func (api *deployWsApi) logHandler(c *gin.Context) {
 			zap.S().Debugf("Log WebSocket read error for %s: %v", id, err)
 			break
 		}
-		zap.S().Infof("Raw log message for %s: %+v", id, msg)
 
 		if line, ok := msg["line"].(string); ok {
 			zap.S().Infof("Agent Log [%s]: %s", id, line)
@@ -212,7 +182,6 @@ func (api *deployWsApi) logHandler(c *gin.Context) {
 }
 
 func (api *deployWsApi) processDeploymentFinished(msg map[string]any) {
-	zap.S().Debugf("Incoming Message: %+v", msg)
 	command, _ := msg["command"].(map[string]any)
 	id, _ := command["id"].(string)
 	success, _ := command["hasSucceeded"].(bool)

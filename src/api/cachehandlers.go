@@ -106,7 +106,6 @@ func (api *cacheApi) name(c *gin.Context) {
 	}
 
 	if cache.Access == model.Private {
-		// Not exactly middleware but manual check for now
 		auth.Protect(cache.Token)(c)
 		if c.IsAborted() {
 			return
@@ -114,21 +113,13 @@ func (api *cacheApi) name(c *gin.Context) {
 	}
 
 	// Cachix-compliant response
-	pubKey := cache.PublicKey
-	if strings.Contains(cache.URL, "localhost") {
-		parts := strings.Split(pubKey, ":")
-		if len(parts) == 2 && !strings.HasSuffix(parts[0], ".localhost-1") {
-			pubKey = parts[0] + ".localhost-1:" + parts[1]
-		}
-	}
-
 	response := gin.H{
 		"githubUsername":             "",
 		"isPublic":                   cache.Access == model.Public,
 		"name":                       cache.Name,
-		"permission":                 "Admin", // Default for now
+		"permission":                 "Admin",
 		"preferredCompressionMethod": "XZ",
-		"publicSigningKeys":          []string{pubKey},
+		"publicSigningKeys":          []string{cache.PublicKey},
 		"uri":                        cache.URL,
 	}
 
@@ -277,7 +268,10 @@ func (api *cacheApi) uploadNarData(c *gin.Context) {
 		return
 	}
 
-	err := api.storage.WriteFile(name, narUuid, c.Request.Body)
+	// We assume .xz for multipart uploads as per createNar default
+	filename := narUuid + ".nar.xz"
+
+	err := api.storage.WriteFile(name, filename, c.Request.Body)
 	if err != nil {
 		c.AbortWithStatusJSON(500, model.ErrorResponse{
 			Error: "failed to save to storage",
@@ -338,7 +332,7 @@ func (api *cacheApi) completeNar(c *gin.Context) {
 		StoreSuffix: req.NarInfoCreate.CStoreSuffix,
 		NarHash:     req.NarInfoCreate.CNarHash,
 		NarSize:     req.NarInfoCreate.CNarSize,
-		FileHash:    narUuid, // Using the UUID as the file identifier in storage
+		FileHash:    narUuid + ".nar.xz", // Store the filename with extension
 		FileSize:    req.NarInfoCreate.CFileSize,
 		Deriver:     req.NarInfoCreate.CDeriver,
 		References:  strings.Join(req.NarInfoCreate.CReferences, " "),

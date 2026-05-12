@@ -457,33 +457,16 @@ func (api *deployApi) activateDeployment(c *gin.Context) {
 			"url": localURL,
 		}
 
-		// Strip prefix from public key for WebSocket
-		pubKeyParts := strings.Split(agent.Workspace.BinaryCache.PublicKey, ":")
-		rawPubKey := pubKeyParts[len(pubKeyParts)-1]
-		keyName := agent.Workspace.BinaryCache.Name
-		fullKey := keyName + ":" + rawPubKey
-
 		// Notify agent via Hub
 		msg := map[string]any{
 			"method": "Deployment",
 			"command": map[string]any{
 				"tag": "Deployment",
 				"contents": map[string]any{
-					"id":         deployment.Uuid.String(),
-					"storePath":  storePath,
-					"index":      deployment.Index,
-					"isRollback": false,
-					"cache": map[string]any{
-						"name":              agent.Workspace.BinaryCache.Name,
-						"cacheName":         agent.Workspace.BinaryCache.Name,
-						"uri":               cacheURI,
-						"cacheUri":          cacheURI,
-						"publicKey":         rawPubKey,
-						"publicSigningKeys": []string{fullKey},
-						"isPublic":          agent.Workspace.BinaryCache.Access == "public",
-						"githubUsername":    "",
-					},
+					"id":             deployment.Uuid.String(),
+					"index":          deployment.Index,
 					"rollbackScript": nil,
+					"storePath":      storePath,
 				},
 			},
 			"agent": agent.Uuid.String(),

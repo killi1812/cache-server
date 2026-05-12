@@ -20,7 +20,12 @@ const (
 // WriteFile implements [ObjectStorage].
 func (f fileStorage) WriteFile(cachename, name string, data io.Reader) error {
 	zap.S().Infof("Trying to write file '%s' in cache '%s'", name, cachename)
-	cachePath := filepath.Join(f.rootDir, cachename, name)
+	cacheDir := filepath.Join(f.rootDir, cachename)
+	if err := os.MkdirAll(cacheDir, dirPerms); err != nil {
+		zap.S().Errorf("Failed to ensure cache directory '%s', err: %v", cacheDir, err)
+		return err
+	}
+	cachePath := filepath.Join(cacheDir, name)
 
 	file, err := os.OpenFile(cachePath, os.O_CREATE|os.O_WRONLY, filePerms)
 	if err != nil {
@@ -91,7 +96,12 @@ func (f fileStorage) CreateDir(name string) (string, error) {
 
 func (f fileStorage) CreatFile(cachename, filename string) error {
 	zap.S().Infof("Trying to write file '%s'", filename)
-	cachePath := filepath.Join(f.rootDir, cachename, filename)
+	cacheDir := filepath.Join(f.rootDir, cachename)
+	if err := os.MkdirAll(cacheDir, dirPerms); err != nil {
+		zap.S().Errorf("Failed to ensure directory '%s', err: %v", cacheDir, err)
+		return err
+	}
+	cachePath := filepath.Join(cacheDir, filename)
 
 	file, err := os.OpenFile(cachePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, filePerms)
 	if err != nil {
@@ -100,7 +110,7 @@ func (f fileStorage) CreatFile(cachename, filename string) error {
 	}
 	defer file.Close()
 
-	zap.S().Infof("File Created successfulyy")
+	zap.S().Infof("File Created successfully")
 	return nil
 }
 
