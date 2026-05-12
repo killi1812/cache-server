@@ -332,7 +332,7 @@ func (api *cacheApi) completeNar(c *gin.Context) {
 		StoreSuffix: req.NarInfoCreate.CStoreSuffix,
 		NarHash:     req.NarInfoCreate.CNarHash,
 		NarSize:     req.NarInfoCreate.CNarSize,
-		FileHash:    narUuid + ".nar.xz", // Store the filename with extension
+		FileHash:    req.NarInfoCreate.CFileHash,
 		FileSize:    req.NarInfoCreate.CFileSize,
 		Deriver:     req.NarInfoCreate.CDeriver,
 		References:  strings.Join(req.NarInfoCreate.CReferences, " "),
@@ -347,7 +347,7 @@ func (api *cacheApi) completeNar(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{})
+	c.AbortWithStatus(http.StatusOK)
 }
 
 // abortNar godoc

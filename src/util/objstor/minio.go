@@ -87,7 +87,6 @@ func (m *mStorage) CreatFile(cachename, filename string) error {
 	return nil
 }
 
-// New creates a new minio.Client
 func newMinioStorage() *mStorage {
 	minioClient, err := minio.New(config.Config.Minio.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(config.Config.Minio.CredID, config.Config.Minio.CredSecret, config.Config.Minio.CredToken),

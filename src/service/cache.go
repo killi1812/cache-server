@@ -135,7 +135,7 @@ func (c *CacheSrv) Update(name string, newCache model.BinaryCache) (*model.Binar
 	}
 	if newCache.Port != 0 {
 		cache.Port = newCache.Port
-		cache.URL = fmt.Sprintf("http://%s:%d", config.Config.CacheServer.Hostname, newCache.Port)
+		cache.URL = fmt.Sprintf("https://%s.%s", cache.Name, config.Config.CacheServer.Hostname)
 	}
 	if newCache.Access != "" {
 		cache.Access = newCache.Access
