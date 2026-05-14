@@ -57,6 +57,7 @@ func (f fileStorage) DeleteFile(cachename, name string) error {
 		} else {
 			zap.S().Errorf("Failed to access path '%s', err: %+v", cachePath, err)
 		}
+		return err
 	} else {
 		zap.S().Infof("File info %+v", info)
 	}

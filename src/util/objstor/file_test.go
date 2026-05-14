@@ -64,5 +64,6 @@ func TestFileStorage(t *testing.T) {
 	t.Run("DeleteFile - Not Found", func(t *testing.T) {
 		err := storage.DeleteFile("nonexistent", "file")
 		assert.Error(t, err)
+		assert.True(t, os.IsNotExist(err))
 	})
 }

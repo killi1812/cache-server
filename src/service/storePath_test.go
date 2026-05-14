@@ -19,15 +19,15 @@ func TestGenerateNarInfo(t *testing.T) {
 		StoreSuffix: "testhello",
 		NarHash:     "sha256:1p4a6kwhz5h1ppcqc5k10mgjbbqj55pzwr98d68n048yrqs3bj5s",
 		NarSize:     191640,
-		FileHash:    "sha256:6d4a231752b5cebfe0f73466997e8c20be47a014e05b6b37e89c1e5465f97920",
+		FileHash:    "6d4a231752b5cebfe0f73466997e8c20be47a014e05b6b37e89c1e5465f97920",
 		FileSize:    37364,
 		References:  "ffgmyxfrc3v77azm9g8lix2kp3rcf443-testhello j193mfi0f921y0kfs8vjc1znnr45ispv-glibc-2.40-66",
 		Deriver:     "zcxchykc7js9mcb4nq58283sddh5qr48-testhello.drv",
 	}
 
 	seed := make([]byte, 32)
-	ed25519.NewKeyFromSeed(seed)
-	privKeyStr := "test.localhost-1:" + base64.StdEncoding.EncodeToString(seed)
+	key := ed25519.NewKeyFromSeed(seed)
+	privKeyStr := "test.localhost-1:" + base64.StdEncoding.EncodeToString(key)
 
 	output, err := srv.GenerateNarInfo(p, privKeyStr)
 	assert.NoError(t, err)

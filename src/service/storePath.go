@@ -73,26 +73,26 @@ func (s *StorePathSrv) GenerateNarInfo(p *model.StorePath, privateKey string) (s
 	if p.References != "" {
 		refsList = strings.Fields(p.References)
 	}
-
-	// Nix NarInfo text output requires space-separated relative hashes for References
-	textRefs := make([]string, len(refsList))
-	for i, r := range refsList {
-		textRefs[i] = strings.Split(r, "-")[0]
-	}
+	zap.S().Debugf("References: %v", refsList)
 
 	fullPaths := make([]string, len(refsList))
 	for i, r := range refsList {
 		fullPaths[i] = "/nix/store/" + r
 	}
+	zap.S().Debugf("Full paths : %v", fullPaths)
 
+	cleanHash := strings.TrimPrefix(p.NarHash, "sha256:")
+	zap.S().Debugf("CleanNarHash: %s", cleanHash)
 	fingerprint := fmt.Sprintf("1;/nix/store/%s-%s;%s;%d;%s",
-		p.StoreHash, p.StoreSuffix, p.NarHash, p.NarSize, strings.Join(fullPaths, ","))
+		p.StoreHash, p.StoreSuffix, cleanHash, p.NarSize, strings.Join(fullPaths, ","))
+	zap.S().Debugf("Fingerprint : %v", fingerprint)
 
 	// Signing logic
 	parts := strings.Split(privateKey, ":")
 	keyString, err := base64.StdEncoding.DecodeString(parts[1])
 	if err != nil {
 		zap.S().Errorf("Failed to decode string")
+		return "", err
 	}
 	privKey := ed25519.PrivateKey(keyString)
 	sig := ed25519.Sign(privKey, []byte(fingerprint))
@@ -102,8 +102,7 @@ func (s *StorePathSrv) GenerateNarInfo(p *model.StorePath, privateKey string) (s
 
 	// Compression detection and URL
 	compression := "none"
-	cleanFileHash := strings.TrimPrefix(p.FileHash, "sha256:")
-	url := fmt.Sprintf("nar/%s.nar", cleanFileHash)
+	url := fmt.Sprintf("nar/%s.nar", p.FileHash)
 
 	// If the file in DB was recorded with an extension, or we have size difference
 	if p.FileSize < p.NarSize {
@@ -114,14 +113,14 @@ func (s *StorePathSrv) GenerateNarInfo(p *model.StorePath, privateKey string) (s
 	res := fmt.Sprintf(`StorePath: /nix/store/%s-%s
 URL: %s
 Compression: %s
-FileHash: %s
+FileHash: sha256:%s
 FileSize: %d
 NarHash: %s
 NarSize: %d
 References: %s
 Deriver: %s
 Sig: %s
-`, p.StoreHash, p.StoreSuffix, url, compression, p.FileHash, p.FileSize, p.NarHash, p.NarSize, strings.Join(textRefs, " "), p.Deriver, sigString)
+`, p.StoreHash, p.StoreSuffix, url, compression, p.FileHash, p.FileSize, p.NarHash, p.NarSize, p.References, p.Deriver, sigString)
 
 	zap.S().Debugf("Generated NarInfo for %s:\n%s", p.StoreHash, res)
 	return res, nil

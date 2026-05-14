@@ -337,6 +337,8 @@ func (api *cacheApi) completeNar(c *gin.Context) {
 		References:  strings.Join(req.NarInfoCreate.CReferences, " "),
 	}
 
+	zap.S().Debugf("Store path to be created %+v", sp)
+
 	_, err := api.pathServ.Create(name, sp)
 	if err != nil {
 		zap.S().Errorf("Failed to finalize store path: %v", err)

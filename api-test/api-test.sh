@@ -52,7 +52,7 @@ sudo systemctl restart nix-daemon
 assert [ $? -eq 0 ]
 echo "RESULT: Success"
 echo ""
-#
+
 echo "---Pushing testhello path to cachix---"
 echo $path | cachix push $cache
 assert [ $? -eq 0 ]

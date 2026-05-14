@@ -45,7 +45,7 @@ func TestSocketApi(t *testing.T) {
 	cache := &model.BinaryCache{
 		Name:      "test-socket",
 		Port:      9999,
-		SecretKey: "test-socket:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+		SecretKey: "test.localhost-1:J403BKoCupfbMt7TKF5RyKY1cW6VllQMKO8BZfBKfbvNcwR3ciTEg6+TqjYhTMzwk9gWnuzx3GQ1XrgiIZXv5Q==",
 	}
 	database.Create(cache)
 
