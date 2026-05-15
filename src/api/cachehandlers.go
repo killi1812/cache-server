@@ -237,7 +237,15 @@ func (api *cacheApi) redirect(c *gin.Context) {
 	}
 
 	host := c.Request.Host
-	// We point back to the Management API path: /api/v1/cache/:name/multipart-nar/:narUuid
+	// TODO: We have to point back to cache url
+	//
+	// content_length = int(self.headers['Content-Length'])
+	//                 body = json.loads(self.rfile.read(content_length).decode('utf-8'))
+	//                 upload_url = os.path.join(cache.url, m.group(1))
+	//                 response = """{{
+	//                     "uploadUrl": "{}"
+	//                 }}""".format(upload_url).encode('utf-8')
+
 	uploadUrl := fmt.Sprintf("%s://%s/api/v1/cache/%s/multipart-nar/%s", scheme, host, name, narId)
 
 	c.JSON(http.StatusOK, gin.H{

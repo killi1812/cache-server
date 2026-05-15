@@ -89,16 +89,16 @@ func create(cmd *cobra.Command, args []string) error {
 		Token:           t,
 	}
 
-	worskpace, err := serv.Create(tmp)
+	workspace, err := serv.Create(tmp)
 	if err != nil {
 		zap.S().Errorf("Failed to create workspace, err: %v", err)
 		return err
 	}
 
 	fmt.Printf("Workspace Created Successfully!\n")
-	fmt.Printf("Name:       %s\n", worskpace.Name)
-	fmt.Printf("Cache:      %s\n", worskpace.BinaryCache.Name)
-	fmt.Printf("Token:      %s\n", worskpace.Token)
+	fmt.Printf("Name:       %s\n", workspace.Name)
+	fmt.Printf("Cache:      %s\n", workspace.BinaryCache.Name)
+	fmt.Printf("Token:      %s\n", workspace.Token)
 
 	return nil
 }
@@ -165,6 +165,7 @@ func info(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Cache:      null\n")
 	}
 	fmt.Printf("Agents Cnt: %d\n", len(workspace.Agents))
+	fmt.Printf("Token:      %s\n", workspace.Token)
 
 	return nil
 }
@@ -186,6 +187,7 @@ func changeCache(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Name:       %s\n", workspace.Name)
 	fmt.Printf("Cache Name: %s\n", workspace.BinaryCache.Name)
 	fmt.Printf("Agents Cnt: %d\n", len(workspace.Agents))
+	fmt.Printf("Token:      %s\n", workspace.Token)
 
 	return nil
 }
