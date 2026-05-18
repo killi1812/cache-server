@@ -17,35 +17,32 @@ MGMT_URL = f"{PROTOCOL}://{MGMT_DOMAIN}"
 # Disable insecure request warnings for self-signed certs
 requests.packages.urllib3.disable_warnings()
 
+# --- Sync Utilities (for Sequential Tests) ---
+
+
 def init_upload(session=None):
-    """Initialize a multipart upload and return the uploadId."""
     url = f"{MGMT_URL}/api/v1/cache/{CACHE}/multipart-nar?compression=xz"
     headers = {"Authorization": f"Bearer {KEY}"}
-    
     if session:
         res = session.post(url, headers=headers, verify=False)
     else:
         res = requests.post(url, headers=headers, verify=False)
-        
     res.raise_for_status()
     return res.json()["uploadId"]
 
+
 def perform_upload(session, upload_id, data, timeout=120):
-    """Stream binary data to the server via PUT."""
     url = f"{BASE_URL}/{upload_id}"
     headers = {"Authorization": f"Bearer {KEY}"}
     res = session.put(url, headers=headers, data=data, verify=False, timeout=timeout)
     res.raise_for_status()
     return res
 
+
 def complete_upload(session, upload_id, file_hash, size, suffix, timeout=120):
-    """Complete an upload to finalize the renaming logic."""
     store_hash = file_hash[:32]
     url = f"{MGMT_URL}/api/v1/cache/{CACHE}/multipart-nar/{upload_id}/complete"
-    headers = {
-        "Authorization": f"Bearer {KEY}",
-        "Content-Type": "application/json"
-    }
+    headers = {"Authorization": f"Bearer {KEY}", "Content-Type": "application/json"}
     body = {
         "narInfoCreate": {
             "cFileHash": f"sha256:{file_hash}",
@@ -56,23 +53,23 @@ def complete_upload(session, upload_id, file_hash, size, suffix, timeout=120):
             "cNarSize": size,
             "cReferences": [],
             "cDeriver": f"perf-{suffix}.drv",
-            "cSig": "perfsig"
+            "cSig": "perfsig",
         }
     }
     res = session.post(url, headers=headers, json=body, verify=False, timeout=timeout)
     res.raise_for_status()
     return res
 
+
 def perform_download(session, file_hash, timeout=120):
-    """Download a finalized NAR file by its hash."""
     url = f"{BASE_URL}/nar/{file_hash}.nar.xz"
     headers = {"Authorization": f"Bearer {KEY}"}
     res = session.get(url, headers=headers, verify=False, timeout=timeout)
     res.raise_for_status()
     return res
 
+
 def get_unique_data(base_data, tag, index):
-    """Prepend a unique prefix to base data to ensure a unique SHA256 hash."""
     prefix = f"{time.time_ns()}_{tag}_{index}_".encode()
     data = prefix + base_data
     file_hash = hashlib.sha256(data).hexdigest()
