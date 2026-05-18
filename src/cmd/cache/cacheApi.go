@@ -243,7 +243,7 @@ func (s *SocketApi) uploadData(c *gin.Context) {
 		}
 	}
 
-	err := s.storage.WriteFile(s.cache.Name, targetFilename, c.Request.Body)
+	err := s.storage.WriteFile(s.cache.Name, targetFilename, c.Request.Body, c.Request.ContentLength)
 	if err != nil {
 		c.AbortWithStatusJSON(500, model.ErrorResponse{
 			Error: "failed to save to storage",

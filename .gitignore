@@ -50,6 +50,7 @@ test-results
 test-data
 cache-server.conf
 cache-local.conf
+__pycache*
 
 *.log
 test.db

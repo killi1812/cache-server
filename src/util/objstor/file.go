@@ -18,7 +18,7 @@ const (
 )
 
 // WriteFile implements [ObjectStorage].
-func (f fileStorage) WriteFile(cachename, name string, data io.Reader, _ int) error {
+func (f fileStorage) WriteFile(cachename, name string, data io.Reader, _ int64) error {
 	zap.S().Infof("Trying to write file '%s' in cache '%s'", name, cachename)
 	cacheDir := filepath.Join(f.rootDir, cachename)
 	if err := os.MkdirAll(cacheDir, dirPerms); err != nil {
