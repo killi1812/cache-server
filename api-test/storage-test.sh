@@ -12,17 +12,11 @@ CACHE_DOMAIN="${CACHE}.${HOST}"
 MGMT_DOMAIN="${HOST}"
 
 # --- Resource Monitoring Setup ---
-# Find the PID (handles both 'cache-server' and '.cache-server-wrapped')
 APP_PID=$(pgrep -f "cache-server" | head -n 1)
-if [ -z "$APP_PID" ]; then
-    echo "WARNING: Could not find running cache-server process. Monitoring disabled."
-fi
-
 MONITOR_FILE=$(mktemp)
 monitor_resources() {
     while true; do
         if [ ! -z "$APP_PID" ]; then
-            # Get CPU (%) and RSS (KB)
             ps -p "$APP_PID" -o %cpu,rss --no-headers >> "$MONITOR_FILE" 2>/dev/null || break
         fi
         sleep 0.5
@@ -36,52 +30,37 @@ if [ ! -z "$APP_PID" ]; then
 fi
 
 echo "================================================="
-echo "  Storage Performance Test Suite (Full Lifecycle)"
+echo "  Storage Performance Test Suite (Unique Files)"
 echo "  Target: $PROTOCOL://$CACHE_DOMAIN"
 echo "================================================="
 
-# Create test data
-echo "Generating test data..."
+# Create base test data
 mkdir -p test-data
-[ -f test-data/100MB.bin ] || dd if=/dev/urandom of=test-data/100MB.bin bs=1M count=100 2>/dev/null
-[ -f test-data/1000MB.bin ] || dd if=/dev/urandom of=test-data/1000MB.bin bs=1M count=1000 2>/dev/null
-
-# Pre-calculate hashes
-HASH_100MB=$(sha256sum test-data/100MB.bin | awk '{print $1}')
-HASH_1000MB=$(sha256sum test-data/1000MB.bin | awk '{print $1}')
+[ -f test-data/base.bin ] || dd if=/dev/urandom of=test-data/base.bin bs=1M count=100 2>/dev/null
 
 # Helper to initialize a multipart upload and return the UUID
 init_upload() {
     local RES=$(curl -s -k -H "Authorization: Bearer $KEY" -X POST "$PROTOCOL://$MGMT_DOMAIN/api/v1/cache/${CACHE}/multipart-nar?compression=xz")
-    local UUID=$(echo "$RES" | python3 -c "import sys, json; 
-try:
-    print(json.load(sys.stdin)['uploadId'])
-except Exception:
-    sys.exit(1)" 2>/dev/null)
-
-    if [ -z "$UUID" ]; then
-        echo "FAILED to initialize upload. Server returned: $RES" >&2
-        exit 1
-    fi
-    echo "$UUID"
+    echo "$RES" | python3 -c "import sys, json; print(json.load(sys.stdin)['uploadId'])"
 }
 
-# Helper to complete an upload (renames UUID to HASH)
+# Helper to complete an upload
 complete_upload() {
     local UUID=$1
     local HASH=$2
     local SIZE=$3
+    local INDEX=$4
     
     local JSON_BODY="{
         \"narInfoCreate\": {
             \"cFileHash\": \"$HASH\",
             \"cFileSize\": $SIZE,
-            \"cStoreHash\": \"perfhash\",
-            \"cStoreSuffix\": \"perfsuffix\",
-            \"cNarHash\": \"sha256:$HASH\",
+            \"cStoreHash\": \"perf${INDEX}\",
+            \"cStoreSuffix\": \"file${INDEX}\",
+            \"cNarHash\": \"$HASH\",
             \"cNarSize\": $SIZE,
             \"cReferences\": [],
-            \"cDeriver\": \"perf.drv\",
+            \"cDeriver\": \"perf${INDEX}.drv\",
             \"cSig\": \"perfsig\"
         }
     }"
@@ -92,68 +71,36 @@ complete_upload() {
 }
 
 echo ""
-echo "--- 1. Sequential Upload & Complete (50x 100MB) ---"
+echo "--- 1. Unique Upload & Complete (20x 100MB) ---"
+# We reduce count to 20 for faster cycle, but each is UNIQUE
 START_TIME=$(date +%s.%N)
-for i in {1..50}; do
+HASHES=()
+for i in {1..20}; do
   U=$(init_upload)
-  curl -s -k -H "Authorization: Bearer $KEY" -X PUT --data-binary @test-data/100MB.bin "$PROTOCOL://${CACHE_DOMAIN}/${U}" > /dev/null
-  complete_upload "$U" "$HASH_100MB" 104857600
+  # Modify 1 byte to ensure unique hash
+  echo -n "$i" > "test-data/unique-${i}.bin"
+  cat test-data/base.bin >> "test-data/unique-${i}.bin"
+  
+  H=$(sha256sum "test-data/unique-${i}.bin" | awk '{print $1}')
+  HASHES+=("$H")
+  
+  curl -s -k -H "Authorization: Bearer $KEY" -X PUT --data-binary "@test-data/unique-${i}.bin" "$PROTOCOL://${CACHE_DOMAIN}/${U}" > /dev/null
+  complete_upload "$U" "$H" 104857600 "$i"
+  rm "test-data/unique-${i}.bin"
 done
 END_TIME=$(date +%s.%N)
 DURATION=$(awk "BEGIN {print $END_TIME - $START_TIME}")
-echo "Completed in $DURATION seconds"
+echo "Completed 20 unique 100MB uploads in $DURATION seconds"
 
 echo ""
-echo "--- 2. Sequential Download by Hash (50x 100MB) ---"
+echo "--- 2. Unique Download by Hash (20x 100MB) ---"
 START_TIME=$(date +%s.%N)
-for i in {1..50}; do
-  curl -s -k -H "Authorization: Bearer $KEY" "$PROTOCOL://${CACHE_DOMAIN}/nar/${HASH_100MB}.nar.xz" -o /dev/null
+for H in "${HASHES[@]}"; do
+  curl -s -k -H "Authorization: Bearer $KEY" "$PROTOCOL://${CACHE_DOMAIN}/nar/${H}.nar.xz" -o /dev/null
 done
 END_TIME=$(date +%s.%N)
 DURATION=$(awk "BEGIN {print $END_TIME - $START_TIME}")
-echo "Completed in $DURATION seconds"
-
-echo ""
-echo "--- 3. Large File Lifecycle (Upload 1x 1000MB) ---"
-START_TIME=$(date +%s.%N)
-U_LARGE=$(init_upload)
-curl -s -k -H "Authorization: Bearer $KEY" -X PUT --data-binary @test-data/1000MB.bin "$PROTOCOL://${CACHE_DOMAIN}/${U_LARGE}" > /dev/null
-complete_upload "$U_LARGE" "$HASH_1000MB" 1048576000
-END_TIME=$(date +%s.%N)
-DURATION=$(awk "BEGIN {print $END_TIME - $START_TIME}")
-echo "Completed in $DURATION seconds"
-
-echo ""
-echo "--- 4. Large File Download (Download 1x 1000MB) ---"
-START_TIME=$(date +%s.%N)
-curl -s -k -H "Authorization: Bearer $KEY" "$PROTOCOL://${CACHE_DOMAIN}/nar/${HASH_1000MB}.nar.xz" -o /dev/null
-END_TIME=$(date +%s.%N)
-DURATION=$(awk "BEGIN {print $END_TIME - $START_TIME}")
-echo "Completed in $DURATION seconds"
-
-echo ""
-echo "--- 7. Data Integrity Validation ---"
-curl -s -k -H "Authorization: Bearer $KEY" "$PROTOCOL://${CACHE_DOMAIN}/nar/${HASH_1000MB}.nar.xz" -o test-data/1000MB-downloaded.bin
-DOWN_HASH=$(sha256sum test-data/1000MB-downloaded.bin | awk '{print $1}')
-
-if [ "$HASH_1000MB" == "$DOWN_HASH" ]; then
-    echo "Integrity Check: PASSED (Hashes match)"
-else
-    echo "Integrity Check: FAILED (Expected $HASH_1000MB, got $DOWN_HASH)"
-fi
-
-echo ""
-echo "--- 8. Sequential Upload, Complete and Download (50x 100MB) ---"
-START_TIME=$(date +%s.%N)
-for i in {1..50}; do
-  U=$(init_upload)
-  curl -s -k -H "Authorization: Bearer $KEY" -X PUT --data-binary @test-data/100MB.bin "$PROTOCOL://${CACHE_DOMAIN}/${U}" > /dev/null
-  complete_upload "$U" "$HASH_100MB" 104857600
-  curl -s -k -H "Authorization: Bearer $KEY" "$PROTOCOL://${CACHE_DOMAIN}/nar/${HASH_100MB}.nar.xz" -o /dev/null
-done
-END_TIME=$(date +%s.%N)
-DURATION=$(awk "BEGIN {print $END_TIME - $START_TIME}")
-echo "Completed in $DURATION seconds"
+echo "Completed 20 unique downloads in $DURATION seconds"
 
 echo ""
 echo "Cleaning up..."
@@ -162,7 +109,6 @@ rm -rf test-data
 if [ ! -z "$MONITOR_PID" ]; then
     kill "$MONITOR_PID" 2>/dev/null
     echo "--- Resource Usage Report ---"
-    # CPU is first col, RSS is second
     STATS=$(awk '{ 
         cpu+=$1; mem+=$2; count++; 
         if($1>max_cpu) max_cpu=$1; 

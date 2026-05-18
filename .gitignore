@@ -48,6 +48,7 @@ _cache-server
 
 test-results
 test-data
+cache-server.conf
 
 *.log
 test.db
