@@ -79,9 +79,19 @@ tasks:
     silent: true
 
   start:
-    description: start poroject development enviroment
+    description: start poroject test enviroment
     cmds:
-      - cmd: docker compose up {{.CLI_ARGS}}
+      # - cmd: docker compose up -d {{.CLI_ARGS}}
+      - cmd: ./bin/cache-server -c ./cache-server.conf listen
+      - cmd: ./bin/cache-server cache start test
+    silent: true
+
+  stop:
+    description: stop poroject development enviroment
+    cmds:
+      # - cmd: docker compose down {{.CLI_ARGS}}
+      - cmd: ./bin/cache-server stop
+      - cmd: ./bin/cache-server cache stop test
     silent: true
 
   lint:

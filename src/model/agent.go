@@ -6,7 +6,7 @@ import "github.com/google/uuid"
 type Agent struct {
 	ID    uint      `gorm:"primarykey" json:"-"`
 	Uuid  uuid.UUID `gorm:"type:uuid;unique;not null" json:"id"`
-	Name  string    `gorm:"type:varchar(100);unique;not null" json:"name"`
+	Name  string    `gorm:"type:text;unique;not null" json:"name"`
 	Token string    `gorm:"type:text;not null" json:"-"` // not serialized agent token
 
 	WorkspaceId uint       `json:"-"`
