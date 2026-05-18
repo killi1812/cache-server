@@ -74,12 +74,9 @@ func (s *SocketApi) downloadNar(c *gin.Context) {
 	filename := c.Param("filename")
 	zap.S().Infof("Downloading NAR file: %s from cache %s", filename, s.cache.Name)
 
-	// Robustly parse hash from filename (e.g. HASH.nar.xz -> HASH)
-	fileHash := strings.Split(filename, ".nar")[0]
-
-	reader, err := s.storage.ReadFile(s.cache.Name, fileHash)
+	reader, err := s.storage.ReadFile(s.cache.Name, filename)
 	if err != nil {
-		zap.S().Errorf("Failed to read NAR file %s (parsed as %s), err: %v", filename, fileHash, err)
+		zap.S().Errorf("Failed to read NAR file %s, err: %v", filename, err)
 		c.AbortWithStatusJSON(http.StatusNotFound, model.ErrorResponse{
 			Error: "NAR file not found",
 		})
@@ -208,7 +205,7 @@ func (s *SocketApi) storeHashNarInfo(c *gin.Context, storeHash string) {
 //	@Success		201
 //	@Failure		400	{object}	model.ErrorResponse
 //	@Failure		500	{object}	model.ErrorResponse
-//	@Router			/{filename} [put]
+//	@Router			/nar/{filename} [put]
 func (s *SocketApi) uploadData(c *gin.Context) {
 	filename := c.Param("filename")
 	if filename == "" {

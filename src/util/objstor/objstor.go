@@ -12,9 +12,11 @@ type ObjectStorage interface {
 	CreateDir(name string) (string, error)
 	WriteFile(cachename, name string, file io.Reader) error
 	CreatFile(cachename, filename string) error
+	RenameFile(cachename, oldName, newName string) error
 
 	DeleteFile(cachename, name string) error
 	ReadFile(cachename, name string) (io.ReadCloser, error)
+	Stat(cachename, name string) (int64, error)
 }
 
 func New() ObjectStorage {

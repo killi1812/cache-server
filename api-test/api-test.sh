@@ -35,7 +35,7 @@ echo "RESULT: Success"
 echo ""
 
 echo "---Setting cache-server hostname to cachix config---"
-cachix config set hostname https://$hostname
+cachix config set hostname https://$hostname/
 assert [ $? -eq 0 ]
 echo "RESULT: Success"
 echo ""

@@ -87,6 +87,48 @@ func (m *mStorage) CreatFile(cachename, filename string) error {
 	return nil
 }
 
+// RenameFile implements ObjectStorage.
+func (m *mStorage) RenameFile(cachename, oldName, newName string) error {
+	ctx := context.Background()
+	oldObjectName := fmt.Sprintf("%s/%s", cachename, oldName)
+	newObjectName := fmt.Sprintf("%s/%s", cachename, newName)
+
+	zap.S().Infof("MinIO: Renaming (copy+delete) '%s' to '%s' in bucket '%s'", oldObjectName, newObjectName, m.bucket)
+
+	src := minio.CopySrcOptions{
+		Bucket: m.bucket,
+		Object: oldObjectName,
+	}
+	dst := minio.CopyDestOptions{
+		Bucket: m.bucket,
+		Object: newObjectName,
+	}
+
+	_, err := m.c.CopyObject(ctx, dst, src)
+	if err != nil {
+		zap.S().Errorf("MinIO: Failed to copy object during rename: %v", err)
+		return err
+	}
+
+	err = m.c.RemoveObject(ctx, m.bucket, oldObjectName, minio.RemoveObjectOptions{})
+	if err != nil {
+		zap.S().Errorf("MinIO: Failed to remove old object during rename: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+// Stat implements ObjectStorage.
+func (m *mStorage) Stat(cachename, name string) (int64, error) {
+	objectName := fmt.Sprintf("%s/%s", cachename, name)
+	info, err := m.c.StatObject(context.Background(), m.bucket, objectName, minio.StatObjectOptions{})
+	if err != nil {
+		return 0, err
+	}
+	return info.Size, nil
+}
+
 func newMinioStorage() *mStorage {
 	minioClient, err := minio.New(config.Config.Minio.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(config.Config.Minio.CredID, config.Config.Minio.CredSecret, config.Config.Minio.CredToken),

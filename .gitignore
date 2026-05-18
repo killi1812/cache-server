@@ -46,6 +46,9 @@ _cache-server
 [Tt]mp
 [Tt]emp
 
+test-results
+test-data
+
 *.log
 test.db
 run-api-test.sh

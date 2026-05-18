@@ -325,13 +325,33 @@ func (api *cacheApi) completeNar(c *gin.Context) {
 		return
 	}
 
+	cleanFileHash := strings.TrimPrefix(req.NarInfoCreate.CFileHash, "sha256:")
+	oldName := narUuid + ".nar.xz"
+	newName := cleanFileHash + ".nar.xz"
+
+	// Check if target file already exists and has data (e.g., via direct upload)
+	info, err := api.storage.Stat(name, newName)
+	if err == nil && info > 0 {
+		zap.S().Infof("NAR file %s already exists and has data, cleaning up placeholder", newName)
+		_ = api.storage.DeleteFile(name, oldName)
+	} else {
+		err = api.storage.RenameFile(name, oldName, newName)
+		if err != nil {
+			zap.S().Errorf("Failed to rename NAR file: %v", err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, model.ErrorResponse{
+				Error: "failed to finalize file storage",
+			})
+			return
+		}
+	}
+
 	// Map to model
 	sp := model.StorePath{
 		StoreHash:   req.NarInfoCreate.CStoreHash,
 		StoreSuffix: req.NarInfoCreate.CStoreSuffix,
 		NarHash:     req.NarInfoCreate.CNarHash,
 		NarSize:     req.NarInfoCreate.CNarSize,
-		FileHash:    req.NarInfoCreate.CFileHash,
+		FileHash:    cleanFileHash,
 		FileSize:    req.NarInfoCreate.CFileSize,
 		Deriver:     req.NarInfoCreate.CDeriver,
 		References:  strings.Join(req.NarInfoCreate.CReferences, " "),
@@ -339,7 +359,7 @@ func (api *cacheApi) completeNar(c *gin.Context) {
 
 	zap.S().Debugf("Store path to be created %+v", sp)
 
-	_, err := api.pathServ.Create(name, sp)
+	_, err = api.pathServ.Create(name, sp)
 	if err != nil {
 		zap.S().Errorf("Failed to finalize store path: %v", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, model.ErrorResponse{
