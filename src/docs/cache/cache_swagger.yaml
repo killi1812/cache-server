@@ -12,31 +12,6 @@ definitions:
 info:
   contact: {}
 paths:
-  /{filename}:
-    put:
-      consumes:
-      - application/octet-stream
-      description: Upload raw NAR data for a given filename (usually hash).
-      parameters:
-      - description: Filename or Hash
-        in: path
-        name: filename
-        required: true
-        type: string
-      responses:
-        "201":
-          description: Created
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/model.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/model.ErrorResponse'
-      summary: Upload NAR data (Direct)
-      tags:
-      - binary-cache
   /{storeHash}:
     get:
       description: |-
@@ -109,6 +84,30 @@ paths:
           schema:
             $ref: '#/definitions/model.ErrorResponse'
       summary: Download NAR file
+      tags:
+      - binary-cache
+    put:
+      consumes:
+      - application/octet-stream
+      description: Upload raw NAR data for a given filename (usually hash).
+      parameters:
+      - description: Filename or Hash
+        in: path
+        name: filename
+        required: true
+        type: string
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Upload NAR data (Direct)
       tags:
       - binary-cache
   /nix-cache-info:

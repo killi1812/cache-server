@@ -207,15 +207,43 @@ func (s *SocketApi) storeHashNarInfo(c *gin.Context, storeHash string) {
 //	@Failure		500	{object}	model.ErrorResponse
 //	@Router			/nar/{filename} [put]
 func (s *SocketApi) uploadData(c *gin.Context) {
-	filename := c.Param("filename")
-	if filename == "" {
+	name := c.Param("filename")
+	if name == "" {
 		c.AbortWithStatusJSON(400, model.ErrorResponse{
 			Error: "missing filename",
 		})
 		return
 	}
 
-	err := s.storage.WriteFile(s.cache.Name, filename, c.Request.Body)
+	targetFilename := name
+
+	// UUID-based upload matching Python logic:
+	// If it looks like a UUID, search for a placeholder that contains this UUID
+	if len(name) == 36 && strings.Count(name, "-") == 4 {
+		zap.S().Infof("UUID detected in upload: %s. Searching for placeholder...", name)
+
+		found := false
+		exts := []string{".nar.xz", ".nar.zst", ".nar"}
+		for _, ext := range exts {
+			checkName := name + ext
+			if _, err := s.storage.Stat(s.cache.Name, checkName); err == nil {
+				zap.S().Infof("Found placeholder: %s", checkName)
+				targetFilename = checkName
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			zap.S().Errorf("No placeholder found for UUID: %s. Aborting upload.", name)
+			c.AbortWithStatusJSON(http.StatusBadRequest, model.ErrorResponse{
+				Error: "No placeholder found for this UUID. Initialize multipart upload first.",
+			})
+			return
+		}
+	}
+
+	err := s.storage.WriteFile(s.cache.Name, targetFilename, c.Request.Body)
 	if err != nil {
 		c.AbortWithStatusJSON(500, model.ErrorResponse{
 			Error: "failed to save to storage",

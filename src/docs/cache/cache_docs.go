@@ -83,29 +83,7 @@ const docTemplatecache = `{
                         }
                     }
                 }
-            }
-        },
-        "/nix-cache-info": {
-            "get": {
-                "description": "Get information about the nix store configuration.",
-                "produces": [
-                    "text/plain"
-                ],
-                "tags": [
-                    "binary-cache"
-                ],
-                "summary": "Get nix-cache-info",
-                "responses": {
-                    "200": {
-                        "description": "StoreDir: /nix/store...",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/{filename}": {
+            },
             "put": {
                 "description": "Upload raw NAR data for a given filename (usually hash).",
                 "consumes": [
@@ -138,6 +116,26 @@ const docTemplatecache = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/nix-cache-info": {
+            "get": {
+                "description": "Get information about the nix store configuration.",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "binary-cache"
+                ],
+                "summary": "Get nix-cache-info",
+                "responses": {
+                    "200": {
+                        "description": "StoreDir: /nix/store...",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
