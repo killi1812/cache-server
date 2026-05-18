@@ -57,11 +57,11 @@ func (m *mStorage) CreateDir(name string) (string, error) {
 }
 
 // WriteFile implements ObjectStorage.
-func (m *mStorage) WriteFile(cachename, name string, data io.Reader) error {
+func (m *mStorage) WriteFile(cachename, name string, data io.Reader, size int) error {
 	objectName := fmt.Sprintf("%s/%s", cachename, name)
 	zap.S().Infof("MinIO: Trying to write object '%s' to bucket '%s'", objectName, m.bucket)
 	// Using -1 for size tells minio-go to use internal buffering for unknown size
-	_, err := m.c.PutObject(context.Background(), m.bucket, objectName, data, -1, minio.PutObjectOptions{
+	_, err := m.c.PutObject(context.Background(), m.bucket, objectName, data, int64(size), minio.PutObjectOptions{
 		ContentType: "application/octet-stream",
 	})
 	if err != nil {

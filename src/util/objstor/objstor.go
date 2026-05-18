@@ -10,7 +10,7 @@ import (
 // common interface between OS file system and minio storage
 type ObjectStorage interface {
 	CreateDir(name string) (string, error)
-	WriteFile(cachename, name string, file io.Reader) error
+	WriteFile(cachename, name string, file io.Reader, size int) error
 	CreatFile(cachename, filename string) error
 	RenameFile(cachename, oldName, newName string) error
 

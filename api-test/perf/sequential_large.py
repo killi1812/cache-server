@@ -2,53 +2,65 @@ import os
 import time
 import requests
 import concurrent.futures
-from common import init_upload, get_unique_data, BASE_URL, KEY
+from common import init_upload, complete_upload, get_unique_data, BASE_URL, KEY
 
 # --- Configuration ---
-FILE_SIZE_MB = 1000
 COUNT = 5
+FILE_SIZE_MB = 1000
 
 
-def run_single_large(index, base_data):
+def upload_worker(index, base_data):
     try:
-        # 1. Initialize
         upload_id = init_upload()
-
-        # 2. Prepare unique data
-        data, _ = get_unique_data(base_data, "large", index)
-
-        # 3. Upload (Timed)
+        data, file_hash = get_unique_data(base_data, "large", index)
+        actual_size = len(data)
+        
         upload_url = f"{BASE_URL}/{upload_id}"
         headers = {"Authorization": f"Bearer {KEY}"}
-        requests.put(
-            upload_url, headers=headers, data=data, verify=False
-        ).raise_for_status()
+        requests.put(upload_url, headers=headers, data=data, verify=False).raise_for_status()
+        
+        # Finalize upload to enable download
+        complete_upload(upload_id, file_hash, actual_size, f"large{index}")
+        
+        return file_hash
+    except Exception as e:
+        print(f"Upload worker {index} failed: {e}")
+        return None
+
+def download_worker(file_hash):
+    try:
+        url = f"{BASE_URL}/nar/{file_hash}.nar.xz"
+        headers = {"Authorization": f"Bearer {KEY}"}
+        requests.get(url, headers=headers, verify=False).raise_for_status()
         return True
     except Exception as e:
-        print(f"Large worker {index} failed: {e}")
+        print(f"Download of {file_hash} failed: {e}")
         return False
 
-
 def main():
-    print(f"[Phase] Starting Parallel Large ({COUNT}x {FILE_SIZE_MB}MB Uploads)...")
-
-    # Pre-generate base data
+    print(f"[Phase] Starting Sequential Large ({COUNT}x {FILE_SIZE_MB}MB)...")
     base_data = os.urandom(FILE_SIZE_MB * 1024 * 1024)
 
+    # 1. Parallel Upload Phase
+    print(f"--- 1. Parallel Uploads ({COUNT} workers) ---")
     start_time = time.time()
-
     with concurrent.futures.ThreadPoolExecutor(max_workers=COUNT) as executor:
-        futures = [
-            executor.submit(run_single_large, i, base_data) for i in range(COUNT)
-        ]
-        results = [f.result() for f in concurrent.futures.as_completed(futures)]
-
+        futures = [executor.submit(upload_worker, i, base_data) for i in range(COUNT)]
+        hashes = [f.result() for f in concurrent.futures.as_completed(futures)]
+    
+    hashes = [h for h in hashes if h]
     end_time = time.time()
-    successful = [r for r in results if r]
-    print(
-        f"[Phase] Parallel Large Finished in {end_time - start_time:.5f}s. Successful: {len(successful)}/{COUNT}"
-    )
+    print(f"Upload Phase Finished in {end_time - start_time:.2f}s")
 
+    # 2. Parallel Download Phase (After all uploads)
+    if hashes:
+        print(f"--- 2. Parallel Downloads ({len(hashes)} workers) ---")
+        start_time = time.time()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=COUNT) as executor:
+            futures = [executor.submit(download_worker, h) for h in hashes]
+            results = [f.result() for f in concurrent.futures.as_completed(futures)]
+        end_time = time.time()
+        print(f"Download Phase Finished in {end_time - start_time:.2f}s")
 
 if __name__ == "__main__":
     main()

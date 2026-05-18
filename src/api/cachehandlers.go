@@ -278,7 +278,8 @@ func (api *cacheApi) uploadNarData(c *gin.Context) {
 	// We assume .xz for multipart uploads as per createNar default
 	filename := narUuid + ".nar.xz"
 
-	err := api.storage.WriteFile(name, filename, c.Request.Body)
+	defer c.Request.Body.Close()
+	err := api.storage.WriteFile(name, filename, c.Request.Body, c.Request.ContentLength)
 	if err != nil {
 		c.AbortWithStatusJSON(500, model.ErrorResponse{
 			Error: "failed to save to storage",

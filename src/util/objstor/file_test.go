@@ -29,7 +29,7 @@ func TestFileStorage(t *testing.T) {
 		fileName := "test-file"
 		content := []byte("hello world")
 
-		err := storage.WriteFile(cacheName, fileName, bytes.NewBuffer(content))
+		err := storage.WriteFile(cacheName, fileName, bytes.NewBuffer(content), 0)
 		assert.NoError(t, err)
 
 		reader, err := storage.ReadFile(cacheName, fileName)
@@ -45,7 +45,7 @@ func TestFileStorage(t *testing.T) {
 		cacheName := "test-cache"
 		fileName := "delete-me"
 
-		err := storage.WriteFile(cacheName, fileName, bytes.NewBuffer([]byte("content")))
+		err := storage.WriteFile(cacheName, fileName, bytes.NewBuffer([]byte("content")), 0)
 		assert.NoError(t, err)
 
 		err = storage.DeleteFile(cacheName, fileName)
