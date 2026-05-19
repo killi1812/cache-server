@@ -99,7 +99,6 @@ func (api *deployWsApi) wsHandler(c *gin.Context) {
 	defer func() {
 		zap.S().Infof("Closing WebSocket connection for agent '%s'", name)
 		api.hub.Unregister(name)
-		conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 		conn.Close()
 	}()
 
@@ -108,7 +107,7 @@ func (api *deployWsApi) wsHandler(c *gin.Context) {
 		if err := conn.ReadJSON(&msg); err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				zap.S().Errorf("WebSocket error for agent '%s': %v", name, err)
-				conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseUnsupportedData, "Invalid JSON or protocol violation"))
+				// conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseUnsupportedData, "Invalid JSON or protocol violation"))
 			}
 			break
 		}
@@ -130,7 +129,6 @@ func (api *deployWsApi) deploymentHandler(c *gin.Context) {
 		return
 	}
 	defer func() {
-		conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 		conn.Close()
 	}()
 
@@ -171,7 +169,6 @@ func (api *deployWsApi) logHandler(c *gin.Context) {
 		return
 	}
 	defer func() {
-		conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 		conn.Close()
 	}()
 
@@ -184,11 +181,11 @@ func (api *deployWsApi) logHandler(c *gin.Context) {
 			break
 		}
 
+		// TODO: rework closing
 		if line, ok := msg["line"].(string); ok {
 			zap.S().Infof("Agent Log [%s]: %s", id, line)
 			if line == "Successfully activated the deployment." ||
-				strings.Contains(line, "Failed to activate the deployment.") ||
-				strings.Contains(line, "The deployment failed with an unexpected error:") {
+				strings.Contains(line, "Failed to activate the deployment.") {
 				zap.S().Infof("Terminal log string detected for %s, closing connection", id)
 				break
 			}
@@ -200,7 +197,8 @@ func (api *deployWsApi) logHandler(c *gin.Context) {
 func (api *deployWsApi) processDeploymentFinished(msg map[string]any) {
 	command, _ := msg["command"].(map[string]any)
 	id, _ := command["id"].(string)
-	success, _ := command["hasSucceeded"].(bool)
+	// NOTE: testing
+	_, success := command["hasSucceeded"]
 
 	zap.S().Infof("Agent reported deployment %s finished (Success: %v)", id, success)
 
