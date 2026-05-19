@@ -278,6 +278,8 @@ func (api *cacheApi) uploadNarData(c *gin.Context) {
 	// We assume .xz for multipart uploads as per createNar default
 	filename := narUuid + ".nar.xz"
 
+	// TODO: this is a bad implementation and it doesn't work
+	// it should get the cache byname and then write the hash value
 	defer c.Request.Body.Close()
 	err := api.storage.WriteFile(name, filename, c.Request.Body, c.Request.ContentLength)
 	if err != nil {

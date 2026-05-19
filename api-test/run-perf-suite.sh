@@ -5,11 +5,23 @@ set -e
 # Config
 APP_NAME="cache-server"
 CODE_DIR="./perf"
+VENV_DIR=".venv"
+
 cd "$(dirname "$0")"
 
 echo "================================================="
 echo "  GO CACHE SERVER PERFORMANCE SUITE (PYTHON)"
 echo "================================================="
+
+# --- Virtual Environment Setup ---
+if [ ! -d "$VENV_DIR" ]; then
+    echo "Creating virtual environment..."
+    python3 -m venv "$VENV_DIR"
+fi
+
+echo "Activating virtual environment and installing dependencies..."
+source "$VENV_DIR/bin/activate"
+pip install -q -r requirements.txt
 
 # --- Resource Monitoring Setup ---
 PIDS=$(pgrep -f "$APP_NAME" | grep -v "$$" | paste -sd "," -)
@@ -37,18 +49,17 @@ monitor_resources &
 MONITOR_PID=$!
 
 # Ensure cleanup on exit
-trap 'kill $MONITOR_PID 2>/dev/null || true; rm -f $MONITOR_FILE' EXIT
+trap 'kill $MONITOR_PID 2>/dev/null || true; rm -f $MONITOR_FILE; deactivate 2>/dev/null || true' EXIT
 
 echo ""
 export PYTHONPATH=$PYTHONPATH:.
 
+# Run scenarios
 python3 "$CODE_DIR/sequential_small.py"
 echo ""
 python3 "$CODE_DIR/sequential_large.py"
 echo ""
 python3 "$CODE_DIR/concurrent_heavy.py"
-
-GLOBAL_END=$(date +%s.%N)
 
 # --- Report ---
 echo ""

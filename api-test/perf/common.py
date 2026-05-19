@@ -45,7 +45,7 @@ def complete_upload(session, upload_id, file_hash, size, suffix, timeout=120):
     headers = {"Authorization": f"Bearer {KEY}", "Content-Type": "application/json"}
     body = {
         "narInfoCreate": {
-            "cFileHash": f"sha256:{file_hash}",
+            "cFileHash": f"{file_hash}",
             "cFileSize": size,
             "cStoreHash": store_hash,
             "cStoreSuffix": f"perf-test-{suffix}",

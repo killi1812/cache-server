@@ -39,7 +39,7 @@ async def async_complete_upload(
     url = f"{MGMT_URL}/api/v1/cache/{CACHE}/multipart-nar/{upload_id}/complete"
     body = {
         "narInfoCreate": {
-            "cFileHash": f"sha256:{file_hash}",
+            "cFileHash": f"{file_hash}",
             "cFileSize": size,
             "cStoreHash": store_hash,
             "cStoreSuffix": f"perf-test-{suffix}",
@@ -67,9 +67,9 @@ async def run_single_worker(index, base_data, client, loop):
     # 0. Random jitter (0 to 3 seconds) to desynchronize workers
     await asyncio.sleep(random.uniform(0.1, 0.5))
 
+    current_step = "INIT"
     try:
         # 1. Initialize
-        print(f"[*] Worker {index:02d}: Starting INIT")
         upload_id = await async_init_upload(client)
 
         # 2. Prepare unique data (Offload SHA256 to thread to avoid blocking event loop)
@@ -79,24 +79,33 @@ async def run_single_worker(index, base_data, client, loop):
         )
         actual_size = len(data)
 
+        current_step = "UPLOAD"
         # 3. Upload (PUT)
-        print(f"[*] Worker {index:02d}: Starting UPLOAD ({file_hash[:8]}...)")
         await async_perform_upload(client, upload_id, data)
 
+        current_step = "COMPLEATE"
         # 4. Complete (Rename to hash)
-        print(f"[*] Worker {index:02d}: Starting COMPLETE")
         await async_complete_upload(
             client, upload_id, file_hash, actual_size, f"para{index}"
         )
 
+        current_step = "DOWNLOAD"
         # 5. Immediate Download (GET by hash)
-        print(f"[*] Worker {index:02d}: Starting DOWNLOAD")
         await async_perform_download(client, file_hash)
 
-        print(f"[+] Worker {index:02d}: SUCCESS")
+        current_step = "DONE"
         return True
+    except httpx.HTTPStatusError as e:
+        print(
+            f"[!] Worker {index:02d} FAILED at [{current_step}]: HTTP {e.response.status_code} - {e.response.text[:200]}"
+        )
+        return False
+    except httpx.RequestError as e:
+        print(f"[!] Worker {index:02d} FAILED at [{current_step}]: {e.request}")
+        # TODO: retry go to step
+        return False
     except Exception as e:
-        print(f"[!] Worker {index:02d} FAILED: {e}")
+        print(f"[!] Worker {index:02d} FAILED at [{current_step}]: {e}")
         return False
 
 
@@ -118,7 +127,7 @@ async def main():
     headers = {"Authorization": f"Bearer {KEY}"}
 
     async with httpx.AsyncClient(
-        verify=False, limits=limits, headers=headers, timeout=180.0
+        verify=False, limits=limits, headers=headers, timeout=None
     ) as client:
         tasks = [
             run_single_worker(i, base_data, client, loop) for i in range(CONCURRENCY)

@@ -4,6 +4,7 @@ TEST_RESULT_DIR="test-results"
 
 # TODO: add other tests
 
+mkdir -p "${TEST_RESULT_DIR}"
 for i in {1..4}; do
   echo "----- Runnig test ${i} golang cloud -----"
   ./run-perf-suite.sh &> "${TEST_RESULT_DIR}/test_go_c_${i}.txt"

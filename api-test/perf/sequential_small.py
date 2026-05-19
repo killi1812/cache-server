@@ -62,7 +62,7 @@ def main():
 
     hashes = [h for h in hashes if h]
     end_time = time.time()
-    print(f"Upload Phase Finished in {end_time - start_time:.2f}s")
+    print(f"Upload Phase Finished in {end_time - start_time:.5f}s")
 
     # 2. Parallel Download Phase (After all uploads)
     if hashes:
@@ -72,7 +72,10 @@ def main():
             futures = [executor.submit(download_worker, h) for h in hashes]
             results = [f.result() for f in concurrent.futures.as_completed(futures)]
         end_time = time.time()
+
+        successful = [r for r in results if r]
         print(f"Download Phase Finished in {end_time - start_time:.5f}s")
+        print(f"Final Score: {len(successful)}/{COUNT} successful.")
 
 
 if __name__ == "__main__":

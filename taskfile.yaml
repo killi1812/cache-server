@@ -82,7 +82,7 @@ tasks:
     description: start poroject test enviroment
     cmds:
       # - cmd: docker compose up -d {{.CLI_ARGS}}
-      - cmd: ./bin/cache-server -c ./cache-server.conf listen
+      - cmd: ./bin/cache-server listen
       - cmd: ./bin/cache-server cache start test
     silent: true
 
