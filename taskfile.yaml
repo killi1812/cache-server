@@ -13,7 +13,7 @@ tasks:
     silent: false
 
   dev:
-    description: build project binary for development
+    desc: build project binary for development
     cmds:
       - task: lint
       - task: build-int
@@ -22,7 +22,7 @@ tasks:
     silent: true
 
   build-int:
-    description: build project binary
+    desc: build project binary
     vars:
       VERSION:
         sh: git describe --tags --always --abbrev=0 --match='v[0-9]*.[0-9]*.[0-9]*' 2> /dev/null | sed 's/^.//'
@@ -39,7 +39,7 @@ tasks:
     internal: true
 
   build:
-    description: build a project
+    desc: build a project
     vars:
       BUILD: "prod"
     cmds:
@@ -49,7 +49,7 @@ tasks:
     silent: true
 
   install:
-    description: install project as your local binary
+    desc: install project as your local binary
     cmds:
       - task: build
       - cmd: echo "Generating completions"
@@ -66,20 +66,20 @@ tasks:
 
   test:
     dir: "{{.CODE_DIR}}"
-    description: run project tests
+    desc: run project tests
     cmd: go test -v -count=1 -parallel 10 ./...
     silent: true
 
   coverage:
     dir: "{{.CODE_DIR}}"
-    description: creates project coverage file
+    desc: creates project coverage file
     cmds:
       - cmd: go test -coverprofile=../coverage.out ./...
       - cmd: go tool cover -html=../coverage.out
     silent: true
 
   start:
-    description: start poroject test enviroment
+    desc: start project development environment
     cmds:
       # - cmd: docker compose up -d {{.CLI_ARGS}}
       - cmd: ./bin/cache-server listen
@@ -87,7 +87,7 @@ tasks:
     silent: true
 
   stop:
-    description: stop poroject development enviroment
+    desc: stop project development environment
     cmds:
       # - cmd: docker compose down {{.CLI_ARGS}}
       - cmd: ./bin/cache-server stop
@@ -95,7 +95,7 @@ tasks:
     silent: true
 
   lint:
-    description: Run linters and formatters
+    desc: Run linters and formatters
     dir: "{{.CODE_DIR}}"
     cmds:
       - cmd: go vet

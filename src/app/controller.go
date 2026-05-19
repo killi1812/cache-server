@@ -24,7 +24,6 @@ type CreateGinApi interface {
 //	@Produce		json
 //	@Success		200	{object}
 //	@Router			/version [get]
-
 func VersionHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"version":    Version,

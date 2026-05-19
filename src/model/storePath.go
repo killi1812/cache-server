@@ -12,7 +12,7 @@ type StorePath struct {
 	NarHash     string `gorm:"type:text" json:"narHash"`
 	NarSize     int64  `json:"narSize"`
 	Deriver     string `gorm:"type:text" json:"deriver"`
-	References  string `gorm:"type:text" json:"references"` // Stored as a string (serialized)
+	References  string `gorm:"type:text" json:"references"`
 
 	// BinaryCacheId uint         `json:"binarycacheId"`
 	// BinaryCache   *BinaryCache `json:"-"`

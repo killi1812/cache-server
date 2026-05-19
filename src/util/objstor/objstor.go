@@ -13,7 +13,6 @@ type ObjectStorage interface {
 	WriteFile(cachename, name string, file io.Reader, size int64) error
 	CreatFile(cachename, filename string) error
 	RenameFile(cachename, oldName, newName string) error
-
 	DeleteFile(cachename, name string) error
 	ReadFile(cachename, name string) (io.ReadCloser, error)
 	Stat(cachename, name string) (int64, error)

@@ -39,7 +39,7 @@ type BinaryCache struct {
 	Port      int               `gorm:"unique" json:"port"`
 	Retention int               `json:"retention"`
 	PublicKey string            `gorm:"type:text" json:"publicKey"`
-	SecretKey string            `gorm:"type:text" json:"-"` // Not serialized
+	SecretKey string            `gorm:"type:text" json:"-"`
 
 	StorePaths []StorePath `gorm:"foreignKey:BinaryCacheId;constraint:OnDelete:CASCADE;" json:"store_paths,omitempty"`
 	Workspaces []Workspace `gorm:"foreignKey:BinaryCacheId;constraint:OnDelete:SET NULL;" json:"workspaces,omitempty"`

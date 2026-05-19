@@ -7,7 +7,7 @@ type Agent struct {
 	ID    uint      `gorm:"primarykey" json:"-"`
 	Uuid  uuid.UUID `gorm:"type:uuid;unique;not null" json:"id"`
 	Name  string    `gorm:"type:text;unique;not null" json:"name"`
-	Token string    `gorm:"type:text;not null" json:"-"` // not serialized agent token
+	Token string    `gorm:"type:text;not null" json:"-"`
 
 	WorkspaceId uint       `json:"-"`
 	Workspace   *Workspace `gorm:"foreignKey:WorkspaceId;constraint:OnUpdate:CASCADE;" json:"-"`
