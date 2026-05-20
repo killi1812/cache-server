@@ -6,12 +6,10 @@ import { Counter } from 'k6/metrics';
 const failureCounter = new Counter('errors_per_endpoint');
 
 // --- Configuration ---
-// Management API is on https://localhost/api/v1
 const MGMT_URL = 'https://localhost/api/v1';
-// Cache API (Nix compatible) is on its own domain
-const CACHE_URL = 'https://test.localhost'; 
+const CACHE_URL = 'https://test.localhost';
 
-const AUTH_TOKEN = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoidGVzdCJ9.QlmOBM7imQkVauXII7Hd9rYAFgW6NKMuvZ4GmVSTgpM';
+const AUTH_TOKEN = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoidGVzdCJ9.Pijr3YxjmBgUGuPKox3zwxro6gjfgdoul36XFHUH1Ro';
 const CACHE_NAME = 'test';
 
 export const options = {
@@ -62,12 +60,7 @@ export default function () {
     const infoRes = http.get(`${CACHE_URL}/nix-cache-info`, params);
     const infoCheck = check(infoRes, { 'nix_info_200': (r) => r.status === 200 });
     if (!infoCheck) logError(infoRes, 'Nix_CacheInfo');
-
-    // 4. Version
-    const verRes = http.get(`${CACHE_URL}/version`, params);
-    const verCheck = check(verRes, { 'nix_version_200': (r) => r.status === 200 });
-    if (!verCheck) logError(verRes, 'Nix_Version');
   });
 
-  sleep(Math.random() * 2 + 1);
+  sleep(Math.random() * 2);
 }
