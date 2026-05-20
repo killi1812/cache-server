@@ -14,10 +14,14 @@ const CACHE_NAME = 'test';
 
 export const options = {
   stages: [
-    { duration: '30s', target: 20 },
-    { duration: '1m', target: 20 },
-    { duration: '30s', target: 50 },
-    { duration: '1m', target: 50 },
+    { duration: '30s', target: 200 },
+    { duration: '1m', target: 200 },
+    { duration: '30s', target: 500 },
+    { duration: '1m', target: 500 },
+    { duration: '30s', target: 1000 },
+    { duration: '1m', target: 1000 },
+    { duration: '30s', target: 2000 },
+    { duration: '1m', target: 2000 },
     { duration: '30s', target: 0 },
   ],
   thresholds: {
@@ -62,5 +66,5 @@ export default function () {
     if (!infoCheck) logError(infoRes, 'Nix_CacheInfo');
   });
 
-  sleep(Math.random() * 2);
+  sleep(Math.random() * 1);
 }
