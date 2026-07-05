@@ -31,7 +31,7 @@ services:
     volumes:
       - minio_data:/data
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9000/minio/health/live"]
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       start_period: 2s
       interval: 1s
       retries: 5
@@ -54,7 +54,7 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:12345/api/v1/version"]
+      test: ["CMD", "curl", "-f", "http://localhost:12345/api/v1/version"]
       start_period: 2s
       interval: 1s
       retries: 5
@@ -77,7 +77,7 @@ services:
       cache-server:
         condition: service_started
     healthcheck:
-      test: ["CMD", "sh", "-c", "wget --spider http://localhost:23455/version 2>&1 | grep -qE '200 OK|401 Unauthorized'"]
+      test: ["CMD", "sh", "-c", "curl -s -o /dev/null -w '%{http_code}' http://localhost:23455/version | grep -qE '200|401'"]
       start_period: 2s
       interval: 1s
       retries: 5
