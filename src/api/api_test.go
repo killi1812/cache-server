@@ -210,6 +210,12 @@ func (suite *ApiTestSuite) TestMultipartNarCompletion() {
 		s.Create(service.CreateCacheArgs{Name: "c-multipart", Port: 9003, Token: "t3"})
 	})
 	narUuid := "00000000-0000-0000-0000-000000000001"
+
+	// Create placeholder file on disk so RenameFile succeeds
+	cacheDir := filepath.Join(config.Config.CacheServer.CacheDir, "c-multipart")
+	os.MkdirAll(cacheDir, 0755)
+	os.WriteFile(filepath.Join(cacheDir, narUuid+".nar.xz"), []byte("placeholder"), 0644)
+
 	completeReq := map[string]any{
 		"narInfoCreate": map[string]any{
 			"cStoreHash": "hash-mp", "cStoreSuffix": "suffix-mp", "cNarHash": "narhash-mp",

@@ -32,14 +32,14 @@ func ParseBinaryCacheAccess(str string) BinaryCacheAccess {
 type BinaryCache struct {
 	gorm.Model
 	Uuid      uuid.UUID         `gorm:"type:uuid;unique;not null"`
-	Name      string            `gorm:"type:text;unique;not null" json:"name"`
-	URL       string            `gorm:"type:text;not null" json:"url"`
-	Token     string            `gorm:"type:text;not null" json:"token,omitempty"`
-	Access    BinaryCacheAccess `gorm:"type:text" json:"access"`
+	Name      string            `gorm:"size:255;unique;not null" json:"name"`
+	URL       string            `gorm:"size:2048;not null" json:"url"`
+	Token     string            `gorm:"size:4096;not null" json:"token,omitempty"`
+	Access    BinaryCacheAccess `gorm:"size:255" json:"access"`
 	Port      int               `gorm:"unique" json:"port"`
 	Retention int               `json:"retention"`
-	PublicKey string            `gorm:"type:text" json:"publicKey"`
-	SecretKey string            `gorm:"type:text" json:"-"`
+	PublicKey string            `gorm:"size:2048" json:"publicKey"`
+	SecretKey string            `gorm:"size:2048" json:"-"`
 
 	StorePaths []StorePath `gorm:"foreignKey:BinaryCacheId;constraint:OnDelete:CASCADE;" json:"store_paths,omitempty"`
 	Workspaces []Workspace `gorm:"foreignKey:BinaryCacheId;constraint:OnDelete:SET NULL;" json:"workspaces,omitempty"`

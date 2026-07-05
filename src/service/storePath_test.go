@@ -42,7 +42,7 @@ func TestGenerateNarInfo(t *testing.T) {
 		"FileSize: 37364",
 		"NarHash: sha256:1p4a6kwhz5h1ppcqc5k10mgjbbqj55pzwr98d68n048yrqs3bj5s",
 		"NarSize: 191640",
-		"References: ffgmyxfrc3v77azm9g8lix2kp3rcf443 j193mfi0f921y0kfs8vjc1znnr45ispv",
+		"References: ffgmyxfrc3v77azm9g8lix2kp3rcf443-testhello j193mfi0f921y0kfs8vjc1znnr45ispv-glibc-2.40-66",
 		"Deriver: zcxchykc7js9mcb4nq58283sddh5qr48-testhello.drv",
 	}
 

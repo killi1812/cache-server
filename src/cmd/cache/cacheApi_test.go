@@ -93,7 +93,7 @@ func TestSocketApi(t *testing.T) {
 	t.Run("Download NAR", func(t *testing.T) {
 		// 1. Create a dummy file in the "storage"
 		storageDir := config.Config.CacheServer.CacheDir
-		fileName := "dummyhash"
+		fileName := "dummyhash.nar.xz"
 		content := []byte("dummy nar content")
 
 		// Ensure directory exists
@@ -103,7 +103,7 @@ func TestSocketApi(t *testing.T) {
 
 		w := httptest.NewRecorder()
 		// New path format requires .nar.<extension>
-		req, _ := http.NewRequest("GET", "/nar/"+fileName+".nar.xz", nil)
+		req, _ := http.NewRequest("GET", "/nar/"+fileName, nil)
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
@@ -160,7 +160,7 @@ func TestSocketApi(t *testing.T) {
 		assert.Equal(t, http.StatusCreated, w.Code)
 
 		// Verify file exists in storage
-		storagePath := filepath.Join(config.Config.CacheServer.CacheDir, cache.Name, "uploadhash")
+		storagePath := filepath.Join(config.Config.CacheServer.CacheDir, cache.Name, "uploadhash.nar.xz")
 		_, err := os.Stat(storagePath)
 		assert.NoError(t, err)
 
