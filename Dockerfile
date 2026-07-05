@@ -21,7 +21,7 @@ FROM alpine:latest
 
 # Install runtime dependencies
 # nix is required for agent-node to perform nix-store operations
-RUN apk add --no-cache ca-certificates nix
+# RUN apk add --no-cache ca-certificates nix
 
 WORKDIR /app
 

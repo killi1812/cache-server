@@ -33,7 +33,7 @@ services:
     networks:
       - cache-local
 
-  mgmt-server:
+  cache-server:
     build:
       context: .
       dockerfile: Dockerfile
@@ -42,7 +42,7 @@ services:
       - "12345:12345" # Management API
       - "54321:54321" # Deploy/WS Port
     volumes:
-      - ./cache-server.conf:/app/cache-server.conf
+      - ./server.conf:/app/cache-server.conf
       - cache_storage:/app/binary-caches
     depends_on:
       db:
@@ -51,18 +51,22 @@ services:
       - cache-local
     command: ["listen", "-f"]
 
-  agent-node:
+  cache-test-node:
     build:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
+    ports:
+      - "23455:23455" # Cache test port
+    volumes:
+      - ./server.conf:/app/cache-server.conf:ro
+      - cache_storage:/app/binary-caches
     depends_on:
-      mgmt-server:
+      cache-server:
         condition: service_started
     networks:
       - cache-local
-    # Agent will be started by the test script after registration
-    entrypoint: ["tail", "-f", "/dev/null"]
+    command: ["cache", "start", "test", "-f"]
 
 networks:
   cache-local:
