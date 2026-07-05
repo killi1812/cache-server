@@ -20,8 +20,7 @@ RUN CGO_ENABLED=1 GOOS=linux go build -o cache-server main.go
 FROM alpine:latest
 
 # Install runtime dependencies
-# nix is required for agent-node to perform nix-store operations
-# RUN apk add --no-cache ca-certificates nix
+RUN apk add --no-cache ca-certificates curl
 
 WORKDIR /app
 
