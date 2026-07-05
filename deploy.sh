@@ -26,7 +26,7 @@ else
   echo "Cache 'test' already exists. Skipping initialization."
 fi
 
-echo "Starting agent-node..."
-docker compose -f deploy.yaml up -d cache-test-node
+echo "Starting agent-node and caddy proxy..."
+docker compose -f deploy.yaml up -d cache-test-node caddy
 
 echo "Deployment complete!"
