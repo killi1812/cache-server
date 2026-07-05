@@ -1,6 +1,9 @@
 #!/bin/sh
 set -e
 
+echo "Building all docker images..."
+docker compose -f deploy.yaml build
+
 echo "Starting database and minio..."
 docker compose -f deploy.yaml up -d db minio
 
