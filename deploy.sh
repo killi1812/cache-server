@@ -1,10 +1,13 @@
 #!/bin/sh
 set -e
 
-echo "Starting database and management server..."
-docker compose -f deploy.yaml up -d db cache-server
+echo "Starting database and minio..."
+docker compose -f deploy.yaml up -d db minio
 
-echo "Waiting for management server to be ready..."
+echo "Starting cache-server..."
+docker compose -f deploy.yaml up -d cache-server
+
+echo "Waiting for cache-server to be ready..."
 until docker compose -f deploy.yaml exec -T cache-server ./cache-server -c cache-server.conf cache list > /dev/null 2>&1; do
   sleep 1
 done
