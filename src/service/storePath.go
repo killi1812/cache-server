@@ -81,10 +81,12 @@ func (s *StorePathSrv) GenerateNarInfo(p *model.StorePath, privateKey string) (s
 	}
 	zap.S().Debugf("Full paths : %v", fullPaths)
 
-	cleanHash := strings.TrimPrefix(p.NarHash, "sha256:")
-	zap.S().Debugf("CleanNarHash: %s", cleanHash)
+	narHash := p.NarHash
+	if !strings.HasPrefix(narHash, "sha256:") {
+		narHash = "sha256:" + narHash
+	}
 	fingerprint := fmt.Sprintf("1;/nix/store/%s-%s;%s;%d;%s",
-		p.StoreHash, p.StoreSuffix, cleanHash, p.NarSize, strings.Join(fullPaths, ","))
+		p.StoreHash, p.StoreSuffix, narHash, p.NarSize, strings.Join(fullPaths, ","))
 	zap.S().Debugf("Fingerprint : %v", fingerprint)
 
 	// Signing logic
