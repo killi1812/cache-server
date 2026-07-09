@@ -66,7 +66,7 @@ func (c *CacheSrv) Create(args CreateCacheArgs) (*model.BinaryCache, error) {
 		PublicKey: pubStr,
 		SecretKey: privStr,
 
-		URL: fmt.Sprintf("http://%s.%s", args.Name, config.Config.CacheServer.Hostname),
+		URL: fmt.Sprintf("https://%s.%s", args.Name, config.Config.CacheServer.Hostname),
 	}
 
 	if err := c.db.Create(&cache).Error; err != nil {
