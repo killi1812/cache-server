@@ -33,7 +33,7 @@
 }
 
 # --- Virtual Host 2: Test App ---
-test.192.168.1.113, test.localhost, test.192.168.1.113.nip.io,test.cache-server.francvok.from.hr {
+test.192.168.1.113, test.localhost, test.192.168.1.113.nip.io, test.cache-server.francvok.from.hr {
     
     reverse_proxy cache-test-node:23455 {
         header_up Host {host}
