@@ -21,6 +21,7 @@ services:
 
   minio:
     image: minio/minio
+    restart: always
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -90,8 +91,8 @@ services:
     image: caddy:latest
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - "8042:80"
+      - "8043:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
