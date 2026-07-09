@@ -1,9 +1,6 @@
-# --- Virtual Host 1: localhost / IP ---
-192.168.1.113, localhost, test.cache-server.francvok.from.hr {
-    # Caddy automatically redirects HTTP (80) to HTTPS (443) 
-    # and manages local certificates for localhost and IP.
-    # tls internal
-
+# --- Virtual Host 1: Main App ---
+192.168.1.113, localhost, cache-server.francvok.from.hr {
+    
     @special_paths {
         path /ws* /api/v1/deploy/log/*
     }
@@ -12,6 +9,7 @@
     reverse_proxy @special_paths cache-server:54321 {
         header_up Host {host}
         header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-Proto "https"
         header_up Connection "Upgrade"
         header_up Upgrade "websocket"
         
@@ -25,6 +23,7 @@
     reverse_proxy cache-server:12345 {
         header_up Host {host}
         header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-Proto "https"
 
         transport http {
             read_timeout 36000s
@@ -33,14 +32,13 @@
     }
 }
 
-# --- Virtual Host 2: test.localhost / test.192.168.1.113 ---
-test.192.168.1.113, test.localhost, test.192.168.1.113.nip.io, test.cache-server.francvok.from.hr {
-    # Also handles automatic HTTPS via internal CA
-    # tls internal
-
+# --- Virtual Host 2: Test App ---
+test.192.168.1.113, test.localhost, test.192.168.1.113.nip.io,test.cache-server.francvok.from.hr {
+    
     reverse_proxy cache-test-node:23455 {
         header_up Host {host}
         header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-Proto "https"
 
         transport http {
             read_timeout 36000s
