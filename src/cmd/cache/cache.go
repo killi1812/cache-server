@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/killi1812/go-cache-server/app"
-	"github.com/killi1812/go-cache-server/config"
 	"github.com/killi1812/go-cache-server/model"
 	"github.com/killi1812/go-cache-server/service"
 	"github.com/killi1812/go-cache-server/util/auth"
@@ -310,7 +309,7 @@ func start(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	addr := fmt.Sprintf("%s:%d", config.Config.CacheServer.Hostname, cache.Port)
+	addr := fmt.Sprintf("0.0.0.0:%d", cache.Port)
 	if foreground {
 		zap.S().Infof("Starting server in foreground")
 

@@ -54,8 +54,8 @@ func listen(cmd *cobra.Command, args []string) error {
 }
 
 func createApis() map[string]app.CreateGinApi {
-	mgmtAddr := fmt.Sprintf("%s:%d", config.Config.CacheServer.Hostname, config.Config.CacheServer.ServerPort)
-	deployAddr := fmt.Sprintf("%s:%d", config.Config.CacheServer.Hostname, config.Config.CacheServer.DeployPort)
+	mgmtAddr := fmt.Sprintf("0.0.0.0:%d", config.Config.CacheServer.ServerPort)
+	deployAddr := fmt.Sprintf("0.0.0.0:%d", config.Config.CacheServer.DeployPort)
 
 	zap.S().Debugf("Mapping Management API to %s", mgmtAddr)
 	zap.S().Debugf("Mapping Deploy API to %s", deployAddr)

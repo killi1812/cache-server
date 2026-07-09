@@ -100,6 +100,7 @@ spec="{
     }
 }"
 echo "$spec" > deploy.json
+rm -f /nix/var/nix/profiles/system*
 nix-store --delete $path
 cachix -v deploy agent $agent &
 pid=$!

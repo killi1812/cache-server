@@ -1,5 +1,5 @@
 # --- Virtual Host 1: Main App ---
-192.168.1.113, localhost, cache-server.francvok.from.hr {
+192.168.1.113, localhost, http://cache-server.francvok.from.hr {
     
     @special_paths {
         path /ws* /api/v1/deploy/log/*
